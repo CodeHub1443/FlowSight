@@ -27,7 +27,7 @@ import {
   PresignSchema,
   ProductivityResponseSchema,
   ReplayResponseSchema,
-  ReportResponseSchema,
+  ReportSchema,
   RosterAssignmentSchema,
   SeriesSchema,
   ShiftsConfigSchema,
@@ -124,6 +124,21 @@ const hygieneRow = {
   ratePct: 0.4,
 };
 const kpi = siteState.kpi;
+const reportBay = {
+  bay: 'B02',
+  casesOut: 2410,
+  casesIn: 380,
+  trucks: 9,
+  avgTatMin: null,
+  beltSec: { runningLoaded: 1, runningEmpty: 2, stopped: 3, noTruck: 4, offline: 0 },
+  damaged: 1,
+  openTape: 0,
+  tornSack: 0,
+  wetStained: 0,
+  fallOff: 0,
+  ppe: 3,
+  detentions: 1,
+};
 
 type Sample = {
   name: string;
@@ -300,21 +315,33 @@ const samples: Sample[] = [
   {
     name: 'Leaderboard',
     schema: LeaderboardResponseSchema,
-    value: { period: 'shift', from: T, to: T, rows: [row], weights: { throughput: 0.4 } },
+    value: {
+      period: 'shift',
+      from: T,
+      to: T,
+      rows: [row],
+      weights: { throughput: 0.4, tat: 0.2, damage: 0.15, compliance: 0.15, idle: 0.1 },
+    },
     bad: { path: ['period'], value: 'year' },
   },
   {
     name: 'Report',
-    schema: ReportResponseSchema,
+    schema: ReportSchema,
     value: {
+      kind: 'shift',
+      site: 'dhk-depot',
+      businessDay: '2026-10-24',
+      shiftId: 'B',
+      from: T,
+      to: T,
       kpi,
-      bays: [{ bay: 'B02' }],
+      bays: [reportBay],
       captains: [row],
       visits: [visit],
       topEvents: [eventWithStatus],
-      sku: [],
+      sku: [{ sku: 'RIN-PB-1KG', name: null, pack: 'SACK', count: 5, avgConf: 0.9 }],
     },
-    bad: { path: ['kpi', 'casesOut'], value: 'many' },
+    bad: { path: ['bays', 0, 'beltSec', 'offline'], value: REMOVE },
   },
   {
     name: 'Replay',
@@ -440,6 +467,53 @@ describe.each(samples)('REST $name', ({ schema, value, bad }) => {
 
   it('rejects an invalid variant', () => {
     expect(schema.safeParse(mutate(value, bad.path, bad.value)).success).toBe(false);
+  });
+});
+
+describe('REST contract v1 clarifications', () => {
+  const sec = { runningLoaded: 1, runningEmpty: 2, stopped: 3, noTruck: 4, offline: 0 };
+
+  it('leaderboard weights need exactly the five score parts', () => {
+    const w = { throughput: 1, tat: 1, damage: 1, compliance: 1, idle: 1 };
+    const ok = { period: 'day', from: T, to: T, rows: [], weights: w };
+    expect(LeaderboardResponseSchema.safeParse(ok).success).toBe(true);
+    expect(
+      LeaderboardResponseSchema.safeParse(mutate(ok, ['weights', 'idle'], REMOVE)).success,
+    ).toBe(false);
+    expect(LeaderboardResponseSchema.safeParse(mutate(ok, ['from'], '2026-10-24')).success).toBe(
+      false,
+    );
+  });
+
+  it('SkuRow pack is the pack enum; belt interval status is a BeltStatus', () => {
+    const sku = {
+      rows: [{ sku: 'X', name: null, pack: 'BAG', count: 1, avgConf: 0.5 }],
+      unknownSharePct: 0,
+    };
+    expect(SkuAnalyticsResponseSchema.safeParse(sku).success).toBe(false);
+    const util = {
+      bays: [{ bay: 'B02', sec, intervals: [{ status: 'PAUSED', start: T, end: T }] }],
+    };
+    expect(BeltUtilisationResponseSchema.safeParse(util).success).toBe(false);
+  });
+
+  it('Report kind is shift or daily, shiftId may be null', () => {
+    const r = {
+      kind: 'daily',
+      site: 'dhk-depot',
+      businessDay: '2026-10-24',
+      shiftId: null,
+      from: T,
+      to: T,
+      kpi,
+      bays: [],
+      captains: [],
+      visits: [],
+      topEvents: [],
+      sku: [],
+    };
+    expect(ReportSchema.safeParse(r).success).toBe(true);
+    expect(ReportSchema.safeParse(mutate(r, ['kind'], 'weekly')).success).toBe(false);
   });
 });
 

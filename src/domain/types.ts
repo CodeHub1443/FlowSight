@@ -10,6 +10,7 @@ import type {
   CaseFlagSchema,
   DoorStatusSchema,
   EventStatusSchema,
+  LeaderboardPeriodSchema,
   PackTypeSchema,
   RoleSchema,
   SeveritySchema,
@@ -24,6 +25,7 @@ export type Severity = z.infer<typeof SeveritySchema>;
 export type DoorStatus = z.infer<typeof DoorStatusSchema>;
 export type BeltStatus = z.infer<typeof BeltStatusSchema>;
 export type BeltDirection = z.infer<typeof BeltDirectionSchema>;
+export type Period = z.infer<typeof LeaderboardPeriodSchema>;
 export type VisitPhase = z.infer<typeof VisitPhaseSchema>;
 export type CameraStatus = z.infer<typeof CameraStatusSchema>;
 export type CameraRole = z.infer<typeof CameraRoleSchema>;
@@ -74,7 +76,10 @@ export type ProductivityResponse = z.infer<typeof S.ProductivityResponseSchema>;
 export type PeopleResponse = z.infer<typeof S.PeopleResponseSchema>;
 export type CameraUptimeResponse = z.infer<typeof S.CameraUptimeResponseSchema>;
 export type LeaderboardResponse = z.infer<typeof S.LeaderboardResponseSchema>;
-export type ReportResponse = z.infer<typeof S.ReportResponseSchema>;
+export type Report = z.infer<typeof S.ReportSchema>;
+export type ReportBayRow = z.infer<typeof S.ReportBayRowSchema>;
+export type SkuRow = z.infer<typeof S.SkuRowSchema>;
+export type BeltSec = z.infer<typeof S.BeltSecSchema>;
 export type ReplayResponse = z.infer<typeof S.ReplayResponseSchema>;
 
 export type ShiftWindow = z.infer<typeof S.ShiftWindowSchema>;

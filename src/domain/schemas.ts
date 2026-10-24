@@ -78,44 +78,69 @@ export const SiteStateSchema = z.object({
     trucksWaiting: CountSchema,
     baysRunning: CountSchema,
     baysTotal: CountSchema,
-    avgTatMin: NonNegSchema,
+    // null until a visit has finished
+    avgTatMin: NonNegSchema.nullable(),
     avgTatDeltaMin: z.number().nullable(),
-    complianceScore: PctSchema,
+    // null until something has been evaluated
+    complianceScore: PctSchema.nullable(),
     openAlerts: z.object({ info: CountSchema, warn: CountSchema, critical: CountSchema }),
   }),
 });
 
 // 3.2 BayState
-const bayVisitSchema = z.object({
-  visitId: VisitIdSchema,
-  plate: z.object({ bn: z.string(), en: z.string(), conf: ConfSchema }),
-  agency: LangSchema,
-  phase: VisitPhaseSchema,
-  arrivedAt: IsoTsSchema,
-  dockedAt: IsoTsSchema.nullable(),
-  startedAt: IsoTsSchema.nullable(),
-  finishedAt: IsoTsSchema.nullable(),
-  departedAt: IsoTsSchema.nullable(),
-  casesIn: CountSchema,
-  casesOut: CountSchema,
-  expected: CountSchema.nullable(),
-  etaMin: NonNegSchema,
-  etaSource: EtaSourceSchema,
-  damage: CountSchema,
-  openTape: CountSchema,
-  tornSack: CountSchema,
-  fallOff: CountSchema,
-  skuTop: z.array(z.object({ sku: SkuCodeSchema, count: CountSchema, conf: ConfSchema })),
+// The five belt states, in seconds. BayState.belt.shiftSec and the belt-utilisation response share these keys.
+export const BeltSecSchema = z.object({
+  runningLoaded: NonNegSchema,
+  runningEmpty: NonNegSchema,
+  stopped: NonNegSchema,
+  noTruck: NonNegSchema,
+  offline: NonNegSchema,
 });
 
-const bayCaptainSchema = z.object({
-  present: z.boolean(),
-  trackId: TrackIdSchema,
-  employeeId: EmployeeIdSchema,
-  // null for users not permitted to see names (and on NATS unless the site setting showCaptainNames is true)
-  name: LangSchema.nullable(),
-  idSource: CaptainIdSourceSchema,
-});
+const bayVisitSchema = z
+  .object({
+    visitId: VisitIdSchema,
+    plate: z.object({ bn: z.string(), en: z.string(), conf: ConfSchema }),
+    agency: LangSchema.nullable(),
+    phase: VisitPhaseSchema,
+    arrivedAt: IsoTsSchema,
+    dockedAt: IsoTsSchema.nullable(),
+    startedAt: IsoTsSchema.nullable(),
+    finishedAt: IsoTsSchema.nullable(),
+    departedAt: IsoTsSchema.nullable(),
+    casesIn: CountSchema,
+    casesOut: CountSchema,
+    expected: CountSchema.nullable(),
+    etaMin: NonNegSchema.nullable(),
+    etaSource: EtaSourceSchema,
+    damage: CountSchema,
+    openTape: CountSchema,
+    tornSack: CountSchema,
+    fallOff: CountSchema,
+    skuTop: z.array(z.object({ sku: SkuCodeSchema, count: CountSchema, conf: ConfSchema })),
+  })
+  .refine((v) => v.etaSource !== 'NONE' || v.etaMin === null, {
+    message: 'etaMin must be null when etaSource is NONE',
+    path: ['etaMin'],
+  });
+
+const bayCaptainSchema = z
+  .object({
+    present: z.boolean(),
+    trackId: TrackIdSchema.nullable(),
+    employeeId: EmployeeIdSchema.nullable(),
+    // null for users not permitted to see names (and on NATS unless the site setting showCaptainNames is true)
+    name: LangSchema.nullable(),
+    idSource: CaptainIdSourceSchema,
+  })
+  .refine((c) => c.present || c.trackId === null, {
+    message: 'trackId must be null when present is false',
+    path: ['trackId'],
+  })
+  .refine((c) => c.idSource !== 'UNCONFIRMED' || c.employeeId === null, {
+    message: 'employeeId must be null when idSource is UNCONFIRMED',
+    path: ['employeeId'],
+  });
 
 export const BayStateSchema = z.object({
   v: VersionSchema,
@@ -130,12 +155,7 @@ export const BayStateSchema = z.object({
     directionSource: DirectionSourceSchema,
     rateCpm: NonNegSchema,
     // Sums to seconds elapsed since SiteState.shift.start.
-    shiftSec: z.object({
-      runningLoaded: NonNegSchema,
-      runningEmpty: NonNegSchema,
-      stopped: NonNegSchema,
-      noTruck: NonNegSchema,
-    }),
+    shiftSec: BeltSecSchema,
   }),
   visit: bayVisitSchema.nullable(),
   crew: z.object({
@@ -155,7 +175,7 @@ export const BayStateSchema = z.object({
     casesOut: CountSchema,
     casesIn: CountSchema,
     trucks: CountSchema,
-    avgTatMin: NonNegSchema,
+    avgTatMin: NonNegSchema.nullable(),
     damage: CountSchema,
     fallOff: CountSchema,
     ppe: CountSchema,
@@ -164,7 +184,12 @@ export const BayStateSchema = z.object({
     cams: z.record(CameraIdSchema, CameraStatusSchema),
     lagMs: NonNegSchema,
   }),
-  alerts: z.object({ open: CountSchema, maxSev: SeveritySchema }),
+  alerts: z
+    .object({ open: CountSchema, maxSev: SeveritySchema.nullable() })
+    .refine((a) => a.open !== 0 || a.maxSev === null, {
+      message: 'maxSev must be null when open is 0',
+      path: ['maxSev'],
+    }),
 });
 
 // 3.3 ActorsFrame. No names or employee IDs; `act` has no PHONE / IDLE (privacy rule).
@@ -384,28 +409,24 @@ export const BeltUtilisationResponseSchema = z.object({
   bays: z.array(
     z.object({
       bay: BayIdSchema,
-      sec: z.object({
-        runningLoaded: NonNegSchema,
-        runningEmpty: NonNegSchema,
-        stopped: NonNegSchema,
-        noTruck: NonNegSchema,
-        offline: NonNegSchema,
-      }),
-      intervals: z.array(z.object({ status: z.string(), start: IsoTsSchema, end: IsoTsSchema })),
+      sec: BeltSecSchema,
+      intervals: z.array(
+        z.object({ status: BeltStatusSchema, start: IsoTsSchema, end: IsoTsSchema }),
+      ),
     }),
   ),
 });
 
+export const SkuRowSchema = z.object({
+  sku: SkuCodeSchema,
+  name: LangSchema.nullable(),
+  pack: PackTypeSchema,
+  count: CountSchema,
+  avgConf: ConfSchema,
+});
+
 export const SkuAnalyticsResponseSchema = z.object({
-  rows: z.array(
-    z.object({
-      sku: SkuCodeSchema,
-      name: LangSchema.nullable(),
-      pack: z.string(),
-      count: CountSchema,
-      avgConf: ConfSchema,
-    }),
-  ),
+  rows: z.array(SkuRowSchema),
   unknownSharePct: PctSchema,
 });
 
@@ -470,20 +491,44 @@ export const LeaderboardResponseSchema = z.object({
   from: IsoTsSchema,
   to: IsoTsSchema,
   rows: z.array(LeaderboardRowSchema),
-  weights: z.record(z.string(), z.number()),
+  weights: z.object({
+    throughput: z.number(),
+    tat: z.number(),
+    damage: z.number(),
+    compliance: z.number(),
+    idle: z.number(),
+  }),
 });
 
-// docs/03 section 4.2 types the report `bays` and `sku` elements as `{...}[]` without a shape; accept any object
-// until the contract defines them (reported as a contract ambiguity).
-const unspecifiedRowSchema = z.record(z.string(), z.unknown());
+export const ReportBayRowSchema = z.object({
+  bay: BayIdSchema,
+  casesOut: CountSchema,
+  casesIn: CountSchema,
+  trucks: CountSchema,
+  avgTatMin: NonNegSchema.nullable(),
+  beltSec: BeltSecSchema,
+  damaged: CountSchema,
+  openTape: CountSchema,
+  tornSack: CountSchema,
+  wetStained: CountSchema,
+  fallOff: CountSchema,
+  ppe: CountSchema,
+  detentions: CountSchema,
+});
 
-export const ReportResponseSchema = z.object({
+export const ReportSchema = z.object({
+  kind: z.enum(['shift', 'daily']),
+  site: SiteIdSchema,
+  businessDay: IsoDateSchema,
+  shiftId: z.string().min(1).nullable(),
+  from: IsoTsSchema,
+  to: IsoTsSchema,
   kpi: SiteStateSchema.shape.kpi,
-  bays: z.array(unspecifiedRowSchema),
+  bays: z.array(ReportBayRowSchema),
   captains: z.array(LeaderboardRowSchema),
   visits: z.array(VisitSchema),
   topEvents: z.array(WhEventWithStatusSchema),
-  sku: z.array(unspecifiedRowSchema),
+  sku: z.array(SkuRowSchema),
 });
 
 export const ReplayResponseSchema = z.object({

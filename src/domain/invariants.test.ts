@@ -15,6 +15,13 @@ describe('fixture invariants (docs/03)', () => {
     const bay = safeParseMessage('bayState', bayState);
     expect(site.ok && bay.ok).toBe(true);
     if (!site.ok || !bay.ok) return;
+    expect(Object.keys(bay.value.belt.shiftSec).sort()).toEqual([
+      'noTruck',
+      'offline',
+      'runningEmpty',
+      'runningLoaded',
+      'stopped',
+    ]);
     const sum = Object.values(bay.value.belt.shiftSec).reduce((a, b) => a + b, 0);
     const elapsed = secondsSince(site.value.shift.start, bay.value.ts);
     // The fixture rounds to whole seconds (21045 vs 21045.12).

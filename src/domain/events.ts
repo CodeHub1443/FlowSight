@@ -13,6 +13,7 @@ import {
   BayIdSchema,
   CameraIdSchema,
   EmployeeIdSchema,
+  ForkliftIdSchema,
   SiteIdSchema,
   SkuCodeSchema,
   TrackIdSchema,
@@ -39,7 +40,12 @@ const baseShape = {
   bay: BayIdSchema.nullable(),
   sev: SeveritySchema,
   title: LangSchema,
-  src: z.object({ cam: CameraIdSchema, model: z.string(), conf: ConfSchema }),
+  // null for events not produced by a camera model (e.g. system.pipeline_lag, truck.detention)
+  src: z.object({
+    cam: CameraIdSchema.nullable(),
+    model: z.string().nullable(),
+    conf: ConfSchema.nullable(),
+  }),
   refs: z.object({
     visitId: VisitIdSchema.nullable(),
     trackId: TrackIdSchema.nullable(),
@@ -157,7 +163,7 @@ export const EVENT_REGISTRY = [
     'critical',
     z.object({
       trackId: TrackIdSchema.nullable(),
-      forkliftId: TrackIdSchema,
+      forkliftId: ForkliftIdSchema,
       distM: NonNegSchema,
     }),
   ),
@@ -262,7 +268,7 @@ function toCtxIssues(issues: ParseIssue[], fallback: string) {
 }
 
 /** Schema form of {@link parseWhEvent}, for use inside Page<T>, snapshot and replay shapes. */
-export const WhEventSchema = z.unknown().transform((raw, ctx): WhEvent => {
+export const WhEventSchema = z.json().transform((raw, ctx): WhEvent => {
   const result = parseWhEvent(raw);
   if (result.ok) return result.value;
   for (const issue of toCtxIssues(result.error.issues, result.error.message)) {
@@ -282,7 +288,7 @@ const eventStatusFields = z.object({
 export type WhEventStatusFields = z.infer<typeof eventStatusFields>;
 export type WhEventWithStatus = WhEvent & WhEventStatusFields;
 
-export const WhEventWithStatusSchema = z.unknown().transform((raw, ctx): WhEventWithStatus => {
+export const WhEventWithStatusSchema = z.json().transform((raw, ctx): WhEventWithStatus => {
   const event = parseWhEvent(raw);
   const status = eventStatusFields.safeParse(raw);
   if (event.ok && status.success) return { ...event.value, ...status.data };
