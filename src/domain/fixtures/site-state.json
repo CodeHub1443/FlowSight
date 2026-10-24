@@ -1,0 +1,22 @@
+{
+  "v": 1,
+  "ts": "2026-10-24T19:50:45.120+06:00",
+  "site": "dhk-depot",
+  "businessDay": "2026-10-24",
+  "shift": { "id": "B", "start": "2026-10-24T14:00:00+06:00", "end": "2026-10-24T22:00:00+06:00" },
+  "kpi": {
+    "casesOut": 18240,
+    "casesIn": 3120,
+    "casesOutDeltaPct": 6.2,
+    "casesInDeltaPct": -3.1,
+    "trucksOnSite": 9,
+    "trucksDocked": 6,
+    "trucksWaiting": 3,
+    "baysRunning": 5,
+    "baysTotal": 7,
+    "avgTatMin": 63,
+    "avgTatDeltaMin": -4,
+    "complianceScore": 91,
+    "openAlerts": { "info": 4, "warn": 3, "critical": 0 }
+  }
+}

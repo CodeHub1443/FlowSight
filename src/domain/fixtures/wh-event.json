@@ -1,0 +1,27 @@
+{
+  "v": 1,
+  "id": "01M5Q2V6W0M9S346Q3D25VT4F5",
+  "ts": "2026-10-24T19:50:45.120+06:00",
+  "site": "dhk-depot",
+  "bay": "B02",
+  "category": "hygiene",
+  "type": "damaged",
+  "sev": "warn",
+  "title": { "en": "Damaged case on belt", "bn": "বেল্টে ক্ষতিগ্রস্ত কার্টন" },
+  "src": { "cam": "B02-BELT", "model": "hygiene-v1.2", "conf": 0.87 },
+  "refs": {
+    "visitId": "V-20261024-B02-0007",
+    "trackId": null,
+    "sku": "RIN-PB-1KG",
+    "plateEn": "DHAKA METRO-DA 11-2171"
+  },
+  "data": { "sku": "RIN-PB-1KG", "pack": "SACK" },
+  "media": {
+    "snapshotKey": "evidence/dhk-depot/2026-10-24/01M5Q2V6W0M9S346Q3D25VT4F5.jpg",
+    "clipKey": "evidence/dhk-depot/2026-10-24/01M5Q2V6W0M9S346Q3D25VT4F5.mp4",
+    "bbox": [412, 220, 180, 140],
+    "frameW": 1920,
+    "frameH": 1080
+  },
+  "pos": { "x": 0.2, "y": 3.5 }
+}

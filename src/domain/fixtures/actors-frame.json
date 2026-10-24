@@ -1,0 +1,48 @@
+{
+  "v": 1,
+  "ts": "2026-10-24T19:50:45.500+06:00",
+  "site": "dhk-depot",
+  "bay": "B02",
+  "actors": [
+    {
+      "id": "t-88",
+      "kind": "PERSON",
+      "role": "CAPTAIN",
+      "x": 1.8,
+      "y": 4.2,
+      "h": 1.57,
+      "act": "SCANNING",
+      "ppeOk": true
+    },
+    {
+      "id": "t-91",
+      "kind": "PERSON",
+      "role": "WORKER",
+      "x": -0.6,
+      "y": 5.0,
+      "h": 0.2,
+      "act": "HANDLING",
+      "ppeOk": true
+    },
+    {
+      "id": "t-95",
+      "kind": "PERSON",
+      "role": "WORKER",
+      "x": 2.4,
+      "y": 7.1,
+      "h": 3.1,
+      "act": "STATIONARY",
+      "ppeOk": false
+    },
+    {
+      "id": "f-2",
+      "kind": "FORKLIFT",
+      "role": "FORKLIFT_OP",
+      "x": 4.0,
+      "y": 11.5,
+      "h": -1.57,
+      "act": "CARRYING",
+      "ppeOk": null
+    }
+  ]
+}

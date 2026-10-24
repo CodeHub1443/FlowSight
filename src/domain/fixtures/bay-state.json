@@ -1,0 +1,65 @@
+{
+  "v": 1,
+  "ts": "2026-10-24T19:50:45.120+06:00",
+  "site": "dhk-depot",
+  "bay": "B02",
+  "door": { "status": "OPEN" },
+  "belt": {
+    "status": "RUNNING_LOADED",
+    "since": "2026-10-24T19:31:02+06:00",
+    "direction": "OUT",
+    "directionSource": "AUTO",
+    "rateCpm": 14.2,
+    "shiftSec": { "runningLoaded": 9800, "runningEmpty": 1410, "stopped": 3300, "noTruck": 6535 }
+  },
+  "visit": {
+    "visitId": "V-20261024-B02-0007",
+    "plate": { "bn": "ঢাকা মেট্রো-ড ১১-২১৭১", "en": "DHAKA METRO-DA 11-2171", "conf": 0.93 },
+    "agency": { "bn": "সিটি এক্সপ্রেস ট্রান্সপোর্ট", "en": "CITY EXPRESS TRANSPORT" },
+    "phase": "LOADING",
+    "arrivedAt": "2026-10-24T19:12:40+06:00",
+    "dockedAt": "2026-10-24T19:18:05+06:00",
+    "startedAt": "2026-10-24T19:31:02+06:00",
+    "finishedAt": null,
+    "departedAt": null,
+    "casesIn": 0,
+    "casesOut": 412,
+    "expected": null,
+    "etaMin": 13,
+    "etaSource": "HISTORICAL",
+    "damage": 1,
+    "openTape": 0,
+    "tornSack": 0,
+    "fallOff": 0,
+    "skuTop": [
+      { "sku": "RIN-PB-1KG", "count": 212, "conf": 0.91 },
+      { "sku": "UNKNOWN", "count": 9, "conf": 0 }
+    ]
+  },
+  "crew": {
+    "total": 6,
+    "captains": 1,
+    "workers": 4,
+    "forkliftOps": 1,
+    "captain": {
+      "present": true,
+      "trackId": "t-88",
+      "employeeId": "EMP-1043",
+      "name": { "en": "Md. Rahim Uddin", "bn": "মোঃ রহিম উদ্দিন" },
+      "idSource": "ROSTER+VEST"
+    },
+    "ppeViolationsNow": 0
+  },
+  "staging": { "occupancyPct": 62, "palletsWaiting": 3, "oldestWaitSec": 240 },
+  "today": {
+    "casesOut": 2410,
+    "casesIn": 380,
+    "trucks": 9,
+    "avgTatMin": 58,
+    "damage": 7,
+    "fallOff": 2,
+    "ppe": 3
+  },
+  "health": { "cams": { "B02-DOCK": "OK", "B02-CREW": "OK", "B02-BELT": "OK" }, "lagMs": 420 },
+  "alerts": { "open": 2, "maxSev": "warn" }
+}

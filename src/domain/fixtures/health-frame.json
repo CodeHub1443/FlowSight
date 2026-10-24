@@ -1,0 +1,20 @@
+{
+  "v": 1,
+  "ts": "2026-10-24T19:50:40+06:00",
+  "site": "dhk-depot",
+  "cams": [
+    {
+      "cam": "B01-DOCK",
+      "status": "OK",
+      "fps": 15.0,
+      "lastFrameAt": "2026-10-24T19:50:39.900+06:00"
+    },
+    {
+      "cam": "B01-CREW",
+      "status": "OK",
+      "fps": 15.0,
+      "lastFrameAt": "2026-10-24T19:50:39.880+06:00"
+    }
+  ],
+  "pipeline": { "lagMs": 380, "gpuPct": 71, "host": "gpu-tower-01" }
+}
