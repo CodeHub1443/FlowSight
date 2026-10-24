@@ -4,7 +4,7 @@
 
 - [x] 0 Baseline brief and plan
 - [x] 1 Scaffold
-- [ ] 2 Domain types and schemas
+- [x] 2 Domain types and schemas
 - [ ] 3 Mock simulator
 - [ ] 4 Stores and connection status
 - [ ] 5 App shell (2D)
@@ -102,3 +102,36 @@ Created: root config (`package.json`, `.npmrc`, `.nvmrc`, `.editorconfig`, Prett
 13. **Extra screenshots** `step-01-*-bn.png` show the Bangla state.
 14. **`dist/` host scan:** the built JS contains `http(s)://` strings, all inert: 26× `http://www.w3.org` (SVG/XML namespace identifiers), `react.dev/errors/`, `reactrouter.com`, `react.i18next.com` (text inside error/warning messages), `http://localhost` (base for `new URL`). No `index.html`/CSS references to external hosts, and no fetch, script or font loading from the internet.
 15. **Generated Playwright artefacts** (`test-results/`, `playwright-report/`) are ignored by `.gitignore`.
+
+## Step 2 log
+
+Baseline at start: `9ed9a16 step-01: scaffold`, tree clean. **A commit `7f1fda6 step-02: domain schemas + video reference frames` appeared mid-session (00:17, author = the user); it was not made by this session and it captured partial step-2 files. The working tree below is relative to that commit.** Nothing was committed by this session.
+
+Created: `src/domain/{enums,ids,primitives,result,siteConfig,schemas,events,validate,types,contractMap,testing}.ts`, `src/domain/index.ts` (barrel), `src/domain/fixtures/*.json` (7 files, one per docs/03 section 3 example, run through Prettier so whitespace differs but content is deep-equal to the doc), tests (`schemas`, `events`, `validate`, `siteConfig`, `invariants`, `api`), `src/lib/format.ts`, `src/lib/time.ts` (+ tests), `scripts/contract-check.mjs` (+ test), `package.json` script `contract:check`.
+
+Results: typecheck, lint, format:check, i18n:check, contract:check, build pass; 11 test files, 369 tests pass. `pnpm contract:check` validates 7 json blocks, 0 unmapped, and checks each equals its fixture.
+
+### Deviations and decisions
+
+1. **`shiftOf` and `shiftBounds` take a `businessDayStart` argument** (`shiftOf(ts, shifts, businessDayStart)`, `shiftBounds(date, shiftId, shifts, businessDayStart)`). The brief's signatures omit it, but the business day of the overnight shift C cannot be derived from the shifts alone. Both return `null` (not throw) for a gap or unknown id.
+2. **`formatPlate(plate)` has no `lang` parameter.** Bangla is primary and English secondary regardless of UI language (CLAUDE.md, docs/01 section 7), so a language argument would be unused. Returns `{ primary, secondary }`.
+3. **`formatDuration(sec, lang, digits?)`** has an optional third argument for the Latin/Bangla digit toggle; default follows the language. Minutes are truncated, not rounded.
+4. **`WhEventSchema` / `WhEventWithStatusSchema` are zod transforms** around `parseWhEvent`, so events validate inside `Page<T>`, snapshot and replay shapes with the registry's typed union as output. `WhEvent` is a discriminated union on `category` + `type` (narrowing gives a typed `data`).
+5. **Bay ids are validated by format `B\d{2}`**, not the range B01-B07 (site config is data, other sites may have more bays).
+6. **Free-text `note` fields in SiteConfig are optional**, all other config keys are required. Open vocabularies in the config (`roof.type`, `bayOrder`, `gate.position`, `facade.pattern`, ...) are plain strings because only one value is known.
+7. **`contract:check` loads the TypeScript schemas through Vite SSR** (`createServer` + `ssrLoadModule`) so no new dependency (tsx) is needed. It takes `--doc <path>` for tests. It takes about 5 s.
+8. **SiteState has no enum field**, so its "wrong enum" negative test uses a wrong type (string for a number).
+9. `src/domain/testing.ts` (mutation helper) is test-only support code under the owned scope.
+
+### Contract ambiguities (docs/03 not edited; literal reading implemented, easy to relax)
+
+- **3.2 `crew.captain.trackId`** is non-null in the schema, but `present: false` implies a captain with no track. Probably needs `nullable`.
+- **3.2 `visit.etaMin`** is non-null, but `etaSource: "NONE"` implies no ETA. Probably needs `nullable`.
+- **3.2 `alerts.maxSev`** is non-null, but with `open: 0` there is no severity. Probably needs `nullable`.
+- **3.1 `kpi.avgTatMin`** is non-null; only the three deltas are documented nullable. A shift with no finished trucks has no average.
+- **3.2 `belt.shiftSec`** has four keys and sums to elapsed time, while the 4.2 belt-utilisation `sec` has a fifth `offline` key. During `OFFLINE` the sum rule cannot hold.
+- **4.2 reports `bays: {...}[]` and `sku: {...}[]`** have no shape. Implemented as `Record<string, unknown>[]` placeholders (the only unvalidated parts of the contract); tighten once docs/03 defines them.
+- **4.2 leaderboard `from`/`to`** are untyped; implemented as ISO timestamps with offset.
+- **3.5 catalogue**: `ppe.violation.role` assumed to be the ActorRole enum; `compliance.forklift_proximity.forkliftId` assumed to be a track id (`f-n`); `src.cam` is required even for `system.pipeline_lag`; `refs` is treated as a non-null object with nullable members.
+- **docs/01 section 7 vs docs/03**: plate secondary `DHAKA METRO-D 11-2171` vs fixture `DHAKA METRO-DA 11-2171`. Cosmetic.
+- **4.1 `Visit.phase`** is `string` ("BayState.visit.phase enum"); implemented as the VisitPhase enum. **4.2 belt-utilisation `intervals[].status`** is `string`; left as a plain string.

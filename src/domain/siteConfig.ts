@@ -23,7 +23,11 @@ export const ThresholdsSchema = z.object({
 });
 
 /** A shift window: wall-clock `HH:mm` in the site time zone; `end <= start` means it crosses midnight. */
-export const ShiftWindowSchema = z.object({ id: z.string().min(1), start: HHmmSchema, end: HHmmSchema });
+export const ShiftWindowSchema = z.object({
+  id: z.string().min(1),
+  start: HHmmSchema,
+  end: HHmmSchema,
+});
 
 export const SiteConfigBaySchema = z.object({
   id: BayIdSchema,

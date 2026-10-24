@@ -27,7 +27,7 @@ import {
   NonNegSchema,
   VersionSchema,
 } from './primitives';
-import { failure, fromZod, issuesOf, type ParseIssue, type ParseResult } from './result';
+import { failure, failureFromZod, issuesOf, type ParseIssue, type ParseResult } from './result';
 
 // WhEvent, docs/03 section 3.5. One registry entry per catalogue row: `category.type`, default severity, `data` schema.
 
@@ -216,7 +216,7 @@ const envelope = z.object({ category: z.string(), type: z.string() });
 /** Validate one event. Unknown `category.type` is invalid (closed catalogue). Never throws. */
 export function parseWhEvent(raw: unknown): ParseResult<WhEvent> {
   const env = envelope.safeParse(raw);
-  if (!env.success) return fromZod(env);
+  if (!env.success) return failureFromZod(env.error);
   const { category, type } = env.data;
   const entry = EVENT_REGISTRY.find((e) => e.category === category && e.type === type);
   if (!entry) {
@@ -224,7 +224,8 @@ export function parseWhEvent(raw: unknown): ParseResult<WhEvent> {
       { path: 'type', message: `${category}.${type} is not in the event catalogue` },
     ]);
   }
-  return fromZod(entry.schema.safeParse(raw));
+  const result = entry.schema.safeParse(raw);
+  return result.success ? { ok: true, value: result.data } : failureFromZod(result.error);
 }
 
 /** NATS subject of an event: `wh.{site}.evt.{category}.{type}`. */

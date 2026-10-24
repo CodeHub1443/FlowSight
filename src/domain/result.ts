@@ -20,9 +20,16 @@ export function issuesOf(error: z.ZodError): ParseIssue[] {
   return error.issues.map((i) => ({ path: i.path.map(String).join('.'), message: i.message }));
 }
 
-export function fromZod<T>(result: z.ZodSafeParseResult<T>): ParseResult<T> {
-  if (result.success) return { ok: true, value: result.data };
-  const issues = issuesOf(result.error);
+export function failureFromZod(error: z.ZodError): { ok: false; error: ParseError } {
+  const issues = issuesOf(error);
   const first = issues[0];
-  return failure('SCHEMA', first ? `${first.path || '(root)'}: ${first.message}` : 'invalid', issues);
+  return failure(
+    'SCHEMA',
+    first ? `${first.path || '(root)'}: ${first.message}` : 'invalid',
+    issues,
+  );
+}
+
+export function fromZod<T>(result: z.ZodSafeParseResult<T>): ParseResult<T> {
+  return result.success ? { ok: true, value: result.data } : failureFromZod(result.error);
 }
