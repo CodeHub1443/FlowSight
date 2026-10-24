@@ -2,11 +2,13 @@
 
 ## Steps
 
+Per-step detail lives in `docs/progress/step-NN.md` (convention in [progress/README.md](progress/README.md)); only the main session edits this file.
+
 - [x] 0 Baseline brief and plan
 - [x] 1 Scaffold
 - [x] 2 Domain types and schemas
 - [ ] 3 Mock simulator
-- [ ] 4 Stores and connection status
+- [x] 4 Stores and connection status ([details](progress/step-04.md))
 - [ ] 5 App shell (2D)
 - [ ] 6 3D site (static)
 - [ ] 7 3D interior and actors
@@ -133,14 +135,14 @@ Results: typecheck, lint, format:check, i18n:check, contract:check, build pass; 
 - **4.2 reports `bays: {...}[]` and `sku: {...}[]`** have no shape. Implemented as `Record<string, unknown>[]` placeholders (the only unvalidated parts of the contract); tighten once docs/03 defines them.
 - **4.2 leaderboard `from`/`to`** are untyped; implemented as ISO timestamps with offset.
 - **3.5 catalogue**: `ppe.violation.role` assumed to be the ActorRole enum; `compliance.forklift_proximity.forkliftId` assumed to be a track id (`f-n`); `src.cam` is required even for `system.pipeline_lag`; `refs` is treated as a non-null object with nullable members.
-- **docs/01 section 7 vs docs/03**: plate secondary `DHAKA METRO-D 11-2171` vs fixture `DHAKA METRO-DA 11-2171`. Cosmetic.
+- **docs/01 section 7 vs docs/03**: plate secondary was `DHAKA METRO-D 11-2171` vs fixture `DHAKA METRO-DA 11-2171`. **Resolved:** docs/01 section 7 was updated to `DHAKA METRO-DA` in `90addca`; both documents now agree.
 - **4.1 `Visit.phase`** is `string` ("BayState.visit.phase enum"); implemented as the VisitPhase enum. **4.2 belt-utilisation `intervals[].status`** is `string`; left as a plain string.
 
 ## Step 2 revision: contract v1 clarifications
 
 Baseline: `90addca docs: contract v1 clarifications` (tree clean at start). Nothing committed by this session.
 
-**All Step 2 contract ambiguities listed above are resolved by `90addca`** (nullable `crew.captain.trackId`, `visit.etaMin`, `alerts.maxSev`, `kpi.avgTatMin`; 5-key `belt.shiftSec`; typed `Report`, `ReportBayRow`, `SkuRow`; leaderboard `from`/`to` and `weights`; `ppe.violation.role`; `forkliftId`; `BeltStatus` for belt intervals). Remaining non-issues from the earlier list (`refs` shape, plate example `DA` vs `D`) were not touched by the docs commit and are unchanged.
+**All Step 2 contract ambiguities listed above are resolved by `90addca`** (nullable `crew.captain.trackId`, `visit.etaMin`, `alerts.maxSev`, `kpi.avgTatMin`; 5-key `belt.shiftSec`; typed `Report`, `ReportBayRow`, `SkuRow`; leaderboard `from`/`to` and `weights`; `ppe.violation.role`; `forkliftId`; `BeltStatus` for belt intervals). The plate example is also resolved (docs/01 section 7 now reads `DHAKA METRO-DA`, matching docs/03). The `refs` shape was not touched by the docs commit and is unchanged.
 
 Changes: nullables per docs/03 (kpi `avgTatMin`/`complianceScore`, visit `agency`/`etaMin`, `today.avgTatMin`, `alerts.maxSev`, captain `trackId`/`employeeId`, event `src.cam`/`model`/`conf`); refinements (`etaSource` NONE => `etaMin` null, `alerts.open` 0 => `maxSev` null, `present` false => captain `trackId` null, `idSource` UNCONFIRMED => `employeeId` null) with positive and negative tests in `refinements.test.ts`; `BeltSecSchema` (5 keys) shared by BayState and belt-utilisation; new `SkuRowSchema`, `ReportBayRowSchema`, `ReportSchema` (replaces `ReportResponseSchema` and the `Record<string, unknown>` placeholder); types `Period`, `SkuRow`, `ReportBayRow`, `Report`, `BeltSec`; `ForkliftIdSchema` (`^f-\d+$`); `bay-state.json` fixture re-copied (others unchanged).
 

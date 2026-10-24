@@ -6,10 +6,13 @@ These prompts describe **what** to build. Each session is started with a task br
 that sets model, mode, effort, permissions and stop conditions. Commits happen only when a brief authorises them,
 using the message `step-NN: <title>`.
 
-**Parallel work (only after step 2 is reviewed and the contract is frozen):** steps 3 (simulator: `src/data/mock/**`, `src/data/msw/**`),
-5 (shell: `src/app/**`, `src/features/live/**`, `src/components/**`) and 6 (static 3D: `src/scene/**`) may run in separate
-worktrees with this file ownership. Shared files (`src/i18n/*.json`, `src/stores/**`, `src/domain/**`) stay with the main session;
-parallel sessions list the i18n keys they need in their final report instead of editing the shared files.
+**Parallel work (after step 4 is committed):** steps 3, 5 and 6 run in separate git worktrees with this ownership:
+- Step 3 simulator: `src/data/mock/**`, `src/data/msw/**`, `public/mockServiceWorker.js`, i18n namespace `mock`, `docs/progress/step-03.md`.
+- Step 5 shell: `src/features/live/**`, `src/components/common/**`, `src/app/AppShell.tsx` and new files under `src/app/shell/**`, namespace `live`, `docs/progress/step-05.md`.
+- Step 6 static 3D: `src/scene/**` only, exporting `<SceneRoot/>` from `src/scene/index.ts` and a dev preview route component in `src/scene/dev/ScenePreview.tsx`; namespace `scene`, `docs/progress/step-06.md`. The shell provides a `<SceneSlot/>`; neither session mounts the other's component.
+- Main session only: `src/domain/**`, `src/stores/**`, `src/data/DataSource.ts`, `src/data/index.ts`, `src/i18n/index.ts`, namespace `common`, `docs/PROGRESS.md`, `package.json`, lockfile, configs.
+  Parallel sessions report needed changes to these in their final report instead of editing them. New dependencies: stop and ask.
+- After merge the main session switches `createDataSource` from FixtureSource to MockSource and mounts `<SceneRoot/>` in `<SceneSlot/>`.
 
 ---
 

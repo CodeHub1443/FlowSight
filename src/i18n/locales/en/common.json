@@ -41,5 +41,25 @@
     "title": "Page not found",
     "body": "The page you asked for does not exist.",
     "back": "Back to live view"
+  },
+  "debug": {
+    "title": "Data pipe (dev)",
+    "status": "Status",
+    "mode": "Data mode",
+    "baysReceived": "Bays received",
+    "lastTs": "Last message",
+    "role": "Mock role",
+    "kind": "Message",
+    "received": "Received",
+    "dropped": "Dropped",
+    "kinds": {
+      "siteState": "Site state",
+      "bayState": "Bay state",
+      "actors": "Actors",
+      "case": "Cases",
+      "event": "Events",
+      "lifecycle": "Lifecycle",
+      "health": "Health"
+    }
   }
 }

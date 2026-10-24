@@ -89,7 +89,8 @@ REST via react-query hooks in `data/api/queries.ts`; MSW handlers in mock mode r
 - Exponential reconnect (1 s → 30 s). Show `degraded` if no state message for 10 s, `offline` after 30 s.
   A grey banner reads "Live data paused since 19:52 — reconnecting"; the 3D scene desaturates.
 - On reconnect: snapshot + event backfill. Dedupe events by `id` (ULID).
-- Per-bay staleness: if a bay's `ts` is > 15 s old, that bay renders with a hatched "no data" overlay (camera health
+- Per-bay staleness: if no message for a bay has been **received** for > 15 s (local receive time, not message `ts`,
+  so clock skew and simulator speed-up cannot fake staleness; `ts` still drives ordering), that bay renders with a hatched "no data" overlay (camera health
   usually explains why).
 
 ## 5. Security
