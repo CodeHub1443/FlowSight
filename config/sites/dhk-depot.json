@@ -1,0 +1,265 @@
+{
+  "id": "dhk-depot",
+  "name": {
+    "en": "Dhaka Central Sales Depot",
+    "bn": "ঢাকা সেন্ট্রাল সেলস ডিপো"
+  },
+  "org": "Unilever Bangladesh Limited",
+  "timezone": "Asia/Dhaka",
+  "geo": {
+    "lat": 23.8865795,
+    "lng": 90.4951055,
+    "note": "Dhaka City Bypass; geometry below is approximate from satellite, verify on site"
+  },
+  "units": "m",
+  "building": {
+    "footprint": {
+      "widthEW": 54,
+      "depthNS": 76
+    },
+    "eaveHeight": 14,
+    "roof": {
+      "type": "twin-gable",
+      "ridges": 2,
+      "ridgeAxis": "NS",
+      "pitchDeg": 8
+    },
+    "facade": {
+      "face": "S",
+      "pattern": "vertical-stripes",
+      "colors": [
+        "#1F36C7",
+        "#FFFFFF"
+      ],
+      "stripeWidth": 1.6,
+      "note": "physical paint colours (site data), not brand tokens"
+    },
+    "floorLevel": 1.2
+  },
+  "dockFaces": [
+    {
+      "face": "S",
+      "canopyDepth": 4,
+      "doorPitch": 6.5,
+      "door": {
+        "width": 3.2,
+        "height": 3.8
+      },
+      "bayOrder": "W_TO_E",
+      "bays": [
+        {
+          "id": "B01",
+          "label": {
+            "en": "Bay 1",
+            "bn": "বে ১"
+          },
+          "conveyor": "Conveyor-01",
+          "directionMode": "AUTO"
+        },
+        {
+          "id": "B02",
+          "label": {
+            "en": "Bay 2",
+            "bn": "বে ২"
+          },
+          "conveyor": "Conveyor-02",
+          "directionMode": "AUTO"
+        },
+        {
+          "id": "B03",
+          "label": {
+            "en": "Bay 3",
+            "bn": "বে ৩"
+          },
+          "conveyor": "Conveyor-03",
+          "directionMode": "AUTO"
+        },
+        {
+          "id": "B04",
+          "label": {
+            "en": "Bay 4",
+            "bn": "বে ৪"
+          },
+          "conveyor": "Conveyor-04",
+          "directionMode": "AUTO"
+        },
+        {
+          "id": "B05",
+          "label": {
+            "en": "Bay 5",
+            "bn": "বে ৫"
+          },
+          "conveyor": "Conveyor-05",
+          "directionMode": "AUTO"
+        },
+        {
+          "id": "B06",
+          "label": {
+            "en": "Bay 6",
+            "bn": "বে ৬"
+          },
+          "conveyor": "Conveyor-06",
+          "directionMode": "AUTO"
+        },
+        {
+          "id": "B07",
+          "label": {
+            "en": "Bay 7",
+            "bn": "বে ৭"
+          },
+          "conveyor": "Conveyor-07",
+          "directionMode": "AUTO"
+        }
+      ],
+      "note": "doorPitch unverified: overhead frames show two conveyors in one CREW view; measure on site"
+    }
+  ],
+  "bayInterior": {
+    "conveyor": {
+      "fixedFrom": 0.5,
+      "fixedTo": 9,
+      "boomMaxReach": 7.5,
+      "width": 1.0,
+      "note": "boom tip travels from y=fixedFrom (retracted) to y=-boomMaxReach (extended)"
+    },
+    "workZone": {
+      "x": [
+        -3,
+        3
+      ],
+      "y": [
+        7,
+        9
+      ]
+    },
+    "staging": {
+      "x": [
+        -3,
+        3
+      ],
+      "y": [
+        9,
+        16
+      ]
+    },
+    "forkliftAisle": {
+      "y": [
+        16,
+        20
+      ]
+    },
+    "storage": {
+      "y": [
+        20,
+        70
+      ]
+    }
+  },
+  "cameraTemplate": [
+    {
+      "role": "DOCK",
+      "mount": {
+        "x": 1.8,
+        "y": 0.3,
+        "z": 3.4
+      },
+      "looks": "yard"
+    },
+    {
+      "role": "CREW",
+      "mount": {
+        "x": 0,
+        "y": 13,
+        "z": 6.0
+      },
+      "looks": "door"
+    },
+    {
+      "role": "BELT",
+      "mount": {
+        "x": 0,
+        "y": 6,
+        "z": 3.0
+      },
+      "looks": "down"
+    }
+  ],
+  "yard": {
+    "depth": 20,
+    "guideLineLength": 12,
+    "holdingLane": {
+      "slots": 4,
+      "alongBoundary": true
+    },
+    "gate": {
+      "position": "SE",
+      "width": 9,
+      "guardBooth": true
+    }
+  },
+  "boundary": {
+    "style": "white-wall-blue-panels",
+    "height": 2.4
+  },
+  "context": [
+    {
+      "type": "road",
+      "name": "Dhaka City Bypass",
+      "side": "S",
+      "lanes": 4,
+      "offset": 26
+    },
+    {
+      "type": "building",
+      "side": "E",
+      "offset": 14,
+      "size": [
+        48,
+        110,
+        12
+      ],
+      "detail": "low"
+    },
+    {
+      "type": "trees",
+      "side": "W",
+      "count": 40
+    },
+    {
+      "type": "trees",
+      "side": "N",
+      "count": 25
+    }
+  ],
+  "thresholds": {
+    "detentionMin": 90,
+    "waitToStartMin": 20,
+    "emptyRunMin": 10,
+    "finishedGapMin": 3,
+    "crowdingCount": 8,
+    "palletWaitSec": 300,
+    "doorOpenIdleMin": 15,
+    "staleBaySec": 15
+  },
+  "shiftsPlaceholder": [
+    {
+      "id": "A",
+      "start": "06:00",
+      "end": "14:00"
+    },
+    {
+      "id": "B",
+      "start": "14:00",
+      "end": "22:00"
+    },
+    {
+      "id": "C",
+      "start": "22:00",
+      "end": "06:00"
+    }
+  ],
+  "businessDayStart": "06:00",
+  "privacy": {
+    "showCaptainNames": false
+  }
+}
