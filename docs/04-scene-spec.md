@@ -16,7 +16,7 @@ must be verified on site (they are config, so fixing them is a data edit).
   `--scene-wall`, `--scene-roof`) and are read into `scene/materials.ts`; light and dark values both defined.
 - **Dark theme:** ground `#0E1424`, walls `#1A2238`, emissive accents; same geometry.
 - Selection: blue outline (drei `Outlines`) + floor ring; hover: lighter outline. Pins: rounded map-pin sprites with an icon, colour by severity,
-  gently bobbing; a pill label beside selected objects (`TRK · DHAKA METRO-D 11-2171 · Loading`), as in the reference.
+  gently bobbing; a pill label beside selected objects (`TRK · DHAKA METRO-DA 11-2171 · Loading`), as in the reference.
 
 ## 2. Site layout (dhk-depot), site frame: x = east, z = south, y = up, metres, origin = building centre
 

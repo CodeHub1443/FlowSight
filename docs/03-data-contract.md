@@ -58,7 +58,8 @@ It is written by the state-engine directly to `people_minutes` and served only b
   }
 }
 ```
-Deltas compare with the same clock time on the previous business day; `null` when unavailable.
+Deltas compare with the same clock time on the previous business day. Nullable: `casesOutDeltaPct`, `casesInDeltaPct`,
+`avgTatMin` (no finished visit yet), `avgTatDeltaMin`, `complianceScore` (nothing evaluated yet).
 
 ### 3.2 BayState
 ```json
@@ -70,7 +71,7 @@ Deltas compare with the same clock time on the previous business day; `null` whe
     "since": "2026-10-24T19:31:02+06:00",
     "direction": "OUT", "directionSource": "AUTO",
     "rateCpm": 14.2,
-    "shiftSec": { "runningLoaded": 9800, "runningEmpty": 1410, "stopped": 3300, "noTruck": 6535 }
+    "shiftSec": { "runningLoaded": 9800, "runningEmpty": 1410, "stopped": 3300, "noTruck": 6535, "offline": 0 }
   },
   "visit": {
     "visitId": "V-20261024-B02-0007",
@@ -95,8 +96,11 @@ Deltas compare with the same clock time on the previous business day; `null` whe
   "alerts": { "open": 2, "maxSev": "warn" }
 }
 ```
-Rules: `belt.shiftSec` values sum to seconds elapsed since `shift.start`. `visit` is `null` when no truck is present.
-`crew.captain` is `null` when no captain is assigned; `name` is `null` for users not permitted to see names (wh-api/NATS
+Rules: `belt.shiftSec` (5 keys, same keys as `/analytics/belt-utilisation`) values sum to seconds elapsed since `shift.start`.
+`visit` is `null` when no truck is present. Nullable inside `visit`: `agency`, all timestamps after `arrivedAt`, `expected`,
+`etaMin` (must be `null` when `etaSource` = `NONE`). Nullable inside `today`: `avgTatMin`. `alerts.maxSev` is `null` when `alerts.open` = 0.
+`crew.captain` is `null` when no captain is assigned or detected; inside it, `trackId` is `null` when `present` = false and
+`employeeId` is `null` when `idSource` = `UNCONFIRMED`; `name` is `null` for users not permitted to see names (wh-api/NATS
 publish names only if the site setting `showCaptainNames` is true; default **false** until the client confirms).
 Enums:
 - `door.status`: `OPEN | CLOSED | UNKNOWN`
@@ -148,7 +152,8 @@ Enums:
   "pos": { "x": 0.2, "y": 3.5 }
 }
 ```
-- `bay`, `refs.*`, `media`, `pos` may be `null`. `media.clipKey` may be `null` (snapshot only).
+- `bay`, `refs.*`, `media`, `pos` may be `null`. `media.clipKey` may be `null` (snapshot only). `src.cam` and `src.model` may be
+  `null` for events not produced by a camera model (e.g. `system.pipeline_lag`, `truck.detention`); `src.conf` is then `null` too.
 - `bbox` = `[x, y, w, h]` in source-frame pixels.
 - Subject = `wh.{site}.evt.{category}.{type}`; the payload's `category`/`type` must match the subject.
 
@@ -173,10 +178,10 @@ Enums:
 | hygiene | spillage (P1b) | info | `{ areaM2 }` |
 | hygiene | debris (P1b) | info | `{ areaM2 }` |
 | handling | rough_handling (P1b) | warn | `{ trackId, dropHeightM }` |
-| ppe | violation | warn | `{ trackId, role, missing: ("vest"\|"gloves"\|"helmet"\|"shoes")[] }` |
+| ppe | violation | warn | `{ trackId, role: ActorsFrame role, missing: ("vest"\|"gloves"\|"helmet"\|"shoes")[] }` |
 | compliance | on_belt | critical | `{ trackId }` |
 | compliance | crowding | warn | `{ count, limit }` |
-| compliance | forklift_proximity | critical | `{ trackId, forkliftId, distM }` |
+| compliance | forklift_proximity | critical | `{ trackId, forkliftId: "f-{n}" track id, distM }` |
 | roster | captain_detected | info | `{ employeeId, trackId }` |
 | roster | captain_absent | warn | `{ employeeId, minutes }` |
 | staging | pallet_wait | warn | `{ palletsWaiting, oldestWaitSec }` |
@@ -213,6 +218,7 @@ Nullable fields inside `data` (`sku`, `employeeId`, `trackId`, `areaM2`, `dropHe
 ### 4.1 Common shapes
 ```ts
 type Lang = { en: string; bn: string };
+type BeltStatus = BayState['belt']['status'];
 type Page<T> = { items: T[]; nextCursor: string | null };
 type ApiError = { error: { code: string; message: string; details?: unknown } };      // non-2xx
 type Series = { key: string; label: Lang; points: { t: string; v: number | null }[] }; // t = ISO bucket start
@@ -236,11 +242,19 @@ type Visit = {
   sku: { sku: string; name: Lang | null; pack: 'CASE' | 'SACK' | 'SHRINK'; count: number; conf: number }[];
   captain: { employeeId: string; name: Lang | null } | null;
   eventIds: string[]; detention: boolean };
+type Period = 'shift' | 'day' | 'week' | 'month';
 type LeaderboardRow = { rank: number; employeeId: string; name: Lang | null; bays: string[];
   metrics: { casesOut: number; casesIn: number; trucks: number; casesPerHour: number; avgTatMin: number | null;
              damageRatePct: number; ppeCompliancePct: number; stoppedPct: number };
   score: number; scoreParts: Record<'throughput' | 'tat' | 'damage' | 'compliance' | 'idle', number>;
   mixFactor: number; trend: number[] };
+type SkuRow = { sku: string; name: Lang | null; pack: 'CASE' | 'SACK' | 'SHRINK'; count: number; avgConf: number };
+type ReportBayRow = { bay: string; casesOut: number; casesIn: number; trucks: number; avgTatMin: number | null;
+  beltSec: Record<'runningLoaded' | 'runningEmpty' | 'stopped' | 'noTruck' | 'offline', number>;
+  damaged: number; openTape: number; tornSack: number; wetStained: number; fallOff: number; ppe: number; detentions: number };
+type Report = { kind: 'shift' | 'daily'; site: string; businessDay: string; shiftId: string | null; from: string; to: string;
+  kpi: SiteState['kpi']; bays: ReportBayRow[]; captains: LeaderboardRow[]; visits: Visit[];
+  topEvents: WhEventWithStatus[]; sku: SkuRow[] };
 ```
 
 ### 4.2 Endpoints
@@ -261,15 +275,15 @@ type LeaderboardRow = { rank: number; employeeId: string; name: Lang | null; bay
 | `GET /visits/{visitId}` | `{ visit: Visit, events: WhEventWithStatus[] }` |
 | `GET /analytics/throughput?site&from&to&bucket=hour\|day&bay&dir` | `{ series: Series[] }` (one per bay × dir) |
 | `GET /analytics/dwell?site&from&to&groupBy=bay\|agency` | `{ groups: { key: string; label: Lang; n: number; waitToStartMin: number; activeMin: number; postLoadMin: number; p90TotalMin: number; detentions: number }[]; histogram: { binMin: number; count: number }[] }` |
-| `GET /analytics/belt-utilisation?site&from&to` | `{ bays: { bay: string; sec: Record<'runningLoaded'\|'runningEmpty'\|'stopped'\|'noTruck'\|'offline', number>; intervals: { status: string; start: string; end: string }[] }[] }` |
-| `GET /analytics/sku?site&from&to&bay&visitId` | `{ rows: { sku: string; name: Lang \| null; pack: string; count: number; avgConf: number }[]; unknownSharePct: number }` |
+| `GET /analytics/belt-utilisation?site&from&to` | `{ bays: { bay: string; sec: Record<'runningLoaded'\|'runningEmpty'\|'stopped'\|'noTruck'\|'offline', number>; intervals: { status: BeltStatus; start: string; end: string }[] }[] }` |
+| `GET /analytics/sku?site&from&to&bay&visitId` | `{ rows: SkuRow[]; unknownSharePct: number }` |
 | `GET /analytics/compliance?site&from&to` | `{ byType: { type: string; count: number }[]; heatmap: { bay: string; hour: number; count: number }[]; score: Series }` |
 | `GET /analytics/hygiene?site&from&to` | `{ bySku: {...}[]; byBay: {...}[]; byAgency: {...}[] }` each row `{ key, label: Lang, damaged, openTape, tornSack, wetStained, fallOff, ratePct }` |
 | `GET /analytics/productivity?site&from&to` | `{ rows: { bay: string; shift: string; casesPerManHour: number; avgCrew: number; palletWaitP50Sec: number; palletWaitP90Sec: number }[] }` |
 | `GET /analytics/people?site&from&to&bay` | **DC_MANAGER, ADMIN only.** `{ rows: { bay: string; shift: string; trackId: string; role: string; idleMin: number; phoneMin: number }[] }` |
 | `GET /analytics/camera-uptime?site&from&to` | `{ cams: { cam: string; uptimePct: number; incidents: number }[] }` |
-| `GET /leaderboard?site&period=shift\|day\|week\|month&date&shift` | `{ period, from, to, rows: LeaderboardRow[], weights: Record<string, number> }` |
-| `GET /reports/shift?site&date&shift` · `GET /reports/daily?site&date` | `{ kpi: SiteState['kpi']; bays: {...}[]; captains: LeaderboardRow[]; visits: Visit[]; topEvents: WhEventWithStatus[]; sku: {...}[] }` |
+| `GET /leaderboard?site&period=shift\|day\|week\|month&date&shift` | `{ period: Period, from: ISO datetime, to: ISO datetime, rows: LeaderboardRow[], weights: Record<'throughput'\|'tat'\|'damage'\|'compliance'\|'idle', number> }` |
+| `GET /reports/shift?site&date&shift` · `GET /reports/daily?site&date` | `Report` (§4.1) |
 | `GET /reports/{shift\|daily}/export?…&fmt=pdf\|xlsx\|csv` | file (server-side export; the frontend also offers client-side export) |
 | `GET /replay?site&from&to` (P2, ≤ 10 min per call) | `{ keyframes: { ts: string; bays: BayState[] }[]; actors: ActorsFrame[]; events: WhEvent[] }` |
 | Admin `GET/PUT` | see 4.3 |

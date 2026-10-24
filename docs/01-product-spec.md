@@ -122,7 +122,7 @@ with a tooltip, never as 0.
 
 ## 7. Language and format
 - Full EN and বাংলা UI. Toggle in the top bar; preference saved per user (server) and in localStorage (UI only).
-- Plates: `ঢাকা মেট্রো-ড ১১-২১৭১` primary, `DHAKA METRO-D 11-2171` secondary.
+- Plates: `ঢাকা মেট্রো-ড ১১-২১৭১` primary, `DHAKA METRO-DA 11-2171` secondary (backend transliteration; the frontend never transliterates).
 - Number system toggle: Latin or Bangla digits. Lakh/crore grouping in Bangla mode.
 
 ## 8. Phases
