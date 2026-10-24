@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="160" height="40" viewBox="0 0 160 40" role="img" aria-label="Unilever (PLACEHOLDER)">
+  <!-- PLACEHOLDER: replace with the official Unilever asset supplied by the client -->
+  <rect width="160" height="40" rx="8" fill="#1F36C7"/>
+  <text x="80" y="26" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="18" font-weight="700" fill="#FFFFFF">Unilever</text>
+  <text x="80" y="37" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="7" fill="#FFFFFF" opacity="0.8">PLACEHOLDER</text>
+</svg>

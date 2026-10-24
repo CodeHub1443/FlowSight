@@ -1,0 +1,136 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+
+@custom-variant dark (&:is(.dark *));
+
+/* Colours are defined only here (tokens) and mirrored in scene/materials.ts. */
+:root {
+  --radius: 0.75rem;
+
+  /* Brand: placeholder Unilever blue until the official kit arrives. */
+  --brand: #1f36c7;
+  --brand-foreground: #ffffff;
+
+  /* Semantic status tokens */
+  --status-ok: #16a34a;
+  --status-warn: #f59e0b;
+  --status-critical: #dc2626;
+  --status-neutral: #64748b;
+  --status-idle: #cbd5e1;
+  --status-offline: #94a3b8;
+  --status-info: #2563eb;
+
+  /* Scene palette (docs/04 §1) */
+  --scene-ground: #e8ebf7;
+  --scene-yard: #dde1f2;
+  --scene-road: #cbd0e6;
+  --scene-grass: #d7f0dc;
+  --scene-tree: #9fddb0;
+  --scene-wall: #f7f8fc;
+  --scene-roof: #e3e7f5;
+
+  /* shadcn/ui semantic tokens */
+  --background: #f4f6fc;
+  --foreground: #0f172a;
+  --card: #ffffff;
+  --card-foreground: #0f172a;
+  --popover: #ffffff;
+  --popover-foreground: #0f172a;
+  --primary: var(--brand);
+  --primary-foreground: var(--brand-foreground);
+  --secondary: #e8ebf7;
+  --secondary-foreground: #0f172a;
+  --muted: #eef0f8;
+  --muted-foreground: #475569;
+  --accent: #e3e7f5;
+  --accent-foreground: #0f172a;
+  --destructive: var(--status-critical);
+  --border: #dde1f2;
+  --input: #cbd0e6;
+  --ring: var(--status-info);
+}
+
+/* Dark "control room" theme */
+.dark {
+  --scene-ground: #0e1424;
+  --scene-yard: #151c30;
+  --scene-road: #202941;
+  --scene-grass: #14261e;
+  --scene-tree: #2e6b4a;
+  --scene-wall: #1a2238;
+  --scene-roof: #232c47;
+
+  --background: #0b1020;
+  --foreground: #e6e9f5;
+  --card: #141b30;
+  --card-foreground: #e6e9f5;
+  --popover: #141b30;
+  --popover-foreground: #e6e9f5;
+  --primary: #4d63e8;
+  --primary-foreground: #ffffff;
+  --secondary: #1a2238;
+  --secondary-foreground: #e6e9f5;
+  --muted: #1a2238;
+  --muted-foreground: #9aa4c2;
+  --accent: #232c47;
+  --accent-foreground: #e6e9f5;
+  --border: #26304d;
+  --input: #2f3a5c;
+}
+
+@theme inline {
+  --font-sans: 'Inter', 'Noto Sans Bengali', ui-sans-serif, system-ui, sans-serif;
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --color-brand: var(--brand);
+  --color-brand-foreground: var(--brand-foreground);
+  --color-status-ok: var(--status-ok);
+  --color-status-warn: var(--status-warn);
+  --color-status-critical: var(--status-critical);
+  --color-status-neutral: var(--status-neutral);
+  --color-status-idle: var(--status-idle);
+  --color-status-offline: var(--status-offline);
+  --color-status-info: var(--status-info);
+  --color-scene-ground: var(--scene-ground);
+  --color-scene-yard: var(--scene-yard);
+  --color-scene-road: var(--scene-road);
+  --color-scene-grass: var(--scene-grass);
+  --color-scene-tree: var(--scene-tree);
+  --color-scene-wall: var(--scene-wall);
+  --color-scene-roof: var(--scene-roof);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    font-size: 14px;
+  }
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+  }
+}

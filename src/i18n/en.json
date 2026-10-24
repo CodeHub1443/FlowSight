@@ -1,0 +1,45 @@
+{
+  "app": {
+    "name": "Depot Twin",
+    "sample": "Dhaka Central Depot",
+    "developedBy": "Developed by TDI",
+    "logoAlt": "Unilever"
+  },
+  "language": {
+    "label": "Language",
+    "en": "EN",
+    "bn": "বাং"
+  },
+  "routes": {
+    "live": "Live",
+    "bays": "Bay",
+    "trucks": "Trucks",
+    "analytics": "Analytics",
+    "leaderboard": "Leaderboard",
+    "events": "Events",
+    "event": "Event",
+    "reports": "Reports",
+    "replay": "Replay",
+    "wall": "Video wall",
+    "login": "Sign in",
+    "admin": "Admin",
+    "shifts": "Shifts",
+    "roster": "Roster",
+    "skus": "SKUs",
+    "adminBays": "Bays",
+    "cameras": "Cameras",
+    "thresholds": "Thresholds",
+    "alertRules": "Alert rules",
+    "users": "Users",
+    "telegram": "Telegram"
+  },
+  "placeholder": {
+    "body": "Placeholder page. This screen is built in a later step.",
+    "path": "Path"
+  },
+  "notFound": {
+    "title": "Page not found",
+    "body": "The page you asked for does not exist.",
+    "back": "Back to live view"
+  }
+}
