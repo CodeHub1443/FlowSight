@@ -14,10 +14,10 @@ It publishes **aggregated state and events** on **NATS** (core + JetStream) and 
 History lives in PostgreSQL + TimescaleDB, cache in Redis, evidence media in MinIO (S3).
 Everything runs **on-prem on a LAN**. The browser runs on ordinary desktop PCs and a control-room video wall.
 
-**Visual target:** the reference video "WareTrack" (frames in `docs/reference/ui-ref-*.jpg`): a light,
-isometric, game-like 3D scene, clickable objects, floating KPI chips at the top, an inspector card on the right,
-a tabbed list tray at the bottom right and a visit tracker at the bottom left. It must look and feel like that,
-re-skinned for this site and for Unilever.
+**Visual target:** the reference video "WareTrack" (frames in `docs/reference/video/*.jpg` and `docs/reference/ui-ref-*.jpg`): a light,
+game-like 3D scene, clickable objects, floating KPI chips at the top, an inspector card on the right, a tabbed list tray at the bottom
+right and a visit tracker at the bottom left. **Unlike the video, the 3D focus is the inside of the shed** (roofless cutaway: belts,
+crews, staging, forklifts, truck rears at the doors), because almost nothing happens outside. See `docs/04-scene-spec.md` §0.
 
 ## Operating rules (read first)
 - This repo follows `docs/OPERATING_RULES.md`. Every session starts with a **task brief** from the user

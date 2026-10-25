@@ -115,22 +115,22 @@ Everything RBAC-gated and bilingual. Responsive down to 1366x768; panels collaps
 
 ---
 
-## Step 6: 3D site (static)
+## Step 6: 3D shed interior (static)
 ```
-Do step 6. Build the static scene from config/sites/dhk-depot.json and docs/04 §1–2: ground, road, yard with guide lines and holding lane,
-boundary wall + gate + guard booth, the shed with twin-gable roof, striped south facade, canopy, 7 dock doors with numbers,
-neighbouring shed, instanced trees, lighting, fog, camera + OrbitControls with limits and presets (docs/04 §6), quality tiers with PerformanceMonitor.
-The scene builder must be generic (any dock face, any bay count). Place it in the /live placeholder. Compare against docs/reference/ui-ref-9.jpg and ui-ref-30.jpg and iterate until the style matches.
+Do step 6. Interior-first per docs/04 §0: roofless cutaway shed from config (floor, column grid, cutaway N/E/W walls, dock wall with
+7 doors, shutters, levellers, number plates, stripe band), narrow apron strip with guide lines and holding slots, and per-bay static interior:
+telescopic conveyors (fixed body + boom at retracted position), control cabinets "Conveyor-0n", work-zone floor plates, staging pallets and crates,
+forklift aisle markings, instanced storage blocks. Camera presets per docs/04 §6 (default Floor overview), quality tiers, light/dark tokens.
+No exterior context. Generic builder (any face, any bay count). Compare with docs/reference/cam-*.jpg (layout) and docs/reference/video (style).
 ```
 
 ---
 
-## Step 7: 3D interior and actors (static props)
+## Step 7: Actors and props
 ```
-Do step 7. Add per-bay interior from docs/04 §3: telescopic conveyor (fixed body + extendable boom), control cabinets with "Conveyor-0n" labels,
-staging pallets (instanced; blue/yellow/orange), crate stacks, storage blocks (instanced case stacks), forklift aisle markings,
-camera glyphs at cameraTemplate mounts. Build actor components: Truck (BD covered van, liveries, rear plate via Html), Person (captain full vest + scanner,
-worker cross-vest, forklift op), Forklift. X-ray mode toggle and auto-fade on zoom. Use docs/reference/cam-*.jpg to sanity-check proportions.
+Do step 7. Actor components: Truck (BD covered van, liveries, rear plate via Html, states waiting/reversing/docked/departing), Person
+(captain full vest + scanner, worker cross-vest, forklift op), Forklift (with/without pallet), boom extend/retract animation, item meshes
+(CASE/SACK/SHRINK), camera glyphs, pins and pill labels. Static demo arrangement in the dev preview; no live binding yet.
 ```
 
 ---

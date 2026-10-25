@@ -261,5 +261,13 @@
   "businessDayStart": "06:00",
   "privacy": {
     "showCaptainNames": false
+  },
+  "view": {
+    "focus": "interior",
+    "cutawayWallHeight": 2.0,
+    "apronDepth": 12,
+    "showRoof": false,
+    "showExteriorContext": false,
+    "columnGrid": 12
   }
 }
