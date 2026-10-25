@@ -19,6 +19,31 @@ describe('SiteConfig', () => {
     }
   });
 
+  it('keeps the view block with exact values', () => {
+    const r = SiteConfigSchema.safeParse(raw);
+    expect(r.success).toBe(true);
+    if (r.success) {
+      expect(r.data.view).toEqual({
+        focus: 'interior',
+        cutawayWallHeight: 2.0,
+        apronDepth: 12,
+        showRoof: false,
+        showExteriorContext: false,
+        columnGrid: 12,
+      });
+    }
+  });
+
+  it.each([
+    [['view'], REMOVE],
+    [['view', 'focus'], 'aerial'],
+    [['view', 'cutawayWallHeight'], 0],
+    [['view', 'apronDepth'], -1],
+    [['view', 'columnGrid'], 0],
+  ])('rejects view %j = %j', (path, value) => {
+    expect(SiteConfigSchema.safeParse(mutate(raw, path, value)).success).toBe(false);
+  });
+
   it('keeps notes and context entries', () => {
     const r = SiteConfigSchema.safeParse(raw);
     expect(r.success).toBe(true);

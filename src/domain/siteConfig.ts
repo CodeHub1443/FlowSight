@@ -58,6 +58,17 @@ const contextItemSchema = z.discriminatedUnion('type', [
   }),
 ]);
 
+/** Scene framing (docs/04 section 0): the 3D focus is the shed interior, roofless cutaway. */
+export const SiteViewSchema = z.object({
+  focus: z.enum(['interior', 'exterior']),
+  cutawayWallHeight: z.number().positive(),
+  apronDepth: NonNegSchema,
+  showRoof: z.boolean(),
+  showExteriorContext: z.boolean(),
+  columnGrid: z.number().positive(),
+});
+export type SiteView = z.infer<typeof SiteViewSchema>;
+
 export const SiteConfigSchema = z.object({
   id: SiteIdSchema,
   name: LangSchema,
@@ -126,4 +137,5 @@ export const SiteConfigSchema = z.object({
   shiftsPlaceholder: z.array(ShiftWindowSchema),
   businessDayStart: HHmmSchema,
   privacy: z.object({ showCaptainNames: z.boolean() }),
+  view: SiteViewSchema,
 });
