@@ -90,6 +90,10 @@ Deltas compare with the same clock time on the previous business day. Nullable: 
                  "name": { "en": "Md. Rahim Uddin", "bn": "মোঃ রহিম উদ্দিন" }, "idSource": "ROSTER+VEST" },
     "ppeViolationsNow": 0
   },
+  "queue": [
+    { "visitId": "V-20261024-B02-0008", "plate": { "bn": "ঢাকা মেট্রো-ট ২২-৪৮১৫", "en": "DHAKA METRO-TA 22-4815", "conf": 0.88 },
+      "arrivedAt": "2026-10-24T19:41:12+06:00", "slot": 1 }
+  ],
   "staging": { "occupancyPct": 62, "palletsWaiting": 3, "oldestWaitSec": 240 },
   "today": { "casesOut": 2410, "casesIn": 380, "trucks": 9, "avgTatMin": 58, "damage": 7, "fallOff": 2, "ppe": 3 },
   "health": { "cams": { "B02-DOCK": "OK", "B02-CREW": "OK", "B02-BELT": "OK" }, "lagMs": 420 },
@@ -97,7 +101,10 @@ Deltas compare with the same clock time on the previous business day. Nullable: 
 }
 ```
 Rules: `belt.shiftSec` (5 keys, same keys as `/analytics/belt-utilisation`) values sum to seconds elapsed since `shift.start`.
-`visit` is `null` when no truck is present. Nullable inside `visit`: `agency`, all timestamps after `arrivedAt`, `expected`,
+`visit` is `null` when no truck is present. `queue` lists trucks assigned to this bay and waiting on the apron, ordered by
+`arrivedAt` (empty array when none); `slot` is the 1-based apron holding slot (≤ config `yard.holdingLane.slots`), or `null` if unassigned.
+**`arrivedAt` semantics:** the first plate read by this site's cameras. On dhk-depot (no gate camera) that is the first DOCK-camera read;
+the mock simulator models a gate read, so its detention includes yard wait. Nullable inside `visit`: `agency`, all timestamps after `arrivedAt`, `expected`,
 `etaMin` (must be `null` when `etaSource` = `NONE`). Nullable inside `today`: `avgTatMin`. `alerts.maxSev` is `null` when `alerts.open` = 0.
 `crew.captain` is `null` when no captain is assigned or detected; inside it, `trackId` is `null` when `present` = false and
 `employeeId` is `null` when `idSource` = `UNCONFIRMED`; `name` is `null` for users not permitted to see names (wh-api/NATS
