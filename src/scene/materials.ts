@@ -136,8 +136,66 @@ export const DARK_PALETTE: ScenePalette = {
   brand: '#4D63E8',
 };
 
+/** Palette keys backed by a CSS token in src/index.css. `workZone` is derived from `floor`. */
+const CSS_TOKENS: readonly (readonly [PaletteKey, string])[] = [
+  ['void', '--scene-void'],
+  ['floor', '--scene-floor'],
+  ['floorGrid', '--scene-floor-grid'],
+  ['walkline', '--scene-walkline'],
+  ['wall', '--scene-wall'],
+  ['wallCap', '--scene-wall-cap'],
+  ['apron', '--scene-apron'],
+  ['conveyor', '--scene-conveyor'],
+  ['belt', '--scene-belt'],
+  ['statusOk', '--status-ok'],
+  ['statusWarn', '--status-warn'],
+  ['statusCritical', '--status-critical'],
+  ['statusNeutral', '--status-neutral'],
+  ['statusIdle', '--status-idle'],
+  ['statusOffline', '--status-offline'],
+  ['statusInfo', '--status-info'],
+];
+
+function normalizeHex(v: string): string | null {
+  const s = v.trim();
+  if (/^#[0-9a-f]{6}$/i.test(s)) return s.toUpperCase();
+  if (/^#[0-9a-f]{3}$/i.test(s))
+    return `#${[...s.slice(1)].map((c) => c + c).join('')}`.toUpperCase();
+  return null;
+}
+
+/**
+ * Token values from the document, or nothing when the document does not show `theme` (UiPreferenceSync toggles
+ * `.dark` on <html>; the dev preview themes a wrapper instead) or there is no DOM. Non-hex values are skipped.
+ */
+function readTokens(theme: SceneTheme): Partial<ScenePalette> {
+  if (typeof document === 'undefined') return {};
+  const root = document.documentElement;
+  if (root.classList.contains('dark') !== (theme === 'dark')) return {};
+  const style = getComputedStyle(root);
+  const out: Partial<ScenePalette> = {};
+  for (const [key, name] of CSS_TOKENS) {
+    const hex = normalizeHex(style.getPropertyValue(name));
+    if (hex) out[key] = hex;
+  }
+  return out;
+}
+
+let current: { theme: SceneTheme; palette: ScenePalette } | null = null;
+
+/**
+ * The palette for `theme`: the CSS tokens over the constants above. The document is read on the first call and
+ * again only when the theme changes; every other call returns the same object, so materials are not rebuilt.
+ */
 export function paletteFor(theme: SceneTheme): ScenePalette {
-  return theme === 'dark' ? DARK_PALETTE : LIGHT_PALETTE;
+  if (current?.theme === theme) return current.palette;
+  const base = theme === 'dark' ? DARK_PALETTE : LIGHT_PALETTE;
+  const tokens = readTokens(theme);
+  const palette: ScenePalette = { ...base, ...tokens };
+  if (tokens.floor || tokens.statusNeutral)
+    palette.workZone = mixHex(palette.floor, palette.statusNeutral, 0.3);
+  current = { theme, palette };
+  return palette;
 }
 
 /** Mix two hex colours, `t` = share of `b`. */

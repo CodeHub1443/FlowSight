@@ -9,8 +9,8 @@ Per-step detail lives in `docs/progress/step-NN.md` (convention in [progress/REA
 - [x] 2 Domain types and schemas
 - [ ] 3 Mock simulator
 - [x] 4 Stores and connection status ([details](progress/step-04.md))
-- [ ] 5 App shell (2D)
-- [ ] 6 3D site (static)
+- [x] 5 App shell (2D) ([details](progress/step-05.md); merged `4ca6247`)
+- [x] 6 3D site (static) ([details](progress/step-06.md); merged `f37359d`)
 - [ ] 7 3D interior and actors
 - [ ] 8 Bind live data to the scene
 - [ ] 9 Alerts and evidence centre
@@ -149,3 +149,68 @@ Changes: nullables per docs/03 (kpi `avgTatMin`/`complianceScore`, visit `agency
 Notes: `WhEventSchema` and `WhEventWithStatusSchema` now start from `z.json()` instead of `z.unknown()`, so `noUnknown.test.ts` can assert that no exported schema contains `unknown`/`any` except `ApiError.details`. The refinements only encode the implications docs/03 states (for example, `etaMin` null with a real `etaSource` is still allowed).
 
 - Task 03c (baseline `338def3`): `SiteViewSchema`/`SiteView` added to `src/domain/siteConfig.ts` and made required on `SiteConfigSchema` (docs/04 section 0); tests cover exact values, missing `view`, invalid `focus`.
+
+## Merge 01: steps 5 and 6 into master (task 05)
+
+Baseline `f2072ba` (clean). Branches `step-06-scene` (`10fc762`) and `step-05-shell` (`c04de8f`), both from `b274038`.
+Merged with `--no-ff`, no conflicts: `f37359d merge: step-06 static shed interior`, then `4ca6247 merge: step-05 live shell`.
+The integration edits below are uncommitted (per the brief).
+
+### Review findings (OPERATING_RULES section 8; no Blocker, both accepted)
+| Branch | Severity | Finding | Decision |
+|---|---|---|---|
+| step-06 | Minor | Files outside `src/scene/**`: `scene-preview.html` (repo root) and `scripts/scene-shot.mjs`. Dev-only, not build inputs. | Accept; keep as dev tooling. |
+| step-06 | Minor | Hard-coded colours outside `materials.ts`: cabinet/pallet label plates (`#F7F8FC`, `#1E293B`), door-plate text `#FFFFFF`, contact-shadow tint `#1B2A4A`. | Accept; move to palette keys in step 7. |
+| step-06 | Nit | `site/transforms.ts` comment still says docs/04 lists the opposite E/W yaw signs; `f2072ba` fixed the doc. | Accept; fix in a later scene step. |
+| step-06 | Info | `noFrameState.test.ts` is a source grep (only `CameraRig.tsx` may call `useFrame`; `useState` only in `SceneRoot.tsx` and the dev preview). It will need updating when actors add `useFrame` in step 7. | Accept. |
+| step-05 | Minor | New `e2e/live-shell.spec.ts` outside the listed ownership (new file, no conflict). | Accept. |
+| step-05 | Minor | `AppShell` rendered `/live` itself with the route's `<Outlet/>` hidden (documented workaround). | Fixed in this integration. |
+| step-05 | Minor | `canSeeCaptainNames` lived in `features/live/privacy.ts`. | Moved to `src/lib/rbac.ts`. |
+| step-05 | Minor | `siteInfo.ts` throws at import if `config/sites/dhk-depot.json` fails validation (checked-in config, not an inbound message). | Accept. |
+| step-05 | Nit | Tray alerts empty state compares formatted strings (`counts.alerts === fmt.num(0)`). | Accept. |
+
+Checks with no finding: no secrets; no `any`, `@ts-ignore` or new lint/TS rule changes (one justified `exhaustive-deps` disable in `CameraRig.tsx`); no formatting churn outside owned paths;
+privacy: `phone`/`idle` only appear as the `idle` status tone and the contract's `door_open_idle` security event, and `employeeId` only in test fixtures (event `data` is never rendered);
+i18n edits only in `live` (step 5) and `scene` (step 6); no React state in `useFrame`.
+
+### Integration (uncommitted)
+- **Routes:** `live` -> `<LivePage scene={<LiveScene/>}/>`. The `isLive` branch and hidden `<Outlet/>` are gone: `AppShell` is top bar + full-height `<main>`, and a pathless `PageLayout` route
+  (scrolling, padded, TDI footer) wraps every non-live page. `App.test.tsx`: `/` lands on `live-page`, `/live` left the placeholder list, and a new test covers the no-WebGL placeholder.
+- **Scene mount:** `src/app/LiveScene.tsx` passes the scene into `<SceneSlot/>` (its children contract), lazy-loading `@/scene` with `React.lazy` + `Suspense` (neutral `bg-scene-void` pulse skeleton)
+  inside an error boundary that falls back to the placeholder. Props: `siteConfig` = `DEFAULT_SITE` (validated `config/sites/dhk-depot.json`), `theme` and `quality` from uiStore,
+  `selectedBayId` from the selection, `onSelect` -> `uiStore.select({ kind: 'bay', id })`. Without WebGL (`src/app/webgl.ts`; jsdom) the placeholder stays and the chunk is never loaded.
+- **Camera:** a uiStore subscription maps `cameraTarget` to `useSceneCamera().flyTo` via `src/app/sceneTarget.ts` (pure, 7 tests): bay/belt/staging ids directly; truck -> its bay (live bay, then kept visit record);
+  person/forklift -> bay via the actors frames (first bay by id wins); event -> its bay; site/home -> `floorOverview`; unknown ids -> no-op. `useSceneCamera` is imported from
+  `@/scene/camera/cameraController` directly so three.js stays out of the entry chunk. No change under `src/scene/camera/**` was needed.
+- **Tokens:** `--scene-void`, `-floor`, `-floor-grid`, `-walkline`, `-wall-cap`, `-apron`, `-conveyor`, `-belt` added to `src/index.css` (light and `.dark`) with `--color-scene-*` theme entries.
+  `materials.ts` `paletteFor(theme)` reads these, `--scene-wall` and the `--status-*` tokens from `<html>` on the first call and again only when the theme changes (same object otherwise, so materials are
+  not rebuilt); the constants remain the fallback (no DOM, document not showing that theme, non-hex value). `workZone` is re-derived from the read floor colour.
+- **RBAC:** `src/lib/rbac.ts` holds the docs/01 section 2 category matrix and `canSeeCaptainNames`; `stores/alertFilter.ts` re-exports the matrix API and `features/live/privacy.ts` imports from it. No behaviour change; the 60-cell matrix test passes unchanged.
+- **E2E:** Chromium runs WebGL on SwiftShader (`--use-gl=angle --use-angle=swiftshader --enable-unsafe-swiftshader --ignore-gpu-blocklist`), `workers: 1` and `timeout: 90_000` (parallel SwiftShader pages starved each other and timed out).
+  `smoke.spec.ts` asserts the canvas in the scene slot (network guard still enforced); `live-shell.spec.ts` asserts the canvas instead of the placeholder; new `live-scene.spec.ts`
+  proves the wiring: a centre click on the default view selects Bay 4, the tray row B06 flies the camera, and after closing the inspector the same centre click selects Bay 6.
+
+### Bundle (`pnpm build`, vite gzip)
+| Chunk | Raw | Gzip |
+|---|---|---|
+| entry `index-D-5MeTDG.js` (no three.js) | 725.6 kB | 230.0 kB |
+| lazy scene `index-DGxe2T9w.js` (three, R3F, drei, `src/scene`) | 972.0 kB | 265.0 kB |
+| CSS | 63.1 kB | 11.2 kB |
+
+JS total about 495 kB gzip, against the 1.5 MB budget (docs/02 section 6). Vite's 500 kB chunk-size warning remains (both chunks).
+
+### Commands and results
+`pnpm typecheck` pass · `pnpm lint` pass · `pnpm format` (3 own files reformatted) · `pnpm format:check` pass · `pnpm test` 32 files, 690 tests pass · `pnpm i18n:check` ok ·
+`pnpm contract:check` ok (7 json blocks, 0 unmapped) · `pnpm build` pass · `pnpm e2e` 16 passed (6.8 min, port 4173). The e2e run rewrites the `step-01`, `step-04` and `step-05` screenshots;
+those were restored from a backup, so only `step-merge-01-*` are new.
+
+### Screenshots
+`docs/screens/step-merge-01-live-{1920x1080,1366x768}-{en,bn}.png` (Bay 4 selected from the 3D view) and `step-merge-01-live-1920x1080-dark.png`.
+
+### Deviations and open points
+- The tray's Bay-row click both selects and flies (step 5); a 3D click only selects (no camera move), which keeps the overview stable.
+- **B01 is covered by the right column at 1366x768** (the inspector and tray take about 370 px; the floor-overview preset fits all doors to the full canvas width). At 1920x1080 its belt is partly visible. Fix candidates: a view offset in the preset or narrower cards at 1366 (step 7 or 14).
+- Headless SwiftShader is slow (about 10 s per screenshot); the 1366 scene test takes about 66 of its 90 s.
+- `uiStore.quality` defaults to `'med'` and is passed as a fixed tier, so the scene's automatic tier stepping (`PerformanceMonitor`) is off on `/live`.
+- Step 3 (simulator) is still in progress; `createDataSource` still uses FixtureSource.
+

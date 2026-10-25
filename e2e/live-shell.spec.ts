@@ -53,7 +53,9 @@ for (const { width, height } of SIZES) {
       return el?.closest('[data-testid="scene-slot"]') !== null;
     });
     expect(centreHit).toBe(true);
-    await expect(page.getByTestId('scene-slot-placeholder')).toContainText('Depot interior 3D');
+    await expect(page.getByTestId('scene-slot').locator('canvas')).toHaveCount(1, {
+      timeout: 60_000,
+    });
 
     await page.getByTestId('tray-bay-B02').click();
     await expect(page.getByTestId('inspector-bay')).toBeVisible();

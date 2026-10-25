@@ -1,70 +1,19 @@
-import { EVENT_REGISTRY, type EventStatus, type Role, type WhEventWithStatus } from '@/domain';
+import type { EventStatus, Role, WhEventWithStatus } from '@/domain';
+import { canViewCategory, type EventCategory } from '@/lib/rbac';
 
-// Event category visibility per role (docs/01 section 2). Pure, no UI. V = view, A = view + ack/close/note.
-// src/lib/rbac.ts will own the wider permission matrix later; this is the category part the alert store needs.
+// Alert filtering for the alert store and hooks. The category matrix itself lives in src/lib/rbac.ts
+// (docs/01 section 2); it is re-exported here so existing imports keep working.
 
-export type EventCategory = (typeof EVENT_REGISTRY)[number]['category'];
-export type CategoryAccess = 'V' | 'A' | null;
-
-export const EVENT_CATEGORIES: readonly EventCategory[] = [
-  ...new Set(EVENT_REGISTRY.map((e) => e.category)),
-];
-
-const ROLE_ORDER = [
-  'HQ_VIEWER',
-  'DC_MANAGER',
-  'SHIFT_SUPERVISOR',
-  'SECURITY',
-  'ADMIN',
-  'KIOSK',
-] as const satisfies readonly Role[];
-
-// Columns follow ROLE_ORDER. "-" is no access.
-const ROWS: Record<EventCategory, string> = {
-  truck: 'V A A A A V',
-  belt: 'V A A V A V',
-  hygiene: 'V A A A A V',
-  handling: 'V A A V A -',
-  ppe: 'V A A A A V',
-  compliance: 'V A A A A V',
-  roster: '- A A - A -',
-  staging: 'V A A - A V',
-  security: '- A V A A -',
-  system: 'V A A A A V',
-};
-
-function parseRow(row: string): Record<Role, CategoryAccess> {
-  const cells = row.split(' ');
-  const entries = ROLE_ORDER.map((role, i): [Role, CategoryAccess] => {
-    const c = cells[i];
-    return [role, c === 'V' || c === 'A' ? c : null];
-  });
-  return Object.fromEntries(entries) as Record<Role, CategoryAccess>;
-}
-
-export const CATEGORY_ACCESS: Record<
-  EventCategory,
-  Record<Role, CategoryAccess>
-> = Object.fromEntries(EVENT_CATEGORIES.map((c) => [c, parseRow(ROWS[c])] as const)) as Record<
-  EventCategory,
-  Record<Role, CategoryAccess>
->;
-
-export function categoryAccess(role: Role, category: EventCategory): CategoryAccess {
-  return CATEGORY_ACCESS[category][role];
-}
-
-export function canViewCategory(role: Role, category: EventCategory): boolean {
-  return categoryAccess(role, category) !== null;
-}
-
-export function canActOnCategory(role: Role, category: EventCategory): boolean {
-  return categoryAccess(role, category) === 'A';
-}
-
-export function visibleCategories(role: Role): EventCategory[] {
-  return EVENT_CATEGORIES.filter((c) => canViewCategory(role, c));
-}
+export {
+  CATEGORY_ACCESS,
+  EVENT_CATEGORIES,
+  canActOnCategory,
+  canViewCategory,
+  categoryAccess,
+  visibleCategories,
+  type CategoryAccess,
+  type EventCategory,
+} from '@/lib/rbac';
 
 export interface AlertFilter {
   /** Role whose category matrix applies. The hooks default this to the session role. */

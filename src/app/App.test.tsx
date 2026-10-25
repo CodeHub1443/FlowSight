@@ -40,11 +40,20 @@ describe('App shell', () => {
 
   it('redirects / to /live', () => {
     renderAt('/');
-    expect(screen.getByTestId('placeholder-path')).toHaveTextContent('/live');
+    expect(screen.getByTestId('live-page')).toBeInTheDocument();
+  });
+
+  it('renders the live page at /live, with the scene placeholder when WebGL is unavailable', () => {
+    renderAt('/live');
+    expect(screen.getByTestId('live-page')).toBeInTheDocument();
+    expect(screen.getByTestId('scene-slot')).toBeInTheDocument();
+    // jsdom has no WebGL: the scene chunk is not loaded and the neutral placeholder stays.
+    expect(screen.getByTestId('scene-slot-placeholder')).toBeInTheDocument();
+    expect(screen.queryByTestId('scene-canvas')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('placeholder-title')).not.toBeInTheDocument();
   });
 
   it.each([
-    '/live',
     '/bays/B01',
     '/trucks',
     '/analytics',

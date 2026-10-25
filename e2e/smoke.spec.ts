@@ -19,6 +19,10 @@ for (const { width, height } of SIZES) {
     await page.setViewportSize({ width, height });
     await page.goto('/');
     await expect(page).toHaveURL(/\/live$/);
+    // The lazy 3D scene mounts a WebGL canvas in the scene slot (the network guard still applies).
+    await expect(page.getByTestId('scene-slot').locator('canvas')).toHaveCount(1, {
+      timeout: 60_000,
+    });
 
     const sample = page.getByTestId('sample-string');
     await expect(sample).toHaveText('Dhaka Central Depot');

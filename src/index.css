@@ -28,6 +28,15 @@
   --scene-tree: #9fddb0;
   --scene-wall: #f7f8fc;
   --scene-roof: #e3e7f5;
+  /* Interior (docs/04 §1, values from docs/progress/step-06.md); read by scene/materials.ts at mount */
+  --scene-void: #e8ebf7;
+  --scene-floor: #dce7df;
+  --scene-floor-grid: #c3d2c8;
+  --scene-walkline: #f2c94c;
+  --scene-wall-cap: #1f36c7;
+  --scene-apron: #dde1f2;
+  --scene-conveyor: #2f55b8;
+  --scene-belt: #3a3f4a;
 
   /* shadcn/ui semantic tokens */
   --background: #f4f6fc;
@@ -59,6 +68,14 @@
   --scene-tree: #2e6b4a;
   --scene-wall: #1a2238;
   --scene-roof: #232c47;
+  --scene-void: #0e1424;
+  --scene-floor: #1b2430;
+  --scene-floor-grid: #273341;
+  --scene-walkline: #d9b23f;
+  --scene-wall-cap: #4d63e8;
+  --scene-apron: #151c30;
+  --scene-conveyor: #3c64cc;
+  --scene-belt: #2a2e37;
 
   --background: #0b1020;
   --foreground: #e6e9f5;
@@ -121,6 +138,14 @@
   --color-scene-tree: var(--scene-tree);
   --color-scene-wall: var(--scene-wall);
   --color-scene-roof: var(--scene-roof);
+  --color-scene-void: var(--scene-void);
+  --color-scene-floor: var(--scene-floor);
+  --color-scene-floor-grid: var(--scene-floor-grid);
+  --color-scene-walkline: var(--scene-walkline);
+  --color-scene-wall-cap: var(--scene-wall-cap);
+  --color-scene-apron: var(--scene-apron);
+  --color-scene-conveyor: var(--scene-conveyor);
+  --color-scene-belt: var(--scene-belt);
 }
 
 @layer base {
