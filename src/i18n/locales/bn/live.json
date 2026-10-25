@@ -1,1 +1,270 @@
-{}
+{
+  "topbar": {
+    "themeLight": "হালকা থিমে যান",
+    "themeDark": "গাঢ় থিমে যান",
+    "mode": { "live": "লাইভ", "mock": "মক", "replay": "রিপ্লে" },
+    "connection": "সংযোগ",
+    "baysActive": "{{running}}/{{total}} বে সক্রিয়",
+    "sites": "সাইট"
+  },
+  "conn": {
+    "connecting": "সংযোগ হচ্ছে",
+    "live": "লাইভ",
+    "degraded": "ধীর (সাম্প্রতিক ডেটা নেই)",
+    "offline": "অফলাইন"
+  },
+  "search": {
+    "label": "অনুসন্ধান",
+    "placeholder": "বে, ট্রাক, নম্বর প্লেট, ক্যাপ্টেন, ইভেন্ট খুঁজুন",
+    "results": "অনুসন্ধানের ফলাফল",
+    "empty": "কোনো মিল পাওয়া যায়নি",
+    "groups": {
+      "bays": "বে",
+      "trucks": "ট্রাক",
+      "captains": "ক্যাপ্টেন",
+      "events": "ইভেন্ট"
+    }
+  },
+  "bell": {
+    "label": "সতর্কতা, {{n}}টি খোলা",
+    "title": "খোলা সতর্কতা ({{n}})",
+    "empty": "কোনো খোলা সতর্কতা নেই",
+    "viewAll": "সব ইভেন্ট দেখুন"
+  },
+  "roles": {
+    "HQ_VIEWER": "সদর দপ্তর দর্শক",
+    "DC_MANAGER": "ডিপো ম্যানেজার",
+    "SHIFT_SUPERVISOR": "শিফট সুপারভাইজার",
+    "SECURITY": "নিরাপত্তা",
+    "ADMIN": "অ্যাডমিন",
+    "KIOSK": "ভিডিও ওয়াল"
+  },
+  "user": {
+    "mockSession": "মক সেশন (সাইন-ইন পরে আসবে)",
+    "switchRole": "ভূমিকা পরিবর্তন (ডেভ)"
+  },
+  "panel": {
+    "collapse": "প্যানেল গুটিয়ে নিন",
+    "expand": "প্যানেল খুলুন"
+  },
+  "kpi": {
+    "cases": "আজকের কার্টন",
+    "casesIn": "{{n}} ভেতরে",
+    "trucks": "সাইটে ট্রাক",
+    "trucksSplit": "{{docked}} ডক · {{waiting}} অপেক্ষমাণ",
+    "bays": "চলমান বে",
+    "baysSub": "বেল্টে মাল আছে",
+    "tat": "গড় টার্নঅ্যারাউন্ড",
+    "compliance": "কমপ্লায়েন্স",
+    "complianceSub": "এই শিফটে",
+    "alerts": "খোলা সতর্কতা",
+    "sevCritical": "{{n}} জরুরি",
+    "sevWarn": "{{n}} সতর্ক",
+    "minutes": "{{n}} মিনিট",
+    "noData": "এখনও ডেটা নেই",
+    "noDelta": "এখনও তুলনা নেই (গতকালের একই সময়ের ডেটা দরকার)",
+    "noTat": "এখনও কোনো ট্রাক শেষ হয়নি",
+    "noCompliance": "এখনও মূল্যায়ন হয়নি",
+    "collapse": "কেপিআই চিপ লুকান",
+    "expand": "কেপিআই চিপ দেখান"
+  },
+  "tray": {
+    "label": "লাইভ তালিকা",
+    "tabs": {
+      "bays": "বে",
+      "trucks": "ট্রাক",
+      "alerts": "সতর্কতা",
+      "captains": "ক্যাপ্টেন"
+    },
+    "noTruck": "ট্রাক নেই",
+    "alertsCount": "{{n}}টি সতর্কতা",
+    "rate": "{{n}} কার্টন/মিনিট",
+    "progress": "লোডের অগ্রগতি",
+    "ago": "{{dur}} আগে",
+    "onFloor": "ফ্লোরে আছেন",
+    "notOnFloor": "ফ্লোরে নেই",
+    "noAlerts": "কোনো খোলা সতর্কতা নেই"
+  },
+  "belt": {
+    "status": {
+      "RUNNING_LOADED": "মালসহ চলছে",
+      "RUNNING_EMPTY": "খালি চলছে",
+      "STOPPED": "বন্ধ",
+      "NO_TRUCK": "ট্রাক নেই",
+      "OFFLINE": "অফলাইন"
+    },
+    "direction": {
+      "OUT": "বহির্গামী",
+      "IN": "অন্তর্গামী",
+      "NONE": "দিক নেই"
+    }
+  },
+  "phase": {
+    "ARRIVED": "পৌঁছেছে",
+    "DOCKED": "ডকে",
+    "LOADING": "লোডিং",
+    "UNLOADING": "আনলোডিং",
+    "FINISHED": "শেষ",
+    "DEPARTED": "রওনা দিয়েছে"
+  },
+  "eventStatus": {
+    "OPEN": "খোলা",
+    "ACK": "স্বীকৃত",
+    "CLOSED": "বন্ধ"
+  },
+  "sev": {
+    "info": "তথ্য",
+    "warn": "সতর্কতা",
+    "critical": "জরুরি"
+  },
+  "door": {
+    "OPEN": "খোলা",
+    "CLOSED": "বন্ধ",
+    "UNKNOWN": "অজানা"
+  },
+  "category": {
+    "truck": "ট্রাক",
+    "belt": "বেল্ট",
+    "hygiene": "স্বাস্থ্যবিধি",
+    "handling": "হ্যান্ডলিং",
+    "ppe": "পিপিই",
+    "compliance": "কমপ্লায়েন্স",
+    "roster": "রোস্টার",
+    "staging": "স্টেজিং",
+    "security": "নিরাপত্তা",
+    "system": "সিস্টেম"
+  },
+  "actorRole": {
+    "CAPTAIN": "ক্যাপ্টেন",
+    "WORKER": "শ্রমিক",
+    "FORKLIFT_OP": "ফর্কলিফট অপারেটর",
+    "UNKNOWN": "ব্যক্তি"
+  },
+  "idSource": {
+    "ROSTER": "রোস্টার",
+    "ROSTER+VEST": "রোস্টার + ভেস্ট",
+    "REID": "পুনঃশনাক্তকরণ",
+    "UNCONFIRMED": "অনিশ্চিত"
+  },
+  "forkliftAct": {
+    "CARRYING": "প্যালেট বহন করছে",
+    "DRIVING": "চলছে",
+    "STATIONARY": "দাঁড়িয়ে আছে"
+  },
+  "tracker": {
+    "title": "ভিজিট ট্র্যাকার",
+    "dwell": "অবস্থানকাল",
+    "steps": {
+      "arrived": "পৌঁছেছে",
+      "docked": "ডকে",
+      "loading": "লোডিং",
+      "finished": "শেষ",
+      "departed": "রওনা"
+    },
+    "loadingCount": "লোডিং {{n}}/{{expected}}",
+    "unloadingCount": "আনলোডিং {{n}}/{{expected}}",
+    "noAgency": "পরিবহনকারী অজানা",
+    "etaUnknown": "আনুমানিক সময় অজানা",
+    "etaLeft": "{{n}} মিনিট বাকি",
+    "empty": "এই বে-তে কোনো ট্রাক নেই। ট্রাক বা ট্রাকসহ বে বেছে নিন।"
+  },
+  "inspector": {
+    "pin": "পিন করুন (খোলা রাখুন)",
+    "unpin": "পিন সরান",
+    "openPage": "পূর্ণ পাতা খুলুন",
+    "close": "বন্ধ করুন",
+    "missing": "এই বস্তুটি আর পাওয়া যাচ্ছে না।",
+    "type": {
+      "site": "ডিপো",
+      "bay": "বে",
+      "belt": "বেল্ট",
+      "staging": "স্টেজিং জোন",
+      "truck": "ট্রাক ভিজিট",
+      "event": "ইভেন্ট",
+      "person": "ব্যক্তি",
+      "forklift": "ফর্কলিফট"
+    },
+    "site": {
+      "baysRunning": "চলমান বে",
+      "trucks": "সাইটে ট্রাক",
+      "casesOut": "আজ বাইরে গেছে",
+      "casesIn": "আজ ভেতরে এসেছে",
+      "tat": "গড় টার্নঅ্যারাউন্ড",
+      "compliance": "কমপ্লায়েন্স",
+      "alerts": "খোলা সতর্কতা",
+      "alertsSplit": "{{critical}} জরুরি · {{warn}} সতর্ক · {{info}} তথ্য"
+    },
+    "bay": {
+      "loading": "লোডিং",
+      "unloading": "আনলোডিং",
+      "belt": "বেল্ট",
+      "since": "এই অবস্থায় আছে",
+      "truck": "ট্রাক",
+      "phase": "ধাপ",
+      "door": "দরজা",
+      "crewSection": "ক্রু",
+      "crew": "ফ্লোরে",
+      "crewSplit": "{{total}} ({{captains}} ক্যাপ্টেন, {{workers}} শ্রমিক, {{forklift}} ফর্কলিফট)",
+      "captainHidden": "দায়িত্বে ক্যাপ্টেন",
+      "ppeNow": "এখন পিপিই লঙ্ঘন",
+      "stagingSection": "স্টেজিং",
+      "occupancy": "পূর্ণতা",
+      "pallets": "অপেক্ষমাণ প্যালেট",
+      "oldestWait": "সবচেয়ে পুরনো অপেক্ষা",
+      "todaySection": "আজ",
+      "casesOut": "বাইরে গেছে",
+      "casesIn": "ভেতরে এসেছে",
+      "trucks": "ট্রাক",
+      "tat": "গড় টার্নঅ্যারাউন্ড",
+      "damage": "ক্ষতিগ্রস্ত",
+      "fallOff": "বেল্ট থেকে পড়েছে",
+      "cameras": "ক্যামেরা",
+      "camsOk": "{{ok}}/{{total}} ঠিক আছে"
+    },
+    "staging": {
+      "ok": "স্বাভাবিক",
+      "waiting": "প্যালেট অপেক্ষমাণ"
+    },
+    "truck": {
+      "agency": "পরিবহনকারী",
+      "bay": "বে",
+      "arrived": "পৌঁছেছে",
+      "dwell": "অবস্থানকাল",
+      "eta": "আনুমানিক সময়",
+      "plateConf": "প্লেট নিশ্চয়তা",
+      "quality": "পণ্যের মান",
+      "damage": "ক্ষতিগ্রস্ত",
+      "openTape": "টেপ খোলা",
+      "tornSack": "ছেঁড়া বস্তা",
+      "fallOff": "বেল্ট থেকে পড়েছে",
+      "skus": "গণনা করা এসকেইউ"
+    },
+    "event": {
+      "snapshot": "স্ন্যাপশট",
+      "clip": "ক্লিপ",
+      "noMedia": "কোনো প্রমাণ সংযুক্ত নেই",
+      "time": "সময়",
+      "bay": "বে",
+      "camera": "ক্যামেরা",
+      "confidence": "নিশ্চয়তা",
+      "noConfidence": "ক্যামেরা মডেল থেকে আসেনি",
+      "plate": "নম্বর প্লেট",
+      "sku": "এসকেইউ",
+      "ackBy": "স্বীকার করেছেন"
+    },
+    "person": {
+      "role": "ভূমিকা",
+      "bay": "বে",
+      "idSource": "শনাক্তের উৎস",
+      "ppeOk": "পিপিই ঠিক আছে",
+      "ppeMissing": "পিপিই নেই",
+      "ppeUnknown": "পিপিই যাচাই হয়নি"
+    },
+    "forklift": {
+      "state": "অবস্থা"
+    }
+  },
+  "scene": {
+    "placeholder": "ডিপোর ভেতরের ৩ডি দৃশ্য"
+  }
+}

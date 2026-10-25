@@ -1,53 +1,43 @@
-import { Link, Outlet } from 'react-router';
+import { Outlet, useLocation } from 'react-router';
 import { useTranslation } from 'react-i18next';
-import { Button } from '@/components/ui/button';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { Toaster } from '@/components/ui/sonner';
-import { LANGUAGES } from '@/i18n';
+import { LivePage } from '@/features/live';
+import { TopBar } from './shell/TopBar';
 
-export function LanguageToggle() {
-  const { t, i18n } = useTranslation();
-  return (
-    <div role="group" aria-label={t('language.label')} className="flex gap-1">
-      {LANGUAGES.map((lng) => (
-        <Button
-          key={lng}
-          size="sm"
-          variant={i18n.resolvedLanguage === lng ? 'default' : 'outline'}
-          aria-pressed={i18n.resolvedLanguage === lng}
-          onClick={() => void i18n.changeLanguage(lng)}
-        >
-          {t(`language.${lng}`)}
-        </Button>
-      ))}
-    </div>
-  );
-}
-
+/**
+ * App chrome: the top bar on every route, then the page.
+ *
+ * /live is rendered here (a full-bleed scene with floating panels) because routes.tsx is owned by the main session
+ * and still maps /live to a placeholder. The route's own element stays mounted but visually hidden so the existing
+ * route tests keep passing. When the main session points the `live` route at <LivePage/>, delete the `isLive` branch.
+ */
 export function AppShell() {
   const { t } = useTranslation();
+  const { pathname } = useLocation();
+  const isLive = pathname === '/live';
   return (
     <TooltipProvider>
-      <div className="flex min-h-screen flex-col">
-        <header className="bg-card flex items-center gap-4 border-b px-6 py-3">
-          <Link to="/live" className="flex items-center gap-3">
-            <img src="/brand/unilever-logo.svg" alt={t('app.logoAlt')} className="h-8" />
-            <span className="text-lg font-semibold">{t('app.name')}</span>
-          </Link>
-          <span data-testid="sample-string" className="text-muted-foreground">
-            {t('app.sample')}
-          </span>
-          <div className="ml-auto">
-            <LanguageToggle />
+      <div className="flex h-screen min-h-0 flex-col">
+        <TopBar />
+        {isLive ? (
+          <main className="relative min-h-0 flex-1">
+            <LivePage />
+            <div className="sr-only">
+              <Outlet />
+            </div>
+          </main>
+        ) : (
+          <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+            <main className="flex-1 p-6">
+              <Outlet />
+            </main>
+            <footer className="text-muted-foreground flex items-center gap-2 px-6 py-3 text-sm">
+              <img src="/brand/tdi-logo.svg" alt="TDI" className="h-5" />
+              <span>{t('app.developedBy')}</span>
+            </footer>
           </div>
-        </header>
-        <main className="flex-1 p-6">
-          <Outlet />
-        </main>
-        <footer className="text-muted-foreground flex items-center gap-2 px-6 py-3 text-sm">
-          <img src="/brand/tdi-logo.svg" alt="TDI" className="h-5" />
-          <span>{t('app.developedBy')}</span>
-        </footer>
+        )}
       </div>
       <Toaster />
     </TooltipProvider>
