@@ -1,1 +1,39 @@
-{}
+{
+  "title": "Simulator",
+  "loading": "Generating 7 days of history…",
+  "ready": "History ready in {{ms}} ms",
+  "speed": "Speed",
+  "speedValue": "{{n}}×",
+  "seed": "Seed",
+  "apply": "Apply",
+  "pause": "Pause",
+  "resume": "Resume",
+  "scenario": "Start at",
+  "scenarioNow": "Now",
+  "scenarioPeak": "Evening peak",
+  "simTime": "Simulated time",
+  "trigger": "Trigger event",
+  "rates": "Messages per second",
+  "dropped": "Dropped (invalid)",
+  "categories": {
+    "truck": "Truck",
+    "belt": "Belt",
+    "hygiene": "Hygiene",
+    "handling": "Handling",
+    "ppe": "PPE",
+    "compliance": "Compliance",
+    "roster": "Roster",
+    "staging": "Staging",
+    "security": "Security",
+    "system": "System"
+  },
+  "kinds": {
+    "siteState": "Site state",
+    "bayState": "Bay state",
+    "actors": "Actors",
+    "case": "Cases",
+    "event": "Events",
+    "lifecycle": "Lifecycle",
+    "health": "Health"
+  }
+}
