@@ -41,7 +41,7 @@ the shed interior**:
   (inside; the apron and trucks sit at Y = 0, actors with `y < 0` are placed at yard grade).
   Other faces: N: `X = Xd − x, Z = Zd + y`; E: `X = Xd − y, Z = Zd − x`; W: `X = Xd + y, Z = Zd + x`.
   Implement once in `src/scene/site/transforms.ts` with unit tests for all four faces.
-- **Heading:** contract `h` (0 = +y, CCW+) → three.js `rotation.y` = `faceYaw + h`, `faceYaw` = 0 S, π N, −π/2 E, +π/2 W.
+- **Heading:** contract `h` (0 = +y, CCW+) → three.js `rotation.y` = `faceYaw + h`, `faceYaw` = 0 S, π N, +π/2 E, −π/2 W (derived from the position formulas above; verified by `transforms.test.ts`).
 - **Config `cameraTemplate.mount`** uses the bay-local frame with `z` = height above dock floor.
 
 ### 2.2 Shed
@@ -87,7 +87,7 @@ the shed interior**:
 | Staging | pallet count = `palletsWaiting`; amber glow if `oldestWaitSec` > threshold |
 
 ## 6. Camera presets (800 ms eased fly-to)
-`Floor overview` (default) · `Dock wall` (low, from inside looking at all 7 doors) · `Bay n` (close over the belt mouth, looking at the door,
+`Floor overview` (default; looking south, so B07 (east) appears on the left and B01 on the right) · `Dock wall` (low, from inside looking at all 7 doors) · `Bay n` (close over the belt mouth, looking at the door,
 truck rear visible through it) · `Staging & aisle` · `Apron` (from inside over the dock wall, looking at docked/waiting trucks).
 Tray rows and search results fly to the object.
 
