@@ -2,7 +2,11 @@
   "topbar": {
     "themeLight": "হালকা থিমে যান",
     "themeDark": "গাঢ় থিমে যান",
-    "mode": { "live": "লাইভ", "mock": "মক", "replay": "রিপ্লে" },
+    "mode": {
+      "live": "লাইভ",
+      "mock": "মক",
+      "replay": "রিপ্লে"
+    },
     "connection": "সংযোগ",
     "baysActive": "{{running}}/{{total}} বে সক্রিয়",
     "sites": "সাইট"
@@ -266,5 +270,10 @@
   },
   "scene": {
     "placeholder": "ডিপোর ভেতরের ৩ডি দৃশ্য"
+  },
+  "queue": {
+    "waiting": "অপেক্ষমাণ",
+    "slot": "অ্যাপ্রন স্লট {{n}}",
+    "noSlot": "অ্যাপ্রন স্লট নেই"
   }
 }

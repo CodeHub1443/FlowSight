@@ -56,6 +56,14 @@
     },
     "ppeViolationsNow": 0
   },
+  "queue": [
+    {
+      "visitId": "V-20261024-B02-0008",
+      "plate": { "bn": "ঢাকা মেট্রো-ট ২২-৪৮১৫", "en": "DHAKA METRO-TA 22-4815", "conf": 0.88 },
+      "arrivedAt": "2026-10-24T19:41:12+06:00",
+      "slot": 1
+    }
+  ],
   "staging": { "occupancyPct": 62, "palletsWaiting": 3, "oldestWaitSec": 240 },
   "today": {
     "casesOut": 2410,

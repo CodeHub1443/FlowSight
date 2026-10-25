@@ -11,6 +11,8 @@ import {
   type SiteState,
 } from '@/domain';
 import { createDataSource, NotImplementedError } from '../DataSource';
+import { MockSource } from '../mock/MockSource';
+import { InlineHost, SimRuntime, setSimRuntime } from '../mock/runtime';
 import { FIXTURE_TICK_MS, FixtureSource } from './FixtureSource';
 
 const opts = { mode: 'mock', siteId: 'dhk-depot', baseUrl: '' } as const;
@@ -81,6 +83,16 @@ describe('FixtureSource', () => {
     expect(a.B07?.visit?.phase).toBe('DOCKED');
     const ids = Object.values(a).flatMap((x) => (x.visit ? [x.visit.visitId] : []));
     expect(new Set(ids).size).toBe(ids.length);
+    // queued trucks belong to their bay; a reversing truck (ARRIVED) is both the visit and the queue head
+    expect(a.B02?.queue.map((q) => q.slot)).toEqual([1]);
+    expect(a.B03?.queue[0]?.visitId).toBe(a.B03?.visit?.visitId);
+    for (const b of Object.values(a)) {
+      for (const q of b.queue) expect(q.visitId).toContain(`-${b.bay}-`);
+    }
+    const queued = Object.values(a).flatMap((x) => x.queue.map((q) => q.visitId));
+    expect(queued.filter((id) => ids.includes(id))).toEqual([a.B03?.visit?.visitId]);
+    const slots = Object.values(a).flatMap((x) => x.queue.map((q) => q.slot));
+    expect(new Set(slots).size).toBe(slots.length);
     expect(Object.keys(a.B06?.health.cams ?? {}).sort()).toEqual([
       'B06-BELT',
       'B06-CREW',
@@ -135,10 +147,15 @@ describe('FixtureSource', () => {
 });
 
 describe('createDataSource', () => {
-  it('mock mode returns the fixture source', () => {
-    const src = createDataSource(opts);
-    expect(src).toBeInstanceOf(FixtureSource);
-    expect(src.mode).toBe('mock');
+  it('mock mode returns the simulator source', () => {
+    setSimRuntime(new SimRuntime(new InlineHost({ autoTick: false })));
+    try {
+      const src = createDataSource(opts);
+      expect(src).toBeInstanceOf(MockSource);
+      expect(src.mode).toBe('mock');
+    } finally {
+      setSimRuntime(null);
+    }
   });
 
   it.each(['live', 'replay'] as const)('%s mode throws a typed NotImplementedError', (mode) => {

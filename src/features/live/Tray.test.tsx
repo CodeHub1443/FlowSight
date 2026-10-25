@@ -12,8 +12,15 @@ async function seed(role: Parameters<typeof resetStores>[0] = 'DC_MANAGER') {
   await resetStores(role);
   push(
     { kind: 'siteState', value: makeSite(T0) },
-    { kind: 'bayState', value: makeBay('B01', T0, (b) => (b.visit = null)) },
     {
+      kind: 'bayState',
+      value: makeBay('B01', T0, (b) => {
+        b.visit = null;
+        b.queue = [];
+      }),
+    },
+    {
+      // the contract fixture: loading V-...-B02-0007, with V-...-B02-0008 queued in apron slot 1
       kind: 'bayState',
       value: makeBay('B02', T0, (b) => {
         if (b.visit) b.visit.visitId = 'V-20261024-B02-0007';
@@ -23,6 +30,7 @@ async function seed(role: Parameters<typeof resetStores>[0] = 'DC_MANAGER') {
       kind: 'bayState',
       value: makeBay('B03', T0, (b) => {
         b.crew.captain = null;
+        b.queue = [];
         if (b.visit) b.visit.visitId = 'V-20261024-B03-0008';
       }),
     },
@@ -36,9 +44,47 @@ describe('Tray', () => {
   it('shows live counts on the four tabs', () => {
     renderWithProviders(<Tray />);
     expect(screen.getByRole('tab', { name: /Bays/ })).toHaveTextContent('3/3');
-    expect(screen.getByRole('tab', { name: /Trucks/ })).toHaveTextContent('2');
+    // two trucks at doors + one queued on the apron
+    expect(screen.getByRole('tab', { name: /Trucks/ })).toHaveTextContent('3');
     expect(screen.getByRole('tab', { name: /Alerts/ })).toHaveTextContent('1');
     expect(screen.getByRole('tab', { name: /Captains/ })).toHaveTextContent('2');
+  });
+
+  it('lists queued trucks after the docked ones, as waiting with their apron slot', async () => {
+    renderWithProviders(<Tray />);
+    await userEvent.click(screen.getByRole('tab', { name: /Trucks/ }));
+    const rows = screen.getAllByTestId(/^tray-truck-V-/).map((r) => r.dataset.testid);
+    expect(rows).toEqual([
+      'tray-truck-V-20261024-B02-0007',
+      'tray-truck-V-20261024-B03-0008',
+      'tray-truck-V-20261024-B02-0008',
+    ]);
+    const queued = screen.getByTestId('tray-truck-V-20261024-B02-0008');
+    expect(queued).toHaveTextContent('Waiting');
+    expect(queued).toHaveTextContent('ঢাকা মেট্রো-ট ২২-৪৮১৫');
+    expect(screen.getByTestId('tray-truck-slot-V-20261024-B02-0008')).toHaveTextContent(
+      'Apron slot 1',
+    );
+    await userEvent.click(queued);
+    expect(uiStore.getState().selection).toEqual({ kind: 'truck', id: 'V-20261024-B02-0008' });
+  });
+
+  it('a departed truck is listed but not counted, so the count matches trucks on site', async () => {
+    push({
+      kind: 'bayState',
+      value: makeBay('B03', T0, (b) => {
+        b.queue = [];
+        if (b.visit) {
+          b.visit.visitId = 'V-20261024-B03-0008';
+          b.visit.phase = 'DEPARTED';
+          b.visit.departedAt = T0;
+        }
+      }),
+    });
+    renderWithProviders(<Tray />);
+    expect(screen.getByRole('tab', { name: /Trucks/ })).toHaveTextContent('2');
+    await userEvent.click(screen.getByRole('tab', { name: /Trucks/ }));
+    expect(screen.getByTestId('tray-truck-V-20261024-B03-0008')).toBeInTheDocument();
   });
 
   it('clicking a bay row selects it and sets the camera target', async () => {

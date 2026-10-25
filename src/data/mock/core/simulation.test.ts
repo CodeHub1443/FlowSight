@@ -249,6 +249,7 @@ describe('invariants across shifts', { timeout: 60_000 }, () => {
           (b) => b.visit && ['DOCKED', 'LOADING', 'UNLOADING', 'FINISHED'].includes(b.visit.phase),
         ).length,
       );
+      expect(k.trucksWaiting).toBe(bays.reduce((s, b) => s + b.queue.length, 0));
       expect(k.trucksOnSite).toBe(k.trucksDocked + k.trucksWaiting);
       expect(k.openAlerts.info + k.openAlerts.warn + k.openAlerts.critical).toBeGreaterThanOrEqual(
         bays.reduce((s, b) => s + b.alerts.open, 0),
@@ -326,6 +327,85 @@ describe('invariants across shifts', { timeout: 60_000 }, () => {
       crews += 1;
     }
     expect(crews).toBeGreaterThan(100);
+  });
+});
+
+describe('apron holding lane (BayState.queue)', { timeout: 60_000 }, () => {
+  /** Replays the stream and checks the queue rules at every SiteState; returns what was seen. */
+  function check(msgs: SimMessage[], slots: number, bayCount = 7) {
+    const latest = new Map<string, BayState>();
+    const problems: string[] = [];
+    const slotOf = new Map<string, (number | null)[]>();
+    let compared = 0;
+    let maxWaiting = 0;
+    for (const m of msgs) {
+      if (m.kind === 'bayState') {
+        const b = m.value;
+        latest.set(b.bay, b);
+        const at = b.queue.map((q) => Date.parse(q.arrivedAt));
+        if (at.some((t, i) => i > 0 && t < (at[i - 1] ?? 0)))
+          problems.push(`${b.ts} ${b.bay} order`);
+        for (const q of b.queue) {
+          if (!q.visitId.includes(`-${b.bay}-`)) problems.push(`${q.visitId} in ${b.bay}`);
+          if (q.slot !== null && (q.slot < 1 || q.slot > slots)) problems.push(`slot ${q.slot}`);
+          slotOf.set(q.visitId, [...(slotOf.get(q.visitId) ?? []), q.slot]);
+        }
+        // removed on dock: only a truck still reversing (ARRIVED) may be both the visit and the queue head
+        const v = b.visit;
+        if (v && b.queue.some((q) => q.visitId === v.visitId)) {
+          if (v.phase !== 'ARRIVED' || b.queue[0]?.visitId !== v.visitId)
+            problems.push(`${b.ts} ${b.bay} docked ${v.visitId} still queued`);
+        }
+      }
+      if (m.kind !== 'siteState' || latest.size < bayCount) continue;
+      const bays = [...latest.values()];
+      const queued = bays.flatMap((b) => b.queue);
+      const k = m.value.kpi;
+      if (k.trucksWaiting !== queued.length)
+        problems.push(`${m.value.ts} waiting ${k.trucksWaiting} != queued ${queued.length}`);
+      if (k.trucksOnSite !== k.trucksDocked + k.trucksWaiting)
+        problems.push(`${m.value.ts} onSite`);
+      const held = queued.flatMap((q) => (q.slot === null ? [] : [q.slot]));
+      if (new Set(held).size !== held.length) problems.push(`${m.value.ts} slot shared ${held}`);
+      // a truck parked without a slot (not the one reversing) means the lane is full
+      const parkedNoSlot = bays.some((b) =>
+        b.queue.some((q) => q.slot === null && q.visitId !== b.visit?.visitId),
+      );
+      if (parkedNoSlot && held.length < slots) problems.push(`${m.value.ts} free slot unused`);
+      maxWaiting = Math.max(maxWaiting, queued.length);
+      compared += 1;
+    }
+    return { problems, compared, maxWaiting, slotOf };
+  }
+
+  it('at the evening peak: waiting = queued trucks, slots within the config lane, removed on dock', () => {
+    const msgs = stream(makeDepot(4, PEAK), 2 * HOUR);
+    const r = check(msgs, CFG.yard.holdingLane.slots);
+    expect(r.problems.slice(0, 5)).toEqual([]);
+    expect(r.compared).toBeGreaterThan(300);
+    expect(r.maxWaiting).toBeGreaterThan(0);
+  });
+
+  it('overflow trucks get no slot and move into the lane when a slot frees up', () => {
+    // two bays and one slot, so the evening arrivals overflow the lane
+    const cfg = structuredClone(CFG);
+    cfg.yard.holdingLane.slots = 1;
+    const face = cfg.dockFaces[0];
+    if (face) face.bays = face.bays.slice(0, 2);
+    const d = new Depot({ seed: 4, startMs: PEAK, cfg, historyDays: 1 });
+    d.runHistory();
+    let msgs = d.snapshot();
+    for (let i = 0; i < 18; i++) {
+      d.advanceTo(d.now + 10 * MIN);
+      msgs = msgs.concat(d.drain());
+    }
+    const r = check(msgs, 1, 2);
+    expect(r.problems.slice(0, 5)).toEqual([]);
+    expect(r.compared).toBeGreaterThan(100);
+    const seq = [...r.slotOf.values()];
+    expect(seq.some((s) => s.includes(null))).toBe(true);
+    // promoted: first seen without a slot, later holding slot 1
+    expect(seq.some((s) => s.indexOf(null) >= 0 && s.lastIndexOf(1) > s.indexOf(null))).toBe(true);
   });
 });
 

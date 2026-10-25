@@ -91,6 +91,26 @@ describe('VisitTracker', () => {
     expect(screen.getByTestId('tracker-step-loading')).toHaveTextContent('Unloading 230/—');
   });
 
+  it('a queued truck starts at "Waiting" (current) with its apron slot; docked and later are pending', () => {
+    push({ kind: 'bayState', value: makeBay('B02', T0) });
+    uiStore.getState().select({ kind: 'truck', id: 'V-20261024-B02-0008' });
+    renderWithProviders(<VisitTracker />);
+    expect(screen.queryByTestId('tracker-step-arrived')).not.toBeInTheDocument();
+    expect(state('waiting')).toBe('current');
+    expect(screen.getByTestId('tracker-step-waiting')).toHaveTextContent('Waiting');
+    expect(screen.getByTestId('tracker-step-waiting')).toHaveTextContent('19:41');
+    expect(state('docked')).toBe('pending');
+    expect(screen.getByTestId('tracker-subject')).toHaveTextContent('ঢাকা মেট্রো-ট ২২-৪৮১৫');
+    expect(screen.getByTestId('tracker-info')).toHaveTextContent('Apron slot 1');
+  });
+
+  it('a bay with only a queued truck shows the empty state (the queue is not the truck at the door)', () => {
+    push({ kind: 'bayState', value: makeBay('B02', T0, (b) => (b.visit = null)) });
+    uiStore.getState().select({ kind: 'bay', id: 'B02' });
+    renderWithProviders(<VisitTracker />);
+    expect(screen.getByTestId('tracker-empty')).toBeInTheDocument();
+  });
+
   it('shows an empty state for a bay with no truck', () => {
     push({ kind: 'bayState', value: makeBay('B01', T0, (b) => (b.visit = null)) });
     uiStore.getState().select({ kind: 'bay', id: 'B01' });

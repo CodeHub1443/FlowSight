@@ -44,6 +44,9 @@ export function bayVariant(base: BayState, index: number, tick: number, nowMs: n
     const num = 2171 + index * 37;
     v.plate = { bn: `ঢাকা মেট্রো-ড ১১-${toBn(num)}`, en: `DHAKA METRO-DA 11-${num}`, conf: 0.93 };
   }
+  // B02 keeps the contract's queued truck (apron slot 1, next visit number); other bays set their own below or have none.
+  b.queue =
+    bay === 'B02' ? b.queue.map((q) => ({ ...q, visitId: visitIdFor(bay, index + 1) })) : [];
 
   switch (bay) {
     case 'B01':
@@ -78,6 +81,8 @@ export function bayVariant(base: BayState, index: number, tick: number, nowMs: n
           damage: 0,
           skuTop: [],
         });
+        // reversing to the door: it keeps its apron slot until it docks
+        b.queue = [{ visitId: v.visitId, plate: v.plate, arrivedAt: v.arrivedAt, slot: 2 }];
       }
       b.alerts = { open: 0, maxSev: null };
       break;
@@ -95,6 +100,14 @@ export function bayVariant(base: BayState, index: number, tick: number, nowMs: n
           finishedAt: '2026-10-24T19:48:10+06:00',
         });
       }
+      b.queue = [
+        {
+          visitId: visitIdFor(bay, index + 1),
+          plate: { bn: 'ঢাকা মেট্রো-শ ৩৪-৬০২৮', en: 'DHAKA METRO-SHA 34-6028', conf: 0.9 },
+          arrivedAt: '2026-10-24T19:44:30+06:00',
+          slot: 3,
+        },
+      ];
       b.alerts = { open: 1, maxSev: 'warn' };
       break;
     case 'B06':
@@ -156,6 +169,14 @@ export function siteVariant(
   s.kpi.casesOut += tick * 12;
   s.kpi.baysRunning = bays.filter((b) => b.belt.status.startsWith('RUNNING')).length;
   s.kpi.baysTotal = bays.length;
+  // same rule as the simulator: waiting = queued (incl. reversing), on site = docked + waiting
+  const waiting = bays.reduce((n, b) => n + b.queue.length, 0);
+  const docked = bays.filter(
+    (b) => b.visit?.dockedAt != null && b.visit.departedAt === null,
+  ).length;
+  s.kpi.trucksWaiting = waiting;
+  s.kpi.trucksDocked = docked;
+  s.kpi.trucksOnSite = docked + waiting;
   const count = (sev: 'info' | 'warn' | 'critical') =>
     bays.filter((b) => b.alerts.maxSev === sev).length;
   s.kpi.openAlerts = { info: count('info'), warn: count('warn'), critical: count('critical') };

@@ -27,6 +27,8 @@ export interface VisitRec {
   loaded: number;
   baseRateCpm: number;
   phase: VisitPhase;
+  /** 1-based apron holding slot while queued (null: overflow, or no longer on the apron). */
+  slot: number | null;
   arrivedAt: number;
   dockedAt: number | null;
   startedAt: number | null;

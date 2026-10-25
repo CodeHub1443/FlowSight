@@ -45,6 +45,7 @@ export type Lang = z.infer<typeof S.LangSchema>;
 export type SiteState = z.infer<typeof S.SiteStateSchema>;
 export type BayState = z.infer<typeof S.BayStateSchema>;
 export type BayVisit = NonNullable<BayState['visit']>;
+export type BayQueueEntry = BayState['queue'][number];
 export type Actor = z.infer<typeof S.ActorSchema>;
 export type ActorsFrame = z.infer<typeof S.ActorsFrameSchema>;
 export type CaseTick = z.infer<typeof S.CaseTickSchema>;

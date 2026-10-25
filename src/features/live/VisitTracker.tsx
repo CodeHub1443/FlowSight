@@ -16,6 +16,7 @@ function stepLabel(
   fmt: Fmt,
   t: (key: string, opts?: Record<string, unknown>) => string,
 ): string {
+  if (step.key === 'waiting') return t('queue.waiting');
   if (step.key !== 'loading') return t(`tracker.steps.${step.key}`);
   const unloading = visit.phase === 'UNLOADING';
   return t(unloading ? 'tracker.unloadingCount' : 'tracker.loadingCount', {
@@ -24,9 +25,9 @@ function stepLabel(
   });
 }
 
-function Stepper({ visit, fmt }: { visit: BayVisit; fmt: Fmt }) {
+function Stepper({ visit, waiting, fmt }: { visit: BayVisit; waiting: boolean; fmt: Fmt }) {
   const { t } = useTranslation('live');
-  const steps = trackerSteps(visit);
+  const steps = trackerSteps(visit, waiting);
   return (
     <ol className="relative grid grid-cols-5" data-testid="tracker-steps">
       {steps.map((step, i) => (
@@ -105,12 +106,16 @@ function Header({ active, fmt }: { active: ActiveVisit | null; fmt: Fmt }) {
   );
 }
 
-/** Bottom-left visit tracker: Arrived -> Docked -> Loading n/expected -> Finished -> Departed for the selected visit. */
+/**
+ * Bottom-left visit tracker: Arrived -> Docked -> Loading n/expected -> Finished -> Departed for the selected visit.
+ * A truck queued on the apron starts at "Waiting" (with its holding slot) instead of "Arrived".
+ */
 export function VisitTracker() {
   const { t } = useTranslation('live');
   const fmt = useFmt();
   const active = useSelectedVisit();
   const visit = active?.visit ?? null;
+  const waiting = active?.waiting ?? null;
 
   return (
     <CollapsiblePanel
@@ -123,11 +128,21 @@ export function VisitTracker() {
     >
       {visit ? (
         <div className="flex flex-col gap-2.5">
-          <Stepper visit={visit} fmt={fmt} />
+          <Stepper visit={visit} waiting={waiting !== null} fmt={fmt} />
           <div className="bg-muted/60 flex flex-wrap items-center justify-between gap-2 rounded-lg px-3 py-1.5">
-            <StatusPill tone={PHASE_TONE[visit.phase]}>{t(`phase.${visit.phase}`)}</StatusPill>
-            <span className="text-muted-foreground text-[0.9rem]">
-              {visit.agency ? visit.agency[fmt.lang] || visit.agency.en : t('tracker.noAgency')}
+            {waiting ? (
+              <StatusPill tone="neutral">{t('queue.waiting')}</StatusPill>
+            ) : (
+              <StatusPill tone={PHASE_TONE[visit.phase]}>{t(`phase.${visit.phase}`)}</StatusPill>
+            )}
+            <span className="text-muted-foreground text-[0.9rem]" data-testid="tracker-info">
+              {waiting
+                ? waiting.slot === null
+                  ? t('queue.noSlot')
+                  : t('queue.slot', { n: fmt.num(waiting.slot) })
+                : visit.agency
+                  ? visit.agency[fmt.lang] || visit.agency.en
+                  : t('tracker.noAgency')}
             </span>
             <span className="text-[0.9rem] font-medium tabular-nums">
               {visit.etaMin === null

@@ -17,7 +17,8 @@ const FLY_SETTLE_MS = 3000;
 async function openLive(page: Page, width: number, height: number) {
   await page.setViewportSize({ width, height });
   await page.goto('/live');
-  await expect(page.getByTestId('tray-bay-B02')).toBeVisible();
+  // mock mode: the app renders after MSW starts, and bays arrive once the simulator's history is generated
+  await expect(page.getByTestId('tray-bay-B02')).toBeVisible({ timeout: 60_000 });
   await expect(page.locator('[data-testid="scene-canvas"][data-scene-ready="true"]')).toHaveCount(
     1,
     { timeout: 60_000 },

@@ -2,7 +2,11 @@
   "topbar": {
     "themeLight": "Switch to light theme",
     "themeDark": "Switch to dark theme",
-    "mode": { "live": "LIVE", "mock": "MOCK", "replay": "REPLAY" },
+    "mode": {
+      "live": "LIVE",
+      "mock": "MOCK",
+      "replay": "REPLAY"
+    },
     "connection": "Connection",
     "baysActive": "{{running}}/{{total}} bays active",
     "sites": "Sites"
@@ -266,5 +270,10 @@
   },
   "scene": {
     "placeholder": "Depot interior 3D"
+  },
+  "queue": {
+    "waiting": "Waiting",
+    "slot": "Apron slot {{n}}",
+    "noSlot": "No apron slot"
   }
 }

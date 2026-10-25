@@ -8,3 +8,4 @@ docs
 config
 CLAUDE.md
 src/components/ui
+public/mockServiceWorker.js

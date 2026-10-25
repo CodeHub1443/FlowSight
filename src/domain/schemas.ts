@@ -142,6 +142,24 @@ const bayCaptainSchema = z
     path: ['employeeId'],
   });
 
+// A truck assigned to the bay and waiting on the apron. `slot` is the 1-based holding slot, null if unassigned.
+const bayQueueEntrySchema = z.object({
+  visitId: VisitIdSchema,
+  plate: z.object({ bn: z.string(), en: z.string(), conf: ConfSchema }),
+  arrivedAt: IsoTsSchema,
+  slot: z.int().min(1).nullable(),
+});
+
+const bayQueueSchema = z
+  .array(bayQueueEntrySchema)
+  .refine(
+    (q) =>
+      q.every(
+        (e, i) => i === 0 || Date.parse(q[i - 1]?.arrivedAt ?? '') <= Date.parse(e.arrivedAt),
+      ),
+    { message: 'queue must be ordered by arrivedAt' },
+  );
+
 export const BayStateSchema = z.object({
   v: VersionSchema,
   ts: IsoTsSchema,
@@ -166,6 +184,7 @@ export const BayStateSchema = z.object({
     captain: bayCaptainSchema.nullable(),
     ppeViolationsNow: CountSchema,
   }),
+  queue: bayQueueSchema,
   staging: z.object({
     occupancyPct: PctSchema,
     palletsWaiting: CountSchema,

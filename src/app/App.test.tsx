@@ -3,7 +3,8 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router';
 import { afterEach } from 'vitest';
 import { App } from './App';
-import { alertStore, liveStore } from '@/stores';
+import { InlineHost, setSimRuntime, SimRuntime } from '@/data/mock';
+import { alertStore, liveStore, sessionStore } from '@/stores';
 import { beforeEach, describe, expect, it } from 'vitest';
 import i18n from '@/i18n';
 import bn from '@/i18n/locales/bn/common.json';
@@ -79,12 +80,18 @@ describe('App shell', () => {
 });
 
 describe('App with the DataSource provider (mock mode)', () => {
+  // The factory builds a MockSource; pin the shared simulator to an inline, non-ticking runtime.
+  beforeEach(() => {
+    setSimRuntime(new SimRuntime(new InlineHost({ autoTick: false })));
+  });
   afterEach(() => {
+    setSimRuntime(null);
     liveStore.getState().reset();
     alertStore.getState().reset();
+    sessionStore.getState().setMockRole('DC_MANAGER');
   });
 
-  it('renders, connects the fixture source and shows 7 bays, 0 dropped in the debug readout', async () => {
+  it('renders, connects the simulator and shows 7 bays, 0 dropped in the debug readout', async () => {
     const user = userEvent.setup();
     render(<App />);
     expect(screen.queryByTestId('debug-readout')).not.toBeInTheDocument();
@@ -106,10 +113,36 @@ describe('App with the DataSource provider (mock mode)', () => {
     }
     expect(
       Number(screen.getByTestId('debug-received-bayState').textContent),
-    ).toBeGreaterThanOrEqual(8);
+    ).toBeGreaterThanOrEqual(7);
+    // the simulator controls open with the readout
+    expect(screen.getByRole('region', { name: 'Simulator' })).toBeInTheDocument();
 
     await user.keyboard('{Control>}{Shift>}d{/Shift}{/Control}');
     expect(screen.queryByTestId('debug-readout')).not.toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: 'Simulator' })).not.toBeInTheDocument();
+  });
+
+  it('restarting the simulator on an earlier day starts the stores fresh (older messages are not ignored)', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await user.keyboard('{Control>}{Shift>}d{/Shift}{/Control}');
+    await waitFor(() => expect(screen.getByTestId('debug-bays')).toHaveTextContent('7'));
+    // "Evening peak" starts at 2026-10-24 19:20 Dhaka, before the wall-clock "now" the app started with
+    await user.selectOptions(screen.getByLabelText('Start at'), 'peak');
+    await waitFor(() => expect(screen.getByTestId('debug-last-ts')).toHaveTextContent('19:20:00'));
+    expect(screen.getByTestId('debug-bays')).toHaveTextContent('7');
+    expect(screen.getByTestId('debug-status')).toHaveTextContent('live');
+    expect(liveStore.getState().bays.B01?.ts.startsWith('2026-10-24T19:20')).toBe(true);
+  });
+
+  it('hides the simulator controls from KIOSK', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await user.keyboard('{Control>}{Shift>}d{/Shift}{/Control}');
+    expect(await screen.findByRole('region', { name: 'Simulator' })).toBeInTheDocument();
+    await user.selectOptions(screen.getByLabelText(en.debug.role), 'KIOSK');
+    expect(screen.queryByRole('region', { name: 'Simulator' })).not.toBeInTheDocument();
+    expect(screen.getByTestId('debug-readout')).toBeInTheDocument();
   });
 
   it('labels the readout in Bangla', async () => {

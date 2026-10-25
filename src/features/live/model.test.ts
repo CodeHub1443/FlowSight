@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { makeBay, makeEvent, ulid } from '@/stores/testUtils';
 import {
+  activeVisits,
   dwellSec,
   normalizeSearch,
+  onSiteCount,
   resolveVisit,
   searchEntities,
   trackerSteps,
@@ -86,6 +88,74 @@ describe('resolveVisit', () => {
 
   it('no selection prefers a loading visit', () => {
     expect(resolveVisit(null, [bay1, bay2], {})?.bay).toBe('B02');
+  });
+});
+
+describe('activeVisits and the apron queue', () => {
+  // B02 (fixture): loading -0007 with -0008 queued in slot 1; B03: reversing truck that is also its queue head
+  const reversing = makeBay('B03', T0, (b) => {
+    if (!b.visit) return;
+    Object.assign(b.visit, { visitId: 'V-20261024-B03-0004', phase: 'ARRIVED', dockedAt: null });
+    b.queue = [
+      { visitId: b.visit.visitId, plate: b.visit.plate, arrivedAt: b.visit.arrivedAt, slot: 2 },
+      {
+        visitId: 'V-20261024-B03-0005',
+        plate: { bn: 'ঢাকা মেট্রো-ন ১২-০০০১', en: 'DHAKA METRO-NA 12-0001', conf: 0.9 },
+        arrivedAt: '2026-10-24T19:40:00+06:00',
+        slot: null,
+      },
+    ];
+  });
+  const empty = makeBay('B01', T0, (b) => {
+    b.visit = null;
+    b.queue = [];
+  });
+
+  it('lists bay visits first, then queued trucks by arrival; a reversing truck appears once, as the visit', () => {
+    const got = activeVisits([empty, bay2, reversing]);
+    expect(got.map((a) => [a.visit.visitId, a.waiting?.slot])).toEqual([
+      ['V-20261024-B02-0007', undefined],
+      ['V-20261024-B03-0004', undefined],
+      ['V-20261024-B03-0005', null],
+      ['V-20261024-B02-0008', 1],
+    ]);
+    const q = got[3]?.visit;
+    expect(q?.phase).toBe('ARRIVED');
+    expect(q?.dockedAt).toBeNull();
+    expect(q?.etaSource).toBe('NONE');
+  });
+
+  it('counts trucks on site as docked + waiting (a departed truck is not counted)', () => {
+    const departed = makeBay('B04', T0, (b) => {
+      b.queue = [];
+      if (b.visit) Object.assign(b.visit, { phase: 'DEPARTED', departedAt: T0 });
+    });
+    expect(onSiteCount(activeVisits([empty, bay2, reversing, departed]))).toBe(4);
+  });
+
+  it('a truck selection finds a queued truck; a bay selection never resolves to one', () => {
+    expect(resolveVisit({ kind: 'truck', id: 'V-20261024-B02-0008' }, [bay2], {})?.waiting).toEqual(
+      { slot: 1 },
+    );
+    const queuedOnly = makeBay('B02', T0, (b) => (b.visit = null));
+    expect(resolveVisit({ kind: 'bay', id: 'B02' }, [queuedOnly], {})).toBeNull();
+  });
+
+  it('a queued truck is searchable by plate', () => {
+    const hit = searchEntities('4815', ctx()).find((h) => h.group === 'trucks');
+    expect(hit?.selection).toEqual({ kind: 'truck', id: 'V-20261024-B02-0008' });
+  });
+
+  it('the tracker starts a waiting truck at "waiting" instead of "arrived"', () => {
+    const v = activeVisits([bay2])[1]?.visit;
+    if (!v) throw new Error('queued truck expected');
+    expect(trackerSteps(v, true).map((s) => [s.key, s.state])).toEqual([
+      ['waiting', 'current'],
+      ['docked', 'pending'],
+      ['loading', 'pending'],
+      ['finished', 'pending'],
+      ['departed', 'pending'],
+    ]);
   });
 });
 

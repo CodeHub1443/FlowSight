@@ -1,22 +1,31 @@
 import path from 'node:path';
 import type { Page } from '@playwright/test';
 import { expect, test } from './fixtures';
+import { startPeak } from './mockSim';
 
 const SCREENS = path.resolve(import.meta.dirname, '..', 'docs', 'screens');
 const SIZES = [
   { width: 1920, height: 1080 },
   { width: 1366, height: 768 },
 ];
-// The fixture source stamps messages with Date.now(); pinning it makes the clock, dwell and ages match the
-// contract fixtures (19:50 Dhaka) so screenshots are stable and comparable with the reference.
-const FIXED_NOW = new Date('2026-10-24T13:50:45Z');
-
+// Mock mode runs the simulator: data is generated, so the checks are structural. Every test restarts it on the
+// fixed evening-peak day (seed 1) at 1x so there are trucks, crews and open alerts.
 async function openLive(page: Page, width: number, height: number) {
   await page.setViewportSize({ width, height });
-  await page.clock.setFixedTime(FIXED_NOW);
   await page.goto('/live');
-  await expect(page.getByTestId('tray-bay-B02')).toBeVisible();
-  await expect(page.getByTestId('kpi-cases')).toContainText('18,240');
+  await expect(page.getByTestId('tray-bay-B02')).toBeVisible({ timeout: 60_000 });
+  await startPeak(page);
+  await expect(page.getByTestId('kpi-cases')).toHaveText(/Cases today\D*\d/);
+}
+
+/** A bay whose belt is running loaded (a truck loading or unloading): its tray row. */
+async function loadingBayRow(page: Page) {
+  const row = page
+    .locator('[data-testid^="tray-bay-B"]')
+    .filter({ hasText: 'Running loaded' })
+    .first();
+  await expect(row).toBeVisible({ timeout: 30_000 });
+  return row;
 }
 
 async function settle(page: Page) {
@@ -57,9 +66,12 @@ for (const { width, height } of SIZES) {
       timeout: 60_000,
     });
 
-    await page.getByTestId('tray-bay-B02').click();
+    await (await loadingBayRow(page)).click();
     await expect(page.getByTestId('inspector-bay')).toBeVisible();
-    await expect(page.getByTestId('tracker-step-loading')).toContainText('Loading 412/—');
+    await expect(page.getByTestId('tracker-step-loading')).toHaveAttribute('data-state', 'current');
+    await expect(page.getByTestId('tracker-step-loading')).toContainText(
+      /(Loading|Unloading) [\d,]+\/—/,
+    );
     await expectNoOverflow(page);
 
     // Inspector and tray never overlap.
@@ -71,8 +83,10 @@ for (const { width, height } of SIZES) {
     await page.screenshot({ path: path.join(SCREENS, `step-05-live-${width}x${height}-en.png`) });
 
     await page.getByRole('button', { name: 'বাং' }).click();
-    await expect(page.getByTestId('tracker-step-loading')).toContainText('লোডিং ৪১২/—');
-    await expect(page.getByTestId('mode-clock')).toHaveText('১৯:৫০');
+    await expect(page.getByTestId('tracker-step-loading')).toContainText(
+      /(লোডিং|আনলোডিং) [০-৯,]+\/—/,
+    );
+    await expect(page.getByTestId('mode-clock')).toHaveText(/^[০-৯]{2}:[০-৯]{2}$/);
     await expectNoOverflow(page);
     await settle(page);
     await page.screenshot({ path: path.join(SCREENS, `step-05-live-${width}x${height}-bn.png`) });
@@ -84,9 +98,12 @@ test('/live dark theme, truck selection and the Trucks tab', async ({ page }) =>
   await page.getByRole('button', { name: 'Switch to dark theme' }).click();
   await expect(page.locator('html')).toHaveClass(/dark/);
   await page.getByRole('tab', { name: /Trucks/ }).click();
-  await page.getByTestId('tray-truck-V-20261024-B02-0007').click();
+  const truck = page.locator('[data-testid^="tray-truck-V-20261024-"]').first();
+  const plateEn = /DHAKA METRO-\S+ \d{2}-\d{4}/.exec((await truck.textContent()) ?? '')?.[0] ?? '';
+  expect(plateEn).not.toBe('');
+  await truck.click();
   await expect(page.getByTestId('inspector-truck')).toBeVisible();
-  await expect(page.getByTestId('tracker-subject')).toContainText('DHAKA METRO-DA 11-2171');
+  await expect(page.getByTestId('tracker-subject')).toContainText(plateEn);
   await settle(page);
   await page.screenshot({ path: path.join(SCREENS, 'step-05-live-1920x1080-dark-truck.png') });
 });
@@ -107,9 +124,13 @@ test('/live event inspector with evidence area, and the alert bell', async ({ pa
 
 test('/live search finds a truck by Bangla digits and selects it', async ({ page }) => {
   await openLive(page, 1366, 768);
+  await page.getByRole('tab', { name: /Trucks/ }).click();
+  const title = (await page.locator('[data-testid^="tray-truck-V-"]').first().textContent()) ?? '';
+  const digits = /([০-৯]{4})/.exec(title)?.[1] ?? '';
+  expect(digits).not.toBe('');
   await page.keyboard.press('/');
   await expect(page.getByTestId('global-search')).toBeFocused();
-  await page.getByTestId('global-search').fill('২১৭১');
+  await page.getByTestId('global-search').fill(digits);
   await expect(page.getByTestId('search-results')).toBeVisible();
   await settle(page);
   await page.screenshot({ path: path.join(SCREENS, 'step-05-live-1366x768-search.png') });

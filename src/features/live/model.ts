@@ -1,4 +1,12 @@
-import type { BayState, BayVisit, Lang, UiLang, VisitPhase, WhEventWithStatus } from '@/domain';
+import type {
+  BayQueueEntry,
+  BayState,
+  BayVisit,
+  Lang,
+  UiLang,
+  VisitPhase,
+  WhEventWithStatus,
+} from '@/domain';
 import type { Selection, VisitRecord } from '@/stores';
 import { formatPlate } from '@/lib/format';
 
@@ -7,19 +15,65 @@ import { formatPlate } from '@/lib/format';
 export interface ActiveVisit {
   bay: string;
   visit: BayVisit;
+  /** Set while the truck waits on the apron for this bay (in `BayState.queue`, not yet the bay's visit). */
+  waiting: { slot: number | null } | null;
 }
 
-/** Visits currently attached to a bay (arrived, docked, loading/unloading or finished but not yet gone). */
+/** A queued truck as a visit-shaped record: only the plate and the arrival are known, nothing else is observed yet. */
+function queuedVisit(q: BayQueueEntry): BayVisit {
+  return {
+    visitId: q.visitId,
+    plate: q.plate,
+    agency: null,
+    phase: 'ARRIVED',
+    arrivedAt: q.arrivedAt,
+    dockedAt: null,
+    startedAt: null,
+    finishedAt: null,
+    departedAt: null,
+    casesIn: 0,
+    casesOut: 0,
+    expected: null,
+    etaMin: null,
+    etaSource: 'NONE',
+    damage: 0,
+    openTape: 0,
+    tornSack: 0,
+    fallOff: 0,
+    skuTop: [],
+  };
+}
+
+/**
+ * Trucks on site: each bay's visit (arrived, docked, loading/unloading, finished or just departed), then the trucks
+ * queued on the apron in arrival order. A truck reversing to the door is both a bay's visit (ARRIVED) and the head of
+ * its queue; it is listed once, as the visit.
+ */
 export function activeVisits(bays: readonly BayState[]): ActiveVisit[] {
-  return bays.flatMap((b) => (b.visit ? [{ bay: b.bay, visit: b.visit }] : []));
+  const atBay = bays.flatMap((b) =>
+    b.visit ? [{ bay: b.bay, visit: b.visit, waiting: null }] : [],
+  );
+  const queued = bays
+    .flatMap((b) =>
+      b.queue
+        .filter((q) => q.visitId !== b.visit?.visitId)
+        .map((q) => ({ bay: b.bay, visit: queuedVisit(q), waiting: { slot: q.slot } })),
+    )
+    .sort((a, b) => Date.parse(a.visit.arrivedAt) - Date.parse(b.visit.arrivedAt));
+  return [...atBay, ...queued];
+}
+
+/** Trucks still on site (a departed truck is shown briefly but no longer counted): matches `kpi.trucksOnSite`. */
+export function onSiteCount(active: readonly ActiveVisit[]): number {
+  return active.filter((a) => a.visit.phase !== 'DEPARTED').length;
 }
 
 const isWorking = (v: BayVisit) => v.phase === 'LOADING' || v.phase === 'UNLOADING';
 
 /**
  * The visit the tracker shows.
- *  - truck selected: that visit (fresh bay data first, then the kept visit record);
- *  - bay / belt / staging selected: that bay's visit, or null when no truck is there;
+ *  - truck selected: that visit (fresh bay data first, including queued trucks, then the kept visit record);
+ *  - bay / belt / staging selected: that bay's visit (never a queued truck), or null when no truck is at the door;
  *  - anything else (nothing, site, event, person, forklift): the first loading/unloading visit, else the first visit.
  */
 export function resolveVisit(
@@ -32,15 +86,15 @@ export function resolveVisit(
     const live = active.find((a) => a.visit.visitId === selection.id);
     if (live) return live;
     const kept = visits[selection.id];
-    return kept ? { bay: kept.bay, visit: kept.visit } : null;
+    return kept ? { bay: kept.bay, visit: kept.visit, waiting: null } : null;
   }
   if (selection?.kind === 'bay' || selection?.kind === 'belt' || selection?.kind === 'staging') {
-    return active.find((a) => a.bay === selection.id) ?? null;
+    return active.find((a) => a.bay === selection.id && !a.waiting) ?? null;
   }
   return active.find((a) => isWorking(a.visit)) ?? active[0] ?? null;
 }
 
-export type TrackerKey = 'arrived' | 'docked' | 'loading' | 'finished' | 'departed';
+export type TrackerKey = 'waiting' | 'arrived' | 'docked' | 'loading' | 'finished' | 'departed';
 export type StepState = 'done' | 'current' | 'pending';
 export interface TrackerStep {
   key: TrackerKey;
@@ -58,10 +112,19 @@ const PHASE_STEP: Record<VisitPhase, number> = {
   DEPARTED: 4,
 };
 
-/** Arrived -> Docked -> Loading -> Finished -> Departed, with each step's state derived from `phase`. */
-export function trackerSteps(visit: BayVisit): TrackerStep[] {
+/**
+ * Arrived -> Docked -> Loading -> Finished -> Departed, with each step's state derived from `phase`.
+ * A truck still queued on the apron shows "Waiting" (since its arrival) as the current first step.
+ */
+export function trackerSteps(visit: BayVisit, waiting = false): TrackerStep[] {
   const at = [visit.arrivedAt, visit.dockedAt, visit.startedAt, visit.finishedAt, visit.departedAt];
-  const keys: TrackerKey[] = ['arrived', 'docked', 'loading', 'finished', 'departed'];
+  const keys: TrackerKey[] = [
+    waiting ? 'waiting' : 'arrived',
+    'docked',
+    'loading',
+    'finished',
+    'departed',
+  ];
   const current = PHASE_STEP[visit.phase];
   return keys.map((key, i) => ({
     key,

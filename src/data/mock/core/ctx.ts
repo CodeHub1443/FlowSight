@@ -26,6 +26,8 @@ export interface SimCtx {
   captainFor(bay: string, ts: number): string;
   camStatus(cam: string): CameraStatus;
   pipelineLagMs(): number;
+  /** The truck has docked: free its apron holding slot (if it had one) for the next waiting truck. */
+  releaseSlot(v: VisitRec): void;
 }
 
 /** The slice of HistoryStore the bays write to. */

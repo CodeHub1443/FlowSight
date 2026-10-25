@@ -172,9 +172,14 @@ export class BaySim {
     return this.shown === 'RUNNING_LOADED';
   }
 
-  /** Visit count at the bay that is waiting (reversing in counts as waiting for the dock). */
+  /** Trucks waiting for this bay's dock, in arrival order: a reversing truck stays queued (and keeps its slot) until it docks. */
+  get waitingVisits(): VisitRec[] {
+    return this.stage === 'REVERSING' && this.current ? [this.current, ...this.queue] : this.queue;
+  }
+
+  /** Visit count at the bay that is waiting (= BayState.queue length). */
   get waiting(): number {
-    return this.queue.length + (this.stage === 'REVERSING' ? 1 : 0);
+    return this.waitingVisits.length;
   }
 
   /** Rough "how busy" score for dispatch: lower is better. */
@@ -302,6 +307,7 @@ export class BaySim {
     const { rng } = this.ctx;
     v.phase = 'DOCKED';
     v.dockedAt = t;
+    this.ctx.releaseSlot(v);
     this.direction = v.dir;
     this.today.trucks += 1;
     this.stage = 'DOCKED';
@@ -1061,6 +1067,12 @@ export class BaySim {
         },
         ppeViolationsNow: ppeNow,
       },
+      queue: this.waitingVisits.map((q) => ({
+        visitId: q.visitId,
+        plate: q.plate,
+        arrivedAt: iso(q.arrivedAt),
+        slot: q.slot,
+      })),
       staging: {
         occupancyPct: crew ? Math.round((this.staged / PALLET_CAPACITY) * 100) : 0,
         palletsWaiting: this.pallets.length,

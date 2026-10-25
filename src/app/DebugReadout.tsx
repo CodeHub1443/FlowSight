@@ -1,14 +1,19 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import type { DataSource } from '@/data';
+import { MockControls, MockSource } from '@/data/mock';
 import { RoleSchema } from '@/domain';
 import { formatClock } from '@/lib/time';
 import {
+  alertStore,
+  liveStore,
   MESSAGE_KINDS,
   useConnStatus,
   useLiveStore,
   useSessionStore,
   sessionStore,
 } from '@/stores';
+import { useDataSource } from './dataSourceContext';
 
 /** Available in `pnpm dev`, and in builds made with VITE_DEBUG_PANEL=1 (the e2e run). */
 const DEBUG_PANEL_ENABLED = import.meta.env.DEV || import.meta.env.VITE_DEBUG_PANEL === '1';
@@ -82,9 +87,37 @@ function Panel() {
   );
 }
 
-/** Dev-only pipe check, toggled with Ctrl+Shift+D. Not a feature screen. */
+/** Simulator controls next to the readout (mock mode only: MockControls renders nothing for other sources). */
+function SimulatorPanel() {
+  const source = useDataSource();
+  const role = useSessionStore((s) => s.role);
+  if (!source || role === 'KIOSK') return null;
+  return <MockControls source={source} className="fixed right-[22rem] bottom-4 z-50" />;
+}
+
+/**
+ * A simulator restart (new seed or start scenario) can move simulated time backwards, and the stores ignore messages
+ * older than what they hold. Start the stores fresh each time the simulator becomes ready again.
+ */
+function useFreshStoresOnSimRestart(source: DataSource | null) {
+  useEffect(() => {
+    if (!(source instanceof MockSource)) return;
+    let ready = source.control.get().ready;
+    return source.control.subscribe((c) => {
+      if (c.ready && !ready) {
+        liveStore.getState().reset();
+        alertStore.getState().reset();
+        liveStore.getState().setSourceStatus(source.status.get());
+      }
+      ready = c.ready;
+    });
+  }, [source]);
+}
+
+/** Dev-only pipe check and simulator controls, toggled with Ctrl+Shift+D. Not a feature screen. */
 export function DebugReadout() {
   const [open, setOpen] = useState(false);
+  useFreshStoresOnSimRestart(useDataSource());
 
   useEffect(() => {
     if (!DEBUG_PANEL_ENABLED) return;
@@ -98,5 +131,10 @@ export function DebugReadout() {
     return () => window.removeEventListener('keydown', onKey);
   }, []);
 
-  return DEBUG_PANEL_ENABLED && open ? <Panel /> : null;
+  return DEBUG_PANEL_ENABLED && open ? (
+    <>
+      <Panel />
+      <SimulatorPanel />
+    </>
+  ) : null;
 }

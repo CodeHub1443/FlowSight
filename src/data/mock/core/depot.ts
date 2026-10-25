@@ -80,6 +80,8 @@ export class Depot implements SimCtx {
   /** True while a manual trigger runs: events then draw ids from the trigger stream. */
   private manual = false;
   private tatCache = { at: -Infinity, value: null as number | null };
+  /** Apron holding slots: the visitId parked in each, or null. */
+  private readonly slots: (string | null)[];
 
   constructor(opts: DepotOptions) {
     this.cfg = opts.cfg;
@@ -95,6 +97,7 @@ export class Depot implements SimCtx {
     const face = opts.cfg.dockFaces[0];
     if (!face) throw new Error('site config has no dock face');
     this.bays = face.bays.map((b) => new BaySim(this, b.id, this.historyStartMs));
+    this.slots = Array.from({ length: opts.cfg.yard.holdingLane.slots }, () => null);
     for (const b of this.bays) {
       for (const role of ['DOCK', 'CREW', 'BELT']) this.cams.set(`${b.id}-${role}`, 'OK');
     }
@@ -244,6 +247,7 @@ export class Depot implements SimCtx {
       loaded: 0,
       baseRateCpm: round(rng.tri(8, 15, 20), 1),
       phase: 'ARRIVED',
+      slot: null,
       arrivedAt: ts,
       dockedAt: null,
       startedAt: null,
@@ -285,6 +289,8 @@ export class Depot implements SimCtx {
     const bay = rng.pick(candidates);
     const v = this.makeVisit(ts, bay);
     this.store.addVisit(v);
+    v.slot = this.freeSlot();
+    if (v.slot !== null) this.slots[v.slot - 1] = v.visitId;
     bay.enqueue(v);
     const ref = { visitId: v.visitId, plateEn: v.plate.en };
     const arrived = this.addEvent({
@@ -307,6 +313,32 @@ export class Depot implements SimCtx {
       });
       v.eventIds.push(unknown.id);
     }
+  }
+
+  // ---- apron holding lane (config yard.holdingLane.slots, shared by all bays) --------------------------------
+
+  /** Lowest free 1-based slot, or null when the lane is full. */
+  private freeSlot(): number | null {
+    const i = this.slots.indexOf(null);
+    return i < 0 ? null : i + 1;
+  }
+
+  releaseSlot(v: VisitRec): void {
+    const s = v.slot;
+    if (s === null) return;
+    v.slot = null;
+    this.slots[s - 1] = null;
+    // the earliest-arrived truck still waiting without a slot moves into the lane (no random draw: determinism)
+    let next: { v: VisitRec; bay: BaySim } | null = null;
+    for (const bay of this.bays) {
+      for (const q of bay.queue) {
+        if (q.slot === null && (!next || q.arrivedAt < next.v.arrivedAt)) next = { v: q, bay };
+      }
+    }
+    if (!next) return;
+    next.v.slot = s;
+    this.slots[s - 1] = next.v.visitId;
+    next.bay.dirty = true;
   }
 
   // ---- daily scripted incidents -------------------------------------------------------------------------------

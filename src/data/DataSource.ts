@@ -7,7 +7,7 @@ import type {
   SiteState,
   WhEvent,
 } from '@/domain';
-import { FixtureSource } from './fixture/FixtureSource';
+import { MockSource } from './mock/MockSource';
 
 export type DataMode = 'mock' | 'live' | 'replay';
 export type Unsub = () => void;
@@ -57,8 +57,8 @@ export class NotImplementedError extends Error {
 export function createDataSource(opts: DataSourceOptions): DataSource {
   switch (opts.mode) {
     case 'mock':
-      // Step 3 replaces this with MockSource (simulator worker).
-      return new FixtureSource(opts);
+      // In-browser simulator (Web Worker). FixtureSource stays exported for unit tests.
+      return new MockSource(opts);
     case 'live':
       throw new NotImplementedError('DataSource mode "live" (NatsSource, step 13)');
     case 'replay':

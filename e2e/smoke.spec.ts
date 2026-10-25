@@ -38,7 +38,8 @@ for (const { width, height } of SIZES) {
 
 test('unknown path shows 404 and admin child resolves', async ({ page }) => {
   await page.goto('/does/not/exist');
-  await expect(page.getByTestId('not-found-title')).toBeVisible();
+  // mock mode renders after the MSW service worker has started
+  await expect(page.getByTestId('not-found-title')).toBeVisible({ timeout: 60_000 });
   await page.goto('/admin/alert-rules');
   await expect(page.getByTestId('placeholder-path').first()).toHaveText('/admin/alert-rules');
   await expect(page.getByTestId('placeholder-title')).toHaveCount(2);

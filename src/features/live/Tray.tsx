@@ -17,7 +17,7 @@ import { bayLabel } from './siteInfo';
 import { BELT_TONE, EVENT_STATUS_TONE, PHASE_TONE, SEV_TONE } from './tones';
 import { useFmt, type Fmt } from './useFmt';
 import { useActiveVisits, useRole, useStreamNow } from './useLiveModel';
-import { visitCount, visitProgress } from './model';
+import { onSiteCount, visitCount, visitProgress } from './model';
 
 const TABS: readonly TrayTab[] = ['bays', 'trucks', 'alerts', 'captains'];
 
@@ -144,7 +144,7 @@ function TrucksList({ fmt }: { fmt: Fmt }) {
   const selection = useUiStore((s) => s.selection);
   return (
     <ul className="flex flex-col">
-      {visits.map(({ bay, visit }) => {
+      {visits.map(({ bay, visit, waiting }) => {
         const plate = formatPlate(visit.plate);
         const progress = visitProgress(visit);
         return (
@@ -156,23 +156,38 @@ function TrucksList({ fmt }: { fmt: Fmt }) {
             title={plate.primary}
             sub={[plate.secondary, bayLabel(bay, fmt.lang)].filter(Boolean).join(' · ')}
             pill={
-              <StatusPill tone={PHASE_TONE[visit.phase]}>{t(`phase.${visit.phase}`)}</StatusPill>
+              waiting ? (
+                <StatusPill tone="neutral">{t('queue.waiting')}</StatusPill>
+              ) : (
+                <StatusPill tone={PHASE_TONE[visit.phase]}>{t(`phase.${visit.phase}`)}</StatusPill>
+              )
             }
             progress={
-              <span className="flex items-center gap-1.5">
-                <span className="text-muted-foreground text-[0.85rem] tabular-nums">
-                  {fmt.num(visitCount(visit))}/
-                  {visit.expected === null ? '—' : fmt.num(visit.expected)}
+              waiting ? (
+                <span
+                  className="text-muted-foreground text-[0.85rem]"
+                  data-testid={`tray-truck-slot-${visit.visitId}`}
+                >
+                  {waiting.slot === null
+                    ? t('queue.noSlot')
+                    : t('queue.slot', { n: fmt.num(waiting.slot) })}
                 </span>
-                {progress !== null && (
-                  <ThinProgress
-                    value={progress}
-                    tone={PHASE_TONE[visit.phase]}
-                    label={t('tray.progress')}
-                    className="w-14"
-                  />
-                )}
-              </span>
+              ) : (
+                <span className="flex items-center gap-1.5">
+                  <span className="text-muted-foreground text-[0.85rem] tabular-nums">
+                    {fmt.num(visitCount(visit))}/
+                    {visit.expected === null ? '—' : fmt.num(visit.expected)}
+                  </span>
+                  {progress !== null && (
+                    <ThinProgress
+                      value={progress}
+                      tone={PHASE_TONE[visit.phase]}
+                      label={t('tray.progress')}
+                      className="w-14"
+                    />
+                  )}
+                </span>
+              )
             }
           />
         );
@@ -263,7 +278,7 @@ export function Tray() {
   const captains = bays.filter((b) => b.crew.captain?.present).length;
   const counts: Record<TrayTab, string> = {
     bays: `${fmt.num(running)}/${fmt.num(bays.length)}`,
-    trucks: fmt.num(trucks.length),
+    trucks: fmt.num(onSiteCount(trucks)),
     alerts: fmt.num(alerts.length),
     captains: fmt.num(captains),
   };
