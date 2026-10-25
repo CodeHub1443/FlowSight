@@ -1,1 +1,270 @@
-{}
+{
+  "topbar": {
+    "themeLight": "Switch to light theme",
+    "themeDark": "Switch to dark theme",
+    "mode": { "live": "LIVE", "mock": "MOCK", "replay": "REPLAY" },
+    "connection": "Connection",
+    "baysActive": "{{running}}/{{total}} bays active",
+    "sites": "Sites"
+  },
+  "conn": {
+    "connecting": "Connecting",
+    "live": "Live",
+    "degraded": "Degraded (no recent data)",
+    "offline": "Offline"
+  },
+  "search": {
+    "label": "Search",
+    "placeholder": "Search bays, trucks, plates, captains, events",
+    "results": "Search results",
+    "empty": "No matches",
+    "groups": {
+      "bays": "Bays",
+      "trucks": "Trucks",
+      "captains": "Captains",
+      "events": "Events"
+    }
+  },
+  "bell": {
+    "label": "Alerts, {{n}} open",
+    "title": "Open alerts ({{n}})",
+    "empty": "No open alerts",
+    "viewAll": "View all events"
+  },
+  "roles": {
+    "HQ_VIEWER": "HQ viewer",
+    "DC_MANAGER": "Depot manager",
+    "SHIFT_SUPERVISOR": "Shift supervisor",
+    "SECURITY": "Security",
+    "ADMIN": "Admin",
+    "KIOSK": "Video wall"
+  },
+  "user": {
+    "mockSession": "Mock session (sign-in comes later)",
+    "switchRole": "Switch role (dev)"
+  },
+  "panel": {
+    "collapse": "Collapse panel",
+    "expand": "Expand panel"
+  },
+  "kpi": {
+    "cases": "Cases today",
+    "casesIn": "{{n}} in",
+    "trucks": "Trucks on site",
+    "trucksSplit": "{{docked}} docked · {{waiting}} waiting",
+    "bays": "Bays running",
+    "baysSub": "belts loaded",
+    "tat": "Avg turnaround",
+    "compliance": "Compliance",
+    "complianceSub": "this shift",
+    "alerts": "Open alerts",
+    "sevCritical": "{{n}} critical",
+    "sevWarn": "{{n}} warn",
+    "minutes": "{{n}} min",
+    "noData": "No data yet",
+    "noDelta": "No comparison yet (needs the same time yesterday)",
+    "noTat": "No truck has finished yet",
+    "noCompliance": "Not evaluated yet",
+    "collapse": "Hide KPI chips",
+    "expand": "Show KPI chips"
+  },
+  "tray": {
+    "label": "Live lists",
+    "tabs": {
+      "bays": "Bays",
+      "trucks": "Trucks",
+      "alerts": "Alerts",
+      "captains": "Captains"
+    },
+    "noTruck": "No truck",
+    "alertsCount": "{{n}} alerts",
+    "rate": "{{n}} cases/min",
+    "progress": "Load progress",
+    "ago": "{{dur}} ago",
+    "onFloor": "On the floor",
+    "notOnFloor": "Not on the floor",
+    "noAlerts": "No open alerts"
+  },
+  "belt": {
+    "status": {
+      "RUNNING_LOADED": "Running loaded",
+      "RUNNING_EMPTY": "Running empty",
+      "STOPPED": "Stopped",
+      "NO_TRUCK": "No truck",
+      "OFFLINE": "Offline"
+    },
+    "direction": {
+      "OUT": "Outbound",
+      "IN": "Inbound",
+      "NONE": "No direction"
+    }
+  },
+  "phase": {
+    "ARRIVED": "Arrived",
+    "DOCKED": "Docked",
+    "LOADING": "Loading",
+    "UNLOADING": "Unloading",
+    "FINISHED": "Finished",
+    "DEPARTED": "Departed"
+  },
+  "eventStatus": {
+    "OPEN": "Open",
+    "ACK": "Acknowledged",
+    "CLOSED": "Closed"
+  },
+  "sev": {
+    "info": "Info",
+    "warn": "Warning",
+    "critical": "Critical"
+  },
+  "door": {
+    "OPEN": "Open",
+    "CLOSED": "Closed",
+    "UNKNOWN": "Unknown"
+  },
+  "category": {
+    "truck": "Truck",
+    "belt": "Belt",
+    "hygiene": "Hygiene",
+    "handling": "Handling",
+    "ppe": "PPE",
+    "compliance": "Compliance",
+    "roster": "Roster",
+    "staging": "Staging",
+    "security": "Security",
+    "system": "System"
+  },
+  "actorRole": {
+    "CAPTAIN": "Captain",
+    "WORKER": "Worker",
+    "FORKLIFT_OP": "Forklift operator",
+    "UNKNOWN": "Person"
+  },
+  "idSource": {
+    "ROSTER": "Roster",
+    "ROSTER+VEST": "Roster + vest",
+    "REID": "Re-identification",
+    "UNCONFIRMED": "Unconfirmed"
+  },
+  "forkliftAct": {
+    "CARRYING": "Carrying a pallet",
+    "DRIVING": "Driving",
+    "STATIONARY": "Parked"
+  },
+  "tracker": {
+    "title": "Visit tracker",
+    "dwell": "Dwell",
+    "steps": {
+      "arrived": "Arrived",
+      "docked": "Docked",
+      "loading": "Loading",
+      "finished": "Finished",
+      "departed": "Departed"
+    },
+    "loadingCount": "Loading {{n}}/{{expected}}",
+    "unloadingCount": "Unloading {{n}}/{{expected}}",
+    "noAgency": "Transporter unknown",
+    "etaUnknown": "ETA unknown",
+    "etaLeft": "{{n}} min left",
+    "empty": "No truck at this bay. Select a truck or a bay with a truck."
+  },
+  "inspector": {
+    "pin": "Pin (keep open)",
+    "unpin": "Unpin",
+    "openPage": "Open full page",
+    "close": "Close",
+    "missing": "This object is no longer available.",
+    "type": {
+      "site": "Depot",
+      "bay": "Bay",
+      "belt": "Belt",
+      "staging": "Staging zone",
+      "truck": "Truck visit",
+      "event": "Event",
+      "person": "Person",
+      "forklift": "Forklift"
+    },
+    "site": {
+      "baysRunning": "Bays running",
+      "trucks": "Trucks on site",
+      "casesOut": "Cases out today",
+      "casesIn": "Cases in today",
+      "tat": "Avg turnaround",
+      "compliance": "Compliance",
+      "alerts": "Open alerts",
+      "alertsSplit": "{{critical}} critical · {{warn}} warn · {{info}} info"
+    },
+    "bay": {
+      "loading": "Loading",
+      "unloading": "Unloading",
+      "belt": "Belt",
+      "since": "In this state since",
+      "truck": "Truck",
+      "phase": "Phase",
+      "door": "Door",
+      "crewSection": "Crew",
+      "crew": "On the floor",
+      "crewSplit": "{{total}} ({{captains}} captain, {{workers}} workers, {{forklift}} forklift)",
+      "captainHidden": "Captain on duty",
+      "ppeNow": "PPE violations now",
+      "stagingSection": "Staging",
+      "occupancy": "Occupancy",
+      "pallets": "Pallets waiting",
+      "oldestWait": "Oldest wait",
+      "todaySection": "Today",
+      "casesOut": "Cases out",
+      "casesIn": "Cases in",
+      "trucks": "Trucks",
+      "tat": "Avg turnaround",
+      "damage": "Damaged",
+      "fallOff": "Belt fall-offs",
+      "cameras": "Cameras",
+      "camsOk": "{{ok}}/{{total}} OK"
+    },
+    "staging": {
+      "ok": "Flowing",
+      "waiting": "Pallets waiting"
+    },
+    "truck": {
+      "agency": "Transporter",
+      "bay": "Bay",
+      "arrived": "Arrived",
+      "dwell": "Dwell",
+      "eta": "ETA",
+      "plateConf": "Plate confidence",
+      "quality": "Product quality",
+      "damage": "Damaged",
+      "openTape": "Open tape",
+      "tornSack": "Torn sacks",
+      "fallOff": "Belt fall-offs",
+      "skus": "SKUs counted"
+    },
+    "event": {
+      "snapshot": "Snapshot",
+      "clip": "Clip",
+      "noMedia": "No evidence attached",
+      "time": "Time",
+      "bay": "Bay",
+      "camera": "Camera",
+      "confidence": "Confidence",
+      "noConfidence": "Not produced by a camera model",
+      "plate": "Plate",
+      "sku": "SKU",
+      "ackBy": "Acknowledged by"
+    },
+    "person": {
+      "role": "Role",
+      "bay": "Bay",
+      "idSource": "Identified by",
+      "ppeOk": "PPE OK",
+      "ppeMissing": "PPE missing",
+      "ppeUnknown": "PPE not assessed"
+    },
+    "forklift": {
+      "state": "State"
+    }
+  },
+  "scene": {
+    "placeholder": "Depot interior 3D"
+  }
+}
