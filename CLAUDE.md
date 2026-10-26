@@ -36,9 +36,10 @@ crews, staging, forklifts, truck rears at the doors), because almost nothing hap
 2. `docs/02-architecture.md`: data flow, DataSource layer, transport, performance rules
 3. `docs/03-data-contract.md`: **the source of truth** for every message, subject and endpoint
 4. `docs/04-scene-spec.md`: the 3D site, building, bays, actors, look and feel
-5. `docs/05-build-plan.md`: the ordered steps; do exactly one step per session unless told otherwise
-6. `config/sites/dhk-depot.json`: site geometry and bay and camera config (data, not code)
-7. `docs/PROGRESS.md`: create it if missing; update it at the end of every step
+5. `docs/06-visual-language.md`: **binding** colours, 3D quality, card styling, no-flicker rules
+6. `docs/05-build-plan.md`: the ordered steps; do exactly one step per session unless told otherwise
+7. `config/sites/dhk-depot.json`: site geometry and bay and camera config (data, not code)
+8. `docs/PROGRESS.md`: create it if missing; update it at the end of every step
 
 ## Non-negotiable rules
 - **Mock-first.** Every screen must work with `VITE_DATA_MODE=mock` (in-browser simulator) before it is wired
@@ -62,13 +63,13 @@ crews, staging, forklifts, truck rears at the doors), because almost nothing hap
 - **3D performance rules** (see architecture §6): no React state updates per frame, instancing for repeated meshes,
   interpolate actors in `useFrame`, store updates ≤ 4 Hz, quality tiers.
 
-## Stack (do not swap without an ADR in docs/02; see ADR-9, ADR-10)
+## Stack (do not swap without an ADR in docs/02; see ADR-9, ADR-11)
 Node 22 LTS (≥ 22.12) · pnpm 10 via Corepack · Vite 7 · React 19 · TypeScript 5 (strict, no `any`) ·
 @react-three/fiber 9 · @react-three/drei 10 · three · zustand 5 · @tanstack/react-query 5 · zod 4 ·
 react-router 7 (declarative mode, `react-router` package) · Tailwind CSS 4 (`@tailwindcss/vite`) · shadcn/ui (current CLI, Radix) ·
 sonner (toasts) · lucide-react · react-i18next · ECharts 5 (echarts-for-react, or a thin wrapper if peers reject React 19) ·
 date-fns 4 + date-fns-tz · @nats-io/nats-core (wsconnect) · MSW 2 · Vitest + Testing Library · Playwright · ESLint 9 (flat) + Prettier.
-Fonts: `@fontsource/inter`, `@fontsource/noto-sans-bengali`. No postprocessing library (ADR-10).
+Fonts: `@fontsource/inter`, `@fontsource/noto-sans-bengali`. `@react-three/postprocessing` for N8AO + SMAA on High/Med (ADR-11).
 Versions are pinned exactly (`save-exact`); the resolved pins are recorded in `docs/PROGRESS.md`.
 
 ## Folder structure
@@ -113,6 +114,7 @@ docs/
 - Light theme default (matches reference), plus dark "control room" theme. Colours only via CSS variables/tokens
   defined in `src/index.css` and mirrored in `scene/materials.ts`.
 - Brand primary: Unilever blue. Placeholder `#1F36C7` until the official brand kit arrives; never hard-code it elsewhere.
+- **`docs/06-visual-language.md` is authoritative for every colour, radius, shadow, type and motion value; where it differs from this section, docs/06 wins.**
 - Semantic status tokens: `--status-ok` `#16A34A`, `--status-warn` `#F59E0B`, `--status-critical` `#DC2626`,
   `--status-neutral` `#64748B`, `--status-idle` `#CBD5E1`, `--status-offline` `#94A3B8`, `--status-info` `#2563EB` (also selection).
   Belt-state → token mapping is in `docs/04-scene-spec.md` §5. Scene palette tokens are in `docs/04` §1.

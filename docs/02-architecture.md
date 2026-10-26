@@ -44,7 +44,8 @@
 | ADR-7 | **Replay storage now, replay UI in P2.** `bay_state_5s` + `actors_1s` hypertables with compression. | Retro-fitting history later is impossible; storage is cheap. | — |
 | ADR-8 | **Procedural 3D** from `config/sites/*.json`; no GLB dependency for v1 (optional GLB swap later per object type). | Fast iteration, tiny bundle, works offline, multi-site by config. | Hand-modelled scene per site. |
 | ADR-9 | **React 19** with R3F 9, drei 10, Tailwind CSS 4 (`@tailwindcss/vite`), current shadcn CLI, zod 4, react-router 7 (declarative mode, `react-router` package). Supersedes "React 18" in the original stack. | R3F 9 and drei 10 require React 19; React 18 would pin the core 3D layer to frozen majors (R3F 8, drei 9) and force Tailwind 3 + an old shadcn CLI. Router 6 is maintenance-only; v7 declarative mode is the same API. | React 18 (frozen majors); router v6. Fallback if `echarts-for-react` rejects React 19 peers: a 40-line ECharts wrapper over `echarts/core`. |
-| ADR-10 | **No postprocessing in v1.** High tier = soft shadows + contact shadows + 2× DPR; no SSAO. | Keeps the stack small; reference style is flat and soft. | `@react-three/postprocessing` (revisit after step 14 profiling). |
+| ADR-10 | ~~No postprocessing in v1.~~ **Superseded by ADR-11.** High tier = soft shadows + contact shadows + 2× DPR; no SSAO. | Keeps the stack small; reference style is flat and soft. | `@react-three/postprocessing` (revisit after step 14 profiling). |
+| ADR-11 | **Visual fidelity per docs/06:** add `@react-three/postprocessing` (N8AO ambient occlusion + SMAA on High/Med; none on Low), drei `Environment` from local `Lightformer`s (no HDR download), rounded/bevelled geometry, ACES/AgX tone mapping. | The user rejected the flat, sharp-edged look; the reference's softness comes from AO + environment lighting + rounded geometry. Low tier keeps weak PCs fast. | Keeping ADR-10 (flat look rejected); baked lightmaps (too much tooling). |
 
 ## 3. Frontend data layer
 ```ts
@@ -109,7 +110,7 @@ REST via react-query hooks in `data/api/queries.ts`; MSW handlers in mock mode r
   2. Actor movement is interpolated in `useFrame` between the last two frames (2 Hz in → 60 fps out).
   3. Cases on belts, pallets, crates, trees and fence posts use `InstancedMesh`.
   4. `frameloop="demand"` when the tab is hidden; `PerformanceMonitor` auto-steps quality
-     (`High`: soft shadows + contact shadows, 2× DPR; `Med`: contact shadows only, 1.5× DPR; `Low`: no shadows, 1× DPR). No SSAO (ADR-10).
+     (`High`: soft shadows + contact shadows, 2× DPR; `Med`: contact shadows only, 1.5× DPR; `Low`: no shadows, 1× DPR). N8AO on High/Med (ADR-11).
   5. Labels via drei `Html` only for selected or hovered objects plus pins; otherwise use `Text` (SDF) or sprites.
   6. Charts: ECharts with `useDirtyRect`, data decimation for > 2k points.
 - Video-wall PC: dedicated `/wall` route, fixed "Med" quality, auto-cycle every 30 s (site → each active bay → KPIs).

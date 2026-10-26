@@ -20,15 +20,9 @@ the shed interior**:
 - **Camera:** perspective, FOV 30°. Default = `Floor overview`: positioned **north of the shed interior, high, looking south** at the
   dock wall so all 7 belts, the crews, staging and the truck rears are in frame (≈ 55° elevation, slight east offset).
   OrbitControls with damping; polar 20°–80°; pan bounded to the shed footprint + apron; zoom 10–120 m.
-- **Palette (light):** floor = epoxy green-grey `#DCE7DF` with faint 1 m grid and worn darker patches (the real floor is green, see cam frames),
-  painted walk-lines yellow `#F2C94C`, cutaway wall tops white `#F7F8FC` with brand-blue cap line, apron paving `#DDE1F2`,
-  background void `#E8EBF7` (soft periwinkle, as in the reference). Conveyors blue `#2F55B8` frame, dark belt `#3A3F4A`, grey cabinets,
-  yellow motor housing. Plastic pallets blue / yellow / orange; cartons kraft `#C9A46A`; sacks white with a coloured band.
-  Matte materials (roughness 0.9). Canvas textures only for labels, plates, stripe band.
-- **Lighting:** hemisphere + one directional light from above-south with soft shadows (High tier), faint fog only on the void. No SSAO (ADR-10).
-- **Tokens:** `--scene-void`, `--scene-floor`, `--scene-floor-grid`, `--scene-walkline`, `--scene-wall`, `--scene-wall-cap`, `--scene-apron`,
-  `--scene-conveyor`, `--scene-belt` (light + dark values) read into `scene/materials.ts`.
-- **Dark theme:** void `#0E1424`, floor `#1B2430`, walls `#1A2238`; status colours emissive.
+- **Palette, materials, lighting and geometry quality: `docs/06-visual-language.md` is binding** (pale periwinkle/white world, saturated brand blue, rounded geometry, AO). The real floor is green epoxy, but the twin follows the reference look by the user's decision.
+- **Lighting:** per docs/06 §2 (Lightformer environment, soft key light, AO on High/Med, ACES/AgX).
+- **Tokens and dark theme:** docs/06 §1.
 - Selection: blue outline + floor ring; hover: lighter outline. Pins: rounded map-pin sprites, colour by severity, gently bobbing;
   pill label beside selected objects (`B04 · DHAKA METRO-DA 11-2171 · Loading 412`).
 
