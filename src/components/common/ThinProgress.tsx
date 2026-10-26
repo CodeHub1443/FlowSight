@@ -1,7 +1,7 @@
 import { cn } from '@/lib/utils';
 import { TONE_BAR, type Tone } from './tone';
 
-/** Thin progress bar. `value` is 0-100; null renders an empty track (unknown, never 0). */
+/** Thin rounded progress bar. `value` is 0-100; null renders an empty track (unknown, never 0). */
 export function ThinProgress({
   value,
   tone = 'ok',
@@ -21,14 +21,16 @@ export function ThinProgress({
       aria-valuemin={0}
       aria-valuemax={100}
       {...(clamped === null ? {} : { 'aria-valuenow': Math.round(clamped) })}
-      className={cn('bg-muted h-1.5 w-full overflow-hidden rounded-full', className)}
+      className={cn('bg-track h-1.5 w-full overflow-hidden rounded-full', className)}
     >
-      {clamped !== null && (
-        <div
-          className={cn('h-full rounded-full transition-[width] duration-500', TONE_BAR[tone])}
-          style={{ width: `${clamped}%` }}
-        />
-      )}
+      {/* Always mounted: the bar glides from its last width instead of popping in. */}
+      <div
+        className={cn(
+          'ease-soft h-full rounded-full transition-[width,background-color] duration-300',
+          TONE_BAR[tone],
+        )}
+        style={{ width: `${clamped ?? 0}%` }}
+      />
     </div>
   );
 }

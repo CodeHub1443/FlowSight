@@ -1,4 +1,4 @@
-import { screen } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { BayVisit } from '@/domain';
 import { uiStore } from '@/stores';
@@ -137,6 +137,6 @@ describe('VisitTracker', () => {
     expect(screen.getByTestId('tracker-subject')).toHaveTextContent('Bay 2');
     uiStore.getState().select({ kind: 'truck', id: 'V-20261024-B03-0008' });
     // re-render via store subscription
-    return screen.findByText(/Bay 3/, { selector: '[data-testid="tracker-subject"]' });
+    return waitFor(() => expect(screen.getByTestId('tracker-subject')).toHaveTextContent('Bay 3'));
   });
 });

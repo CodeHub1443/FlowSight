@@ -2,7 +2,7 @@ import { Search } from 'lucide-react';
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
-import { SmallCaps } from '@/components/common';
+import { Caption } from '@/components/common';
 import {
   bayConveyor,
   bayLabel,
@@ -76,7 +76,8 @@ export function GlobalSearch() {
   return (
     <div className="relative min-w-0 flex-1 basis-0" style={{ maxWidth: '26rem' }}>
       <Search
-        className="text-muted-foreground pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2"
+        className="text-ink-400 pointer-events-none absolute start-3.5 top-1/2 size-4 -translate-y-1/2"
+        strokeWidth={1.75}
         aria-hidden
       />
       <input
@@ -113,10 +114,10 @@ export function GlobalSearch() {
             e.currentTarget.blur();
           }
         }}
-        className="bg-card focus-visible:border-ring focus-visible:ring-ring/50 h-9 w-full rounded-full border ps-9 pe-9 shadow-xs outline-none focus-visible:ring-[3px] [&::-webkit-search-cancel-button]:hidden"
+        className="soft-transition bg-muted border-card-border text-ink-900 placeholder:text-ink-400 focus-visible:bg-card focus-visible:border-ring focus-visible:ring-ring/30 h-10 w-full rounded-full border ps-10 pe-10 text-[13px] outline-none focus-visible:ring-[3px] [&::-webkit-search-cancel-button]:hidden"
       />
       <kbd
-        className="text-muted-foreground pointer-events-none absolute end-3 top-1/2 hidden -translate-y-1/2 rounded border px-1.5 text-[0.75rem] md:block"
+        className="text-ink-400 border-card-border bg-card pointer-events-none absolute end-3 top-1/2 hidden -translate-y-1/2 rounded-[6px] border px-1.5 text-[11px] leading-4 md:block"
         aria-hidden
       >
         /
@@ -127,7 +128,7 @@ export function GlobalSearch() {
           role="listbox"
           aria-label={t('search.results')}
           data-testid="search-results"
-          className="bg-popover text-popover-foreground absolute start-0 top-full z-50 mt-1.5 max-h-[60vh] w-[28rem] max-w-[calc(100vw-1.5rem)] overflow-y-auto rounded-xl border p-1.5 shadow-lg"
+          className="bg-popover text-popover-foreground border-card-border shadow-card animate-in fade-in-0 slide-in-from-top-1 absolute start-0 top-full z-50 mt-2 max-h-[60vh] w-[28rem] max-w-[calc(100vw-1.5rem)] overflow-y-auto rounded-[14px] border p-1.5 duration-150"
         >
           {flat.length === 0 && (
             <p className="text-muted-foreground px-2 py-4 text-center" data-testid="search-empty">
@@ -140,7 +141,7 @@ export function GlobalSearch() {
             return (
               <div key={group} role="group" aria-label={t(`search.groups.${group}`)}>
                 <div className="px-2 pt-1.5 pb-0.5">
-                  <SmallCaps>{t(`search.groups.${group}`)}</SmallCaps>
+                  <Caption className="text-ink-400">{t(`search.groups.${group}`)}</Caption>
                 </div>
                 {items.map((hit) => (
                   <div
@@ -156,13 +157,13 @@ export function GlobalSearch() {
                     }}
                     onMouseEnter={() => setActive(flat.indexOf(hit))}
                     className={cn(
-                      'cursor-pointer rounded-lg px-2 py-1.5',
-                      hit === activeHit && 'bg-accent',
+                      'soft-transition cursor-pointer rounded-[10px] px-2.5 py-1.5',
+                      hit === activeHit && 'bg-row-hover',
                     )}
                   >
-                    <span className="block truncate font-semibold">{hit.title}</span>
+                    <span className="text-ink-900 block truncate font-medium">{hit.title}</span>
                     {hit.subtitle && (
-                      <span className="text-muted-foreground block truncate text-[0.85rem]">
+                      <span className="text-ink-400 block truncate text-[12px]">
                         {hit.subtitle}
                       </span>
                     )}

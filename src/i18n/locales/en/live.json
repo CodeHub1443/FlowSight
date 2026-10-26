@@ -59,6 +59,7 @@
     "bays": "Bays running",
     "baysSub": "belts loaded",
     "tat": "Avg turnaround",
+    "tatSub": "today",
     "compliance": "Compliance",
     "complianceSub": "this shift",
     "alerts": "Open alerts",

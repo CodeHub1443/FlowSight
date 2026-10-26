@@ -10,13 +10,17 @@ import {
 } from '@/stores';
 import { activeVisits, resolveVisit, type ActiveVisit } from './model';
 
+const noWall = () => 0;
+
 /**
  * "Now" for dwell clocks and ages: the newest message timestamp (so replay and mock streams read consistently),
- * falling back to the wall clock before the first message. Ticks at 1 Hz via the shared clock.
+ * falling back to the wall clock (1 Hz, shared clock) before the first message. Once messages flow, the wall clock
+ * snapshot is constant, so the 1 Hz tick does not re-render on top of the 4 Hz store flushes (docs/06 §4).
  */
 export function useStreamNow(): number {
   const lastTs = useLiveStore((s) => s.lastTs);
-  const wall = useSyncExternalStore(subscribeClock, clockNow, clockNow);
+  const wallSnapshot = lastTs === null ? clockNow : noWall;
+  const wall = useSyncExternalStore(subscribeClock, wallSnapshot, wallSnapshot);
   return lastTs ?? wall;
 }
 

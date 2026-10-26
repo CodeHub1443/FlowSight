@@ -11,8 +11,9 @@ export function ThemeToggle() {
   const Icon = dark ? Sun : Moon;
   return (
     <Button
-      variant="outline"
+      variant="ghost"
       size="icon"
+      className="rounded-full"
       aria-label={dark ? t('topbar.themeLight') : t('topbar.themeDark')}
       aria-pressed={dark}
       onClick={() => uiStore.getState().setTheme(dark ? 'light' : 'dark')}

@@ -37,9 +37,9 @@ export function AlertBell() {
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button
-          variant="outline"
+          variant="ghost"
           size="icon"
-          className="relative"
+          className="relative rounded-full"
           aria-label={t('bell.label', { n: fmt.num(alerts.length) })}
           data-testid="alert-bell"
         >
@@ -48,7 +48,7 @@ export function AlertBell() {
             <span
               data-testid="alert-bell-count"
               className={cn(
-                'absolute -top-1.5 -right-1.5 grid min-w-5 place-items-center rounded-full px-1 text-[0.72rem] leading-5 font-bold text-white tabular-nums',
+                'ring-card absolute -top-1 -right-1 grid h-[18px] min-w-[18px] place-items-center rounded-full px-1 text-[11px] leading-none font-semibold text-on-solid tabular-nums ring-2',
                 TONE_DOT[SEV_TONE[worst]],
               )}
             >
@@ -57,33 +57,33 @@ export function AlertBell() {
           )}
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-[22rem] p-1.5" data-testid="alert-bell-menu">
-        <DropdownMenuLabel className="text-[0.9rem]">
+      <DropdownMenuContent align="end" className="w-[22rem]" data-testid="alert-bell-menu">
+        <DropdownMenuLabel className="text-ink-900 text-[13px] font-semibold">
           {t('bell.title', { n: fmt.num(alerts.length) })}
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         {alerts.length === 0 && (
-          <p className="text-muted-foreground px-2 py-4 text-center">{t('bell.empty')}</p>
+          <p className="text-ink-400 px-2 py-4 text-center text-[13px]">{t('bell.empty')}</p>
         )}
         {alerts.slice(0, MAX_LISTED).map((e) => (
           <DropdownMenuItem
             key={e.id}
             data-testid={`bell-alert-${e.id}`}
-            className="items-start gap-2.5 py-2 text-[1rem]"
+            className="items-start gap-2.5 py-2 text-[13px]"
             onSelect={() => {
               focusObject({ kind: 'event', id: e.id });
               void navigate('/live');
             }}
           >
             <span
-              className={cn('mt-1.5 size-2.5 shrink-0 rounded-full', TONE_DOT[SEV_TONE[e.sev]])}
+              className={cn('mt-1.5 size-2 shrink-0 rounded-full', TONE_DOT[SEV_TONE[e.sev]])}
               aria-hidden
             />
             <span className="min-w-0">
-              <span className="block truncate font-semibold">
+              <span className="text-ink-900 block truncate font-medium">
                 {e.title[fmt.lang] || e.title.en}
               </span>
-              <span className="text-muted-foreground block truncate text-[0.85rem]">
+              <span className="text-ink-400 block truncate text-[12px]">
                 {[e.bay ? bayLabel(e.bay, fmt.lang) : null, fmt.clock(e.ts)]
                   .filter(Boolean)
                   .join(' · ')}
@@ -93,7 +93,7 @@ export function AlertBell() {
         ))}
         <DropdownMenuSeparator />
         <DropdownMenuItem
-          className="justify-center text-[1rem]"
+          className="text-info justify-center text-[13px] font-medium"
           onSelect={() => void navigate('/events')}
         >
           {t('bell.viewAll')}
