@@ -1,6 +1,7 @@
 import { createContext, useContext } from 'react';
 import type { SceneMaterials, ScenePalette } from './materials';
 import type { QualitySettings, QualityTier } from './quality';
+import type { SceneToneMapping } from './toneMapping';
 
 /** Palette, shared materials and quality settings for everything inside <SceneRoot/>. */
 export interface SceneEnv {
@@ -10,6 +11,7 @@ export interface SceneEnv {
   quality: QualitySettings;
   /** Directional-light shadows are on (High tier). */
   shadows: boolean;
+  toneMapping: SceneToneMapping;
 }
 
 export const SceneEnvContext = createContext<SceneEnv | null>(null);

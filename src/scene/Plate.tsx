@@ -1,5 +1,5 @@
-import { useMemo } from 'react';
-import { MeshBasicMaterial } from 'three';
+import { useEffect, useMemo } from 'react';
+import { MeshStandardMaterial } from 'three';
 import { bayToThree, type V3 } from './frame';
 import { UNIT_PLANE } from './geometry';
 import { plateTexture, type PlateStyle } from './labels/textures';
@@ -14,17 +14,19 @@ interface PlateProps {
   facing: 'in' | 'out';
 }
 
-/** A small textured text plate (door number, cabinet label) standing on a wall or box face. */
+/** A small painted-on text plate (cabinet name), lit like the surface it sits on. */
 export function Plate({ at, size, text, style, facing }: PlateProps) {
   const [sw, sh] = size;
   const material = useMemo(
     () =>
-      new MeshBasicMaterial({
+      new MeshStandardMaterial({
         map: plateTexture(text, style, 256, Math.round((256 * sh) / sw)),
-        toneMapped: false,
+        roughness: 0.7,
+        transparent: true,
       }),
     [text, style, sw, sh],
   );
+  useEffect(() => () => material.dispose(), [material]);
   return (
     <mesh
       geometry={UNIT_PLANE}

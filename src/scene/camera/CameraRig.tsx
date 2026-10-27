@@ -1,7 +1,7 @@
 import { OrbitControls } from '@react-three/drei';
 import { useFrame, useThree } from '@react-three/fiber';
-import { useEffect, useLayoutEffect, useRef, type ElementRef } from 'react';
-import { MathUtils, Vector3 } from 'three';
+import { useEffect, useLayoutEffect, useMemo, useRef, type ElementRef } from 'react';
+import { MathUtils, PerspectiveCamera, Vector3 } from 'three';
 import type { SiteLayout } from '../site/layout';
 import { cameraController, type FlyTarget } from './cameraController';
 import {
@@ -10,13 +10,11 @@ import {
   MIN_DISTANCE,
   MIN_POLAR,
   presetPose,
-  type Triple,
+  type CameraPose,
 } from './presets';
+import { applyViewFit, easeInOutCubic, FLY_MS, NO_SAFE_AREA, viewFit, type SafeArea } from './view';
 
-const FLY_MS = 800;
-const aspectOf = (s: { width: number; height: number }) => s.width / Math.max(1, s.height);
 const PAN_MARGIN = 4;
-const easeInOutCubic = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
 
 interface Fly {
   t0: number;
@@ -27,36 +25,56 @@ interface Fly {
 }
 
 /**
- * OrbitControls (damped, polar 20-80 deg, zoom 10-120 m, pan bounded to footprint + apron) plus the 800 ms eased
- * fly-to. Everything runs in refs and useFrame: no React state per frame.
+ * OrbitControls (damped, polar 20-80 deg, zoom 10-120 m, pan bounded to footprint + apron), the safe-area view
+ * offset and the 800 ms eased fly-to. Everything per frame runs in refs and useFrame: no React state per frame.
  */
-export function CameraRig({ layout }: { layout: SiteLayout }) {
+export function CameraRig({
+  layout,
+  safeArea = NO_SAFE_AREA,
+}: {
+  layout: SiteLayout;
+  safeArea?: Readonly<SafeArea>;
+}) {
   const camera = useThree((s) => s.camera);
-  const get = useThree((s) => s.get);
+  const width = useThree((s) => s.size.width);
+  const height = useThree((s) => s.size.height);
   const invalidate = useThree((s) => s.invalidate);
   const controls = useRef<ElementRef<typeof OrbitControls>>(null);
   const fly = useRef<Fly | null>(null);
+  /** Last preset shown; re-framed on resize until the user moves the camera. */
+  const home = useRef<FlyTarget>('floorOverview');
+  const userMoved = useRef(false);
 
-  const apply = (pose: { position: Triple; target: Triple }) => {
+  const fit = useMemo(() => viewFit(width, height, safeArea), [width, height, safeArea]);
+  const fitRef = useRef(fit);
+
+  const apply = (pose: CameraPose) => {
     camera.position.set(...pose.position);
     controls.current?.target.set(...pose.target);
     controls.current?.update();
   };
 
-  // initial pose
+  // safe-area view offset; re-applied on every canvas resize (R3F resets aspect, the offset keeps the aspect)
   useLayoutEffect(() => {
-    const pose = presetPose(layout, 'floorOverview', aspectOf(get().size));
-    if (pose) apply(pose);
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- only on layout change
-  }, [layout]);
+    fitRef.current = fit;
+    if (camera instanceof PerspectiveCamera) applyViewFit(camera, fit);
+    if (!userMoved.current && !fly.current) {
+      const pose = presetPose(layout, home.current, fit);
+      if (pose) apply(pose);
+    }
+    invalidate();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- apply only reads refs and the camera
+  }, [fit, camera, layout, invalidate]);
 
   useEffect(
     () =>
       cameraController.register({
         flyTo(target: FlyTarget) {
           const c = controls.current;
-          const pose = presetPose(layout, target, aspectOf(get().size));
+          const pose = presetPose(layout, target, fitRef.current);
           if (!c || !pose) return;
+          home.current = target;
+          userMoved.current = false;
           fly.current = {
             t0: performance.now(),
             fromPos: camera.position.clone(),
@@ -67,7 +85,7 @@ export function CameraRig({ layout }: { layout: SiteLayout }) {
           invalidate();
         },
       }),
-    [layout, camera, invalidate, get],
+    [layout, camera, invalidate],
   );
 
   const tmp = useRef(new Vector3());
@@ -110,6 +128,7 @@ export function CameraRig({ layout }: { layout: SiteLayout }) {
       screenSpacePanning={false}
       onStart={() => {
         fly.current = null;
+        userMoved.current = true;
       }}
     />
   );

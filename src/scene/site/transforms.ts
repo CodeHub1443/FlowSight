@@ -25,11 +25,9 @@ export interface DoorOrigin {
 /**
  * Rotation.y that turns the bay frame (+y into the building) onto the site frame.
  *
- * docs/04 section 2.1 lists E = -pi/2 and W = +pi/2, which contradicts its own position formulas
- * (E: X = Xd - y, Z = Zd - x; W: X = Xd + y, Z = Zd + x). three.js rotation.y = t maps a local
- * (a, c) to X = a cos t + c sin t, Z = -a sin t + c cos t, so with those formulas E needs +pi/2 and W
- * needs -pi/2. The position formulas are authoritative (they follow from the contract frame); the
- * yaw is derived from them and verified against them in transforms.test.ts.
+ * docs/04 section 2.1: S = 0, N = pi, E = +pi/2, W = -pi/2. These follow from the position formulas
+ * (E: X = Xd - y, Z = Zd - x; W: X = Xd + y, Z = Zd + x): three.js rotation.y = t maps a local (a, c) to
+ * X = a cos t + c sin t, Z = -a sin t + c cos t. transforms.test.ts verifies the yaw against the positions.
  */
 export function faceYaw(face: Face): number {
   switch (face) {

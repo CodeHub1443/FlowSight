@@ -1,13 +1,26 @@
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { WebGLRenderer } from 'three';
+import type { Scene, WebGLRenderer } from 'three';
 import siteConfigJson from '../../../config/sites/dhk-depot.json';
 import { SiteConfigSchema, type SiteConfig } from '@/domain';
-import { SCENE_PRESETS, SceneRoot, useSceneCamera, type QualityTier, type SceneTheme } from '..';
+import {
+  NO_SAFE_AREA,
+  SCENE_PRESETS,
+  SCENE_SAFE_AREA,
+  SceneRoot,
+  useSceneCamera,
+  viewFit,
+  type QualityTier,
+  type SceneTheme,
+} from '..';
+import type { SceneToneMapping } from '../toneMapping';
 
 declare global {
   interface Window {
     __sceneGl?: WebGLRenderer;
+    __sceneScene?: Scene;
+    /** Canvas pixel where the camera target projects (centre of the safe area). */
+    __sceneSafeCentre?: { x: number; y: number };
   }
 }
 
@@ -30,7 +43,10 @@ function param<T extends string>(name: string, allowed: readonly T[], fallback: 
   return allowed.find((a) => a === v) ?? fallback;
 }
 
-/** Dev-only full-screen preview of <SceneRoot/> with a preset switcher. Not mounted by the app. */
+/**
+ * Dev-only full-screen preview of <SceneRoot/> with a preset switcher. Not mounted by the app. Uses the /live safe
+ * area by default so framing matches the app (`?safe=0` frames the full canvas).
+ */
 export function ScenePreview() {
   const { t, i18n } = useTranslation('scene');
   const camera = useSceneCamera();
@@ -43,6 +59,15 @@ export function ScenePreview() {
   );
   const [quality, setQuality] = useState<QualityTier | 'auto'>(param('quality', QUALITIES, 'auto'));
   const [selected, setSelected] = useState<string | null>(null);
+  const toneMapping = param<SceneToneMapping | 'default'>(
+    'tm',
+    ['aces', 'agx', 'neutral'],
+    'default',
+  );
+  const safeArea =
+    new URLSearchParams(window.location.search).get('safe') === '0'
+      ? NO_SAFE_AREA
+      : SCENE_SAFE_AREA;
   const bays = config.dockFaces.flatMap((f) => f.bays);
   const lang = i18n.language === 'bn' ? 'bn' : 'en';
 
@@ -55,11 +80,19 @@ export function ScenePreview() {
         siteConfig={config}
         theme={theme}
         quality={quality === 'auto' ? undefined : quality}
+        safeArea={safeArea}
+        toneMapping={toneMapping === 'default' ? undefined : toneMapping}
         selectedBayId={selected}
         onSelect={(s) => setSelected(s.bayId)}
         doorOpen={(id) => id !== 'B06'}
-        onReady={(gl) => {
+        onReady={(gl, scene) => {
           window.__sceneGl = gl;
+          window.__sceneScene = scene;
+          window.__sceneSafeCentre = viewFit(
+            window.innerWidth,
+            window.innerHeight,
+            safeArea,
+          ).centre;
         }}
       />
       <div
