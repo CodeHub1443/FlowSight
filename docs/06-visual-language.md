@@ -34,7 +34,7 @@ Dark theme mirrors these with a deep navy void `#0B1222`, floor `#141C2F`, cards
 - **Ambient occlusion is required** for the soft depth seen in the reference: N8AO (via `@react-three/postprocessing`) on High/Med,
   plus SMAA. Low tier: no post, baked `ContactShadows` only. (Supersedes ADR-10; see ADR-11 in docs/02.)
 - **Lighting:** drei `Environment` built from local `Lightformer`s (no HDR download — offline rule), one soft key light with
-  `shadow.radius` ≥ 6 and `bias` tuned (no acne), hemisphere fill. Tone mapping `ACESFilmic` (or `AgX`), exposure ~1.0, sRGB output.
+  `shadow.radius` ≥ 6 and `bias` tuned (no acne), hemisphere fill. Tone mapping **Khronos PBR Neutral** (`THREE.NeutralToneMapping`), exposure ~1.0, sRGB output — ACES/AgX grey out the §1 palette (measured: floor #EEF2FC → #DDDEE1 ACES / #C4C6C9 AgX), Neutral keeps it within a few RGB units.
 - **Materials:** `MeshStandardMaterial`, roughness 0.55–0.75, metalness 0 except steel (0.4). Top faces read lighter than side faces
   (achieved by lighting, not by different colours). No pure black anywhere; darkest scene colour is the belt `#2E3445`.
 - **Camera:** FOV 26–30°, slightly isometric; default framing shows all 7 bays with margins so cards never cover a bay

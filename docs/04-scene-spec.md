@@ -21,7 +21,7 @@ the shed interior**:
   dock wall so all 7 belts, the crews, staging and the truck rears are in frame (≈ 55° elevation, slight east offset).
   OrbitControls with damping; polar 20°–80°; pan bounded to the shed footprint + apron; zoom 10–120 m.
 - **Palette, materials, lighting and geometry quality: `docs/06-visual-language.md` is binding** (pale periwinkle/white world, saturated brand blue, rounded geometry, AO). The real floor is green epoxy, but the twin follows the reference look by the user's decision.
-- **Lighting:** per docs/06 §2 (Lightformer environment, soft key light, AO on High/Med, ACES/AgX).
+- **Lighting:** per docs/06 §2 (Lightformer environment, soft key light, AO on High/Med, PBR Neutral tone mapping).
 - **Tokens and dark theme:** docs/06 §1.
 - Selection: blue outline + floor ring; hover: lighter outline. Pins: rounded map-pin sprites, colour by severity, gently bobbing;
   pill label beside selected objects (`B04 · DHAKA METRO-DA 11-2171 · Loading 412`).
