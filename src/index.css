@@ -3,96 +3,177 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* Colours are defined only here (tokens) and mirrored in scene/materials.ts. */
+/*
+ * Colours are defined only here (tokens) and mirrored in scene/materials.ts.
+ * Values: docs/06-visual-language.md section 1 (binding; it wins over CLAUDE.md where they differ).
+ */
 :root {
-  --radius: 0.75rem;
-
-  /* Brand: placeholder Unilever blue until the official kit arrives. */
-  --brand: #1f36c7;
+  /* Brand (docs/06 §1). `--brand` is the placeholder Unilever blue until the official kit arrives. */
+  --brand-500: #2c6fed;
+  --brand-400: #5193f3;
+  --brand-50: #eaf2ff;
+  --brand: var(--brand-500);
   --brand-foreground: #ffffff;
 
-  /* Semantic status tokens */
-  --status-ok: #16a34a;
-  --status-warn: #f59e0b;
-  --status-critical: #dc2626;
-  --status-neutral: #64748b;
-  --status-idle: #cbd5e1;
-  --status-offline: #94a3b8;
-  --status-info: #2563eb;
+  /* Ink (text) */
+  --ink-900: #0f172a;
+  --ink-600: #475569;
+  --ink-400: #94a3b8;
 
-  /* Scene palette (docs/04 §1) */
-  --scene-ground: #e8ebf7;
-  --scene-yard: #dde1f2;
-  --scene-road: #cbd0e6;
+  /* Status: colour + tinted background (docs/06 §1). Neutral/idle/offline/info backgrounds complete the set. */
+  --ok: #22af5b;
+  --ok-bg: #e3f6ea;
+  --warn: #e8890c;
+  --warn-bg: #fff1df;
+  --critical: #e5484d;
+  --critical-bg: #fde8e8;
+  --neutral: #64748b;
+  --neutral-bg: #eef1f6;
+  --idle: #cbd5e1;
+  --idle-bg: #f2f5f9;
+  --offline: #94a3b8;
+  --offline-bg: #f1f3f7;
+  --info: var(--brand-500);
+  --info-bg: var(--brand-50);
+
+  /* Semantic status tokens (CLAUDE.md names, read by the scene) */
+  --status-ok: var(--ok);
+  --status-warn: var(--warn);
+  --status-critical: var(--critical);
+  --status-neutral: var(--neutral);
+  --status-idle: var(--idle);
+  --status-offline: var(--offline);
+  --status-info: var(--info);
+
+  /* Cards (docs/06 §3): white at 92 % over a 12 px backdrop blur, hairline border, two-layer soft shadow */
+  --card-alpha: 92%;
+  --card-blur: 12px;
+  --card-border: rgba(15, 23, 42, 0.06);
+  --shadow-card: 0 1px 2px rgba(15, 23, 42, 0.06), 0 8px 24px rgba(44, 111, 237, 0.1);
+  --shadow-card-hover: 0 1px 2px rgba(15, 23, 42, 0.06), 0 12px 32px rgba(44, 111, 237, 0.16);
+  /* Small lift for the active segment of a segmented control, and the top bar's soft drop. */
+  --shadow-raised: 0 1px 2px rgba(15, 23, 42, 0.08), 0 1px 1px rgba(15, 23, 42, 0.04);
+  --shadow-topbar: 0 4px 16px rgba(44, 111, 237, 0.06);
+  /* Text / icons on a solid status or brand fill; modal scrim. */
+  --on-solid: #ffffff;
+  --scrim: rgba(15, 23, 42, 0.36);
+  --radius-card: 16px;
+  --radius-tile: 12px;
+  --hairline: rgba(15, 23, 42, 0.07);
+  --track: #e7edf8;
+  --row-hover: #f3f7ff;
+  --row-selected: var(--brand-50);
+
+  /* Motion (docs/06 §3) */
+  --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
+  --dur-fast: 150ms;
+  --dur-base: 200ms;
+
+  /* Scene palette (docs/06 §1) */
+  --scene-void: #e6ecfa;
+  --scene-floor: #eef2fc;
+  --scene-floor-line: #d4def7;
+  --scene-apron: #dce4f8;
+  --scene-walkline: #f2c94c;
+  --scene-wall: #f7f9fe;
+  --scene-wall-accent: #3d6ae4;
+  --carton: #e9c6a2;
+  --carton-tape: #d9ae80;
+  --pallet-blue: #3f7bf0;
+  --pallet-yellow: #f5c542;
+  --pallet-orange: #f59e5b;
+  --metal: #c9d2e3;
+  --belt: #2e3445;
+  /* Aliases still read by scene/materials.ts and older classes (the 3D session moves to the names above). */
+  --scene-floor-grid: var(--scene-floor-line);
+  --scene-wall-cap: var(--scene-wall-accent);
+  --scene-conveyor: var(--brand-500);
+  --scene-belt: var(--belt);
+  --scene-ground: var(--scene-void);
+  --scene-yard: var(--scene-apron);
+  --scene-road: var(--scene-floor-line);
   --scene-grass: #d7f0dc;
   --scene-tree: #9fddb0;
-  --scene-wall: #f7f8fc;
-  --scene-roof: #e3e7f5;
-  /* Interior (docs/04 §1, values from docs/progress/step-06.md); read by scene/materials.ts at mount */
-  --scene-void: #e8ebf7;
-  --scene-floor: #dce7df;
-  --scene-floor-grid: #c3d2c8;
-  --scene-walkline: #f2c94c;
-  --scene-wall-cap: #1f36c7;
-  --scene-apron: #dde1f2;
-  --scene-conveyor: #2f55b8;
-  --scene-belt: #3a3f4a;
+  --scene-roof: #e3e9f8;
 
   /* shadcn/ui semantic tokens */
-  --background: #f4f6fc;
-  --foreground: #0f172a;
+  --radius: 0.75rem;
+  --background: #f3f6fd;
+  --foreground: var(--ink-900);
   --card: #ffffff;
-  --card-foreground: #0f172a;
+  --card-foreground: var(--ink-900);
   --popover: #ffffff;
-  --popover-foreground: #0f172a;
-  --primary: var(--brand);
+  --popover-foreground: var(--ink-900);
+  --primary: var(--brand-500);
   --primary-foreground: var(--brand-foreground);
-  --secondary: #e8ebf7;
-  --secondary-foreground: #0f172a;
-  --muted: #eef0f8;
-  --muted-foreground: #475569;
-  --accent: #e3e7f5;
-  --accent-foreground: #0f172a;
-  --destructive: var(--status-critical);
-  --border: #dde1f2;
-  --input: #cbd0e6;
-  --ring: var(--status-info);
+  --secondary: #eef2fb;
+  --secondary-foreground: var(--ink-900);
+  --muted: #f1f4fa;
+  --muted-foreground: var(--ink-600);
+  --accent: var(--brand-50);
+  --accent-foreground: var(--ink-900);
+  --destructive: var(--critical);
+  --border: #e3e8f3;
+  --input: #dbe2ef;
+  --ring: var(--brand-500);
 }
 
-/* Dark "control room" theme */
+/* Dark "control room" theme: deep navy void, floor #141C2F, cards #121A2B at 90 % (docs/06 §1). */
 .dark {
-  --scene-ground: #0e1424;
-  --scene-yard: #151c30;
-  --scene-road: #202941;
+  --brand-500: #4c86f5;
+  --brand-400: #6fa0f7;
+  --brand-50: #172a4f;
+
+  --ink-900: #e8edf8;
+  --ink-600: #a4b0c8;
+  --ink-400: #6c7a96;
+
+  --ok: #34c56f;
+  --ok-bg: #11301f;
+  --warn: #f2a33a;
+  --warn-bg: #3a2810;
+  --critical: #f0676b;
+  --critical-bg: #3b1619;
+  --neutral: #8e9bb3;
+  --neutral-bg: #1d2740;
+  --idle: #4a5670;
+  --idle-bg: #19223a;
+  --offline: #6c7a96;
+  --offline-bg: #1a2238;
+
+  --card-alpha: 90%;
+  --card-border: rgba(255, 255, 255, 0.07);
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.35), 0 8px 24px rgba(0, 0, 0, 0.35);
+  --shadow-card-hover: 0 1px 2px rgba(0, 0, 0, 0.35), 0 12px 32px rgba(0, 0, 0, 0.45);
+  --shadow-raised: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-topbar: 0 4px 16px rgba(0, 0, 0, 0.3);
+  --scrim: rgba(3, 7, 18, 0.6);
+  --hairline: rgba(255, 255, 255, 0.07);
+  --track: #233050;
+  --row-hover: #18233d;
+
+  --scene-void: #0b1222;
+  --scene-floor: #141c2f;
+  --scene-floor-line: #223052;
+  --scene-apron: #111a2e;
+  --scene-walkline: #d9b23f;
+  --scene-wall: #1a2338;
+  --scene-wall-accent: #4c79ee;
+  --carton: #b99673;
+  --carton-tape: #a8825c;
+  --metal: #59647c;
+  --belt: #2a2f3d;
   --scene-grass: #14261e;
   --scene-tree: #2e6b4a;
-  --scene-wall: #1a2238;
-  --scene-roof: #232c47;
-  --scene-void: #0e1424;
-  --scene-floor: #1b2430;
-  --scene-floor-grid: #273341;
-  --scene-walkline: #d9b23f;
-  --scene-wall-cap: #4d63e8;
-  --scene-apron: #151c30;
-  --scene-conveyor: #3c64cc;
-  --scene-belt: #2a2e37;
+  --scene-roof: #1f2840;
 
-  --background: #0b1020;
-  --foreground: #e6e9f5;
-  --card: #141b30;
-  --card-foreground: #e6e9f5;
-  --popover: #141b30;
-  --popover-foreground: #e6e9f5;
-  --primary: #4d63e8;
-  --primary-foreground: #ffffff;
-  --secondary: #1a2238;
-  --secondary-foreground: #e6e9f5;
-  --muted: #1a2238;
-  --muted-foreground: #9aa4c2;
-  --accent: #232c47;
-  --accent-foreground: #e6e9f5;
-  --border: #26304d;
-  --input: #2f3a5c;
+  --background: #0b1222;
+  --card: #121a2b;
+  --popover: #121a2b;
+  --secondary: #1a2338;
+  --muted: #18213a;
+  --border: #243150;
+  --input: #2c3a5c;
 }
 
 @theme inline {
@@ -102,6 +183,10 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+  --radius-card: var(--radius-card);
+  --radius-tile: var(--radius-tile);
+
+  --ease-soft: var(--ease-out-soft);
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -124,6 +209,34 @@
 
   --color-brand: var(--brand);
   --color-brand-foreground: var(--brand-foreground);
+  --color-brand-500: var(--brand-500);
+  --color-brand-400: var(--brand-400);
+  --color-brand-50: var(--brand-50);
+  --color-ink-900: var(--ink-900);
+  --color-ink-600: var(--ink-600);
+  --color-ink-400: var(--ink-400);
+  --color-ok: var(--ok);
+  --color-ok-bg: var(--ok-bg);
+  --color-warn: var(--warn);
+  --color-warn-bg: var(--warn-bg);
+  --color-critical: var(--critical);
+  --color-critical-bg: var(--critical-bg);
+  --color-neutral: var(--neutral);
+  --color-neutral-bg: var(--neutral-bg);
+  --color-idle: var(--idle);
+  --color-idle-bg: var(--idle-bg);
+  --color-offline: var(--offline);
+  --color-offline-bg: var(--offline-bg);
+  --color-info: var(--info);
+  --color-info-bg: var(--info-bg);
+  --color-hairline: var(--hairline);
+  --color-track: var(--track);
+  --color-row-hover: var(--row-hover);
+  --color-row-selected: var(--row-selected);
+  --color-card-border: var(--card-border);
+  --color-on-solid: var(--on-solid);
+  --color-scrim: var(--scrim);
+
   --color-status-ok: var(--status-ok);
   --color-status-warn: var(--status-warn);
   --color-status-critical: var(--status-critical);
@@ -131,21 +244,47 @@
   --color-status-idle: var(--status-idle);
   --color-status-offline: var(--status-offline);
   --color-status-info: var(--status-info);
+
+  --color-scene-void: var(--scene-void);
+  --color-scene-floor: var(--scene-floor);
+  --color-scene-floor-line: var(--scene-floor-line);
+  --color-scene-apron: var(--scene-apron);
+  --color-scene-walkline: var(--scene-walkline);
+  --color-scene-wall: var(--scene-wall);
+  --color-scene-wall-accent: var(--scene-wall-accent);
   --color-scene-ground: var(--scene-ground);
   --color-scene-yard: var(--scene-yard);
   --color-scene-road: var(--scene-road);
   --color-scene-grass: var(--scene-grass);
   --color-scene-tree: var(--scene-tree);
-  --color-scene-wall: var(--scene-wall);
   --color-scene-roof: var(--scene-roof);
-  --color-scene-void: var(--scene-void);
-  --color-scene-floor: var(--scene-floor);
   --color-scene-floor-grid: var(--scene-floor-grid);
-  --color-scene-walkline: var(--scene-walkline);
   --color-scene-wall-cap: var(--scene-wall-cap);
-  --color-scene-apron: var(--scene-apron);
   --color-scene-conveyor: var(--scene-conveyor);
   --color-scene-belt: var(--scene-belt);
+
+  --shadow-card: var(--shadow-card);
+  --shadow-card-hover: var(--shadow-card-hover);
+  --shadow-raised: var(--shadow-raised);
+  --shadow-topbar: var(--shadow-topbar);
+}
+
+/* Floating card surface (docs/06 §3): 16 px radius, hairline border, two-layer soft shadow, 12 px backdrop blur. */
+@utility card-surface {
+  background-color: color-mix(in srgb, var(--card) var(--card-alpha), transparent);
+  -webkit-backdrop-filter: blur(var(--card-blur)) saturate(1.4);
+  backdrop-filter: blur(var(--card-blur)) saturate(1.4);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  color: var(--card-foreground);
+}
+
+/* Soft transition for hover / press / open (150-200 ms ease-out). */
+@utility soft-transition {
+  transition-property: color, background-color, border-color, box-shadow, opacity, transform;
+  transition-duration: var(--dur-fast);
+  transition-timing-function: var(--ease-out-soft);
 }
 
 @layer base {
@@ -157,5 +296,24 @@
   }
   body {
     @apply bg-background text-foreground font-sans antialiased;
+    /* docs/06 §3: tabular figures on every number. */
+    font-variant-numeric: tabular-nums;
   }
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      transition-duration: 0ms !important;
+      animation-duration: 0ms !important;
+    }
+  }
+}
+
+/*
+ * Bangla vowel signs reach well above and below the Latin line box: single-line truncated text (overflow hidden)
+ * clips them with tight leading. Unlayered so it wins over the leading-* utilities.
+ */
+:lang(bn) .truncate,
+:lang(bn) .bn-leading {
+  line-height: 1.6;
 }

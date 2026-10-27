@@ -1,4 +1,16 @@
-import { ImageIcon, Film } from 'lucide-react';
+import {
+  Bell,
+  Boxes,
+  Building2,
+  Film,
+  Forklift,
+  HardHat,
+  ImageIcon,
+  Truck,
+  Warehouse,
+  Workflow,
+  type LucideIcon,
+} from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { KeyValue, KeyValueList, MaybeValue, StatusPill } from '@/components/common';
 import { canViewCategory } from '@/stores/alertFilter';
@@ -13,6 +25,7 @@ import {
   type Selection,
 } from '@/stores';
 import { InspectorFrame, ProgressRow, SectionTitle, type FrameActions } from './InspectorFrame';
+import type { Tone } from '@/components/common';
 import { resolveVisit, visitCount, visitProgress } from './model';
 import { captainName } from './privacy';
 import { bayConveyor, bayLabel, DEFAULT_SITE } from './siteInfo';
@@ -24,17 +37,30 @@ interface BodyProps {
   actions: FrameActions;
 }
 
+const KIND_ICON: Record<Selection['kind'], LucideIcon> = {
+  site: Building2,
+  bay: Warehouse,
+  belt: Workflow,
+  staging: Boxes,
+  truck: Truck,
+  event: Bell,
+  person: HardHat,
+  forklift: Forklift,
+};
+
 /** Shown when the selected object is gone (e.g. a visit evicted, an event the role may not see). */
 export function MissingBody({ selection, actions }: BodyProps & { selection: Selection }) {
   const { t } = useTranslation('live');
   return (
     <InspectorFrame
       testId="inspector-missing"
+      icon={KIND_ICON[selection.kind]}
+      iconTone="neutral"
       typeLabel={t(`inspector.type.${selection.kind}`)}
       title={selection.id}
       actions={actions}
     >
-      <p className="text-muted-foreground py-2">{t('inspector.missing')}</p>
+      <p className="text-ink-400 py-2 text-[13px]">{t('inspector.missing')}</p>
     </InspectorFrame>
   );
 }
@@ -49,6 +75,7 @@ export function SiteBody({ actions }: BodyProps) {
   return (
     <InspectorFrame
       testId="inspector-site"
+      icon={KIND_ICON.site}
       typeLabel={t('inspector.type.site')}
       title={DEFAULT_SITE.name[fmt.lang] || DEFAULT_SITE.name.en}
       subtitle={DEFAULT_SITE.org}
@@ -133,6 +160,7 @@ export function BayBody({
   return (
     <InspectorFrame
       testId="inspector-bay"
+      icon={KIND_ICON[kind]}
       typeLabel={[t(`inspector.type.${kind}`), conveyor].filter(Boolean).join(' · ')}
       title={bayLabel(bayId, fmt.lang)}
       pill={
@@ -141,16 +169,19 @@ export function BayBody({
       href={`/bays/${bayId}`}
       actions={actions}
     >
-      {visit && (
-        <ProgressRow
-          label={t(
-            visit.phase === 'UNLOADING' ? 'inspector.bay.unloading' : 'inspector.bay.loading',
-          )}
-          value={progress}
-          caption={`${fmt.num(visitCount(visit))} / ${visit.expected === null ? '—' : fmt.num(visit.expected)}`}
-          tone={BELT_TONE[belt.status]}
-        />
-      )}
+      {/* Always mounted: when the truck leaves the values fall back to "—" instead of the card jumping. */}
+      <ProgressRow
+        label={t(
+          visit?.phase === 'UNLOADING' ? 'inspector.bay.unloading' : 'inspector.bay.loading',
+        )}
+        value={progress}
+        caption={
+          visit
+            ? `${fmt.num(visitCount(visit))} / ${visit.expected === null ? '—' : fmt.num(visit.expected)}`
+            : '—'
+        }
+        tone={BELT_TONE[belt.status]}
+      />
       <KeyValueList>
         <KeyValue label={t('inspector.bay.belt')}>
           {t(`belt.direction.${belt.direction}`)} ·{' '}
@@ -164,7 +195,7 @@ export function BayBody({
             <span data-testid="inspector-plate">
               {plate.primary}
               {plate.secondary && (
-                <span className="text-muted-foreground block text-[0.85rem] font-normal">
+                <span className="text-ink-400 block text-[12px] font-normal">
                   {plate.secondary}
                 </span>
               )}
@@ -173,11 +204,13 @@ export function BayBody({
             t('tray.noTruck')
           )}
         </KeyValue>
-        {visit && (
-          <KeyValue label={t('inspector.bay.phase')}>
+        <KeyValue label={t('inspector.bay.phase')}>
+          {visit ? (
             <StatusPill tone={PHASE_TONE[visit.phase]}>{t(`phase.${visit.phase}`)}</StatusPill>
-          </KeyValue>
-        )}
+          ) : (
+            '—'
+          )}
+        </KeyValue>
         <KeyValue label={t('inspector.bay.door')}>{t(`door.${bay.door.status}`)}</KeyValue>
       </KeyValueList>
 
@@ -191,16 +224,18 @@ export function BayBody({
             forklift: fmt.num(crew.forkliftOps),
           })}
         </KeyValue>
-        {captain && (
-          <KeyValue label={t('actorRole.CAPTAIN')}>
+        <KeyValue label={t('actorRole.CAPTAIN')}>
+          {captain ? (
             <span data-testid="inspector-captain">
               {name ? name[fmt.lang] || name.en : t('inspector.bay.captainHidden')}
-              <span className="text-muted-foreground block text-[0.85rem] font-normal">
+              <span className="text-ink-400 block text-[12px] font-normal">
                 {captain.present ? t('tray.onFloor') : t('tray.notOnFloor')}
               </span>
             </span>
-          </KeyValue>
-        )}
+          ) : (
+            '—'
+          )}
+        </KeyValue>
         <KeyValue label={t('inspector.bay.ppeNow')}>{fmt.num(crew.ppeViolationsNow)}</KeyValue>
       </KeyValueList>
 
@@ -229,7 +264,7 @@ export function BayBody({
         <KeyValue label={t('inspector.bay.damage')}>{fmt.num(today.damage)}</KeyValue>
         <KeyValue label={t('inspector.bay.fallOff')}>{fmt.num(today.fallOff)}</KeyValue>
         <KeyValue label={t('inspector.bay.cameras')}>
-          <span className={camsOk < cams.length ? 'text-status-critical' : undefined}>
+          <span className={camsOk < cams.length ? 'text-critical' : undefined}>
             {t('inspector.bay.camsOk', { ok: fmt.num(camsOk), total: fmt.num(cams.length) })}
           </span>
         </KeyValue>
@@ -248,6 +283,7 @@ export function StagingBody({ bayId, actions }: BodyProps & { bayId: string }) {
   return (
     <InspectorFrame
       testId="inspector-staging"
+      icon={KIND_ICON.staging}
       typeLabel={t('inspector.type.staging')}
       title={bayLabel(bayId, fmt.lang)}
       pill={
@@ -286,6 +322,7 @@ export function TruckBody({ visitId, actions }: BodyProps & { visitId: string })
   return (
     <InspectorFrame
       testId="inspector-truck"
+      icon={KIND_ICON.truck}
       typeLabel={t('inspector.type.truck')}
       title={plate.primary}
       subtitle={plate.secondary}
@@ -337,6 +374,12 @@ export function TruckBody({ visitId, actions }: BodyProps & { visitId: string })
   );
 }
 
+const SEV_ICON_TONE: Record<'info' | 'warn' | 'critical', Tone> = {
+  info: 'info',
+  warn: 'warn',
+  critical: 'critical',
+};
+
 export function EventBody({ eventId, actions }: BodyProps & { eventId: string }) {
   const { t } = useTranslation('live');
   const fmt = useFmt();
@@ -357,6 +400,8 @@ export function EventBody({ eventId, actions }: BodyProps & { eventId: string })
   return (
     <InspectorFrame
       testId="inspector-event"
+      icon={KIND_ICON.event}
+      iconTone={SEV_ICON_TONE[event.sev]}
       typeLabel={`${t('inspector.type.event')} · ${t(`category.${event.category}`)}`}
       title={event.title[fmt.lang] || event.title.en}
       subtitle={`${event.category}.${event.type}`}
@@ -373,30 +418,30 @@ export function EventBody({ eventId, actions }: BodyProps & { eventId: string })
     >
       <div
         data-testid="evidence-thumb"
-        className="bg-muted text-muted-foreground relative mb-2 grid aspect-video place-items-center overflow-hidden rounded-lg border border-dashed"
+        className="bg-muted text-ink-400 border-hairline relative mb-2 grid aspect-video place-items-center overflow-hidden rounded-[12px] border"
       >
         {media ? (
           <>
-            <span className="flex flex-col items-center gap-1 text-[0.85rem]">
-              <ImageIcon className="size-6" aria-hidden />
+            <span className="flex flex-col items-center gap-1 text-[12px]">
+              <ImageIcon className="size-6" strokeWidth={1.75} aria-hidden />
               {t('inspector.event.snapshot')}
             </span>
             {box && (
               <span
                 aria-hidden
-                className="border-status-critical absolute rounded-sm border-2"
+                className="border-critical absolute rounded-[4px] border-2"
                 style={box}
               />
             )}
             {media.clipKey && (
-              <span className="bg-card/90 text-foreground absolute right-1.5 bottom-1.5 flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[0.8rem]">
-                <Film className="size-3.5" aria-hidden />
+              <span className="bg-card/90 text-ink-900 absolute right-2 bottom-2 flex items-center gap-1 rounded-full px-2 py-0.5 text-[12px]">
+                <Film className="size-3.5" strokeWidth={1.75} aria-hidden />
                 {t('inspector.event.clip')}
               </span>
             )}
           </>
         ) : (
-          <span className="text-[0.85rem]">{t('inspector.event.noMedia')}</span>
+          <span className="text-[12px]">{t('inspector.event.noMedia')}</span>
         )}
       </div>
       <KeyValueList>
@@ -442,6 +487,7 @@ export function PersonBody({ actorId, actions }: BodyProps & { actorId: string }
   return (
     <InspectorFrame
       testId="inspector-person"
+      icon={KIND_ICON.person}
       typeLabel={`${t('inspector.type.person')} · ${bayLabel(bayId, fmt.lang)}`}
       title={name ? name[fmt.lang] || name.en : t(`actorRole.${actor.role}`)}
       subtitle={name ? t(`actorRole.${actor.role}`) : undefined}
@@ -483,6 +529,7 @@ export function ForkliftBody({ actorId, actions }: BodyProps & { actorId: string
   return (
     <InspectorFrame
       testId="inspector-forklift"
+      icon={KIND_ICON.forklift}
       typeLabel={`${t('inspector.type.forklift')} · ${bayLabel(bay, fmt.lang)}`}
       title={actor.id.toUpperCase()}
       pill={

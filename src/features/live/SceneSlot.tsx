@@ -35,7 +35,7 @@ export function SceneSlotPlaceholder() {
         backgroundSize: '48px 48px',
       }}
     >
-      <span className="bg-scene-yard/80 rounded-xl border border-dashed px-5 py-2 text-[1.05rem] font-semibold tracking-wide">
+      <span className="card-surface text-ink-600 px-5 py-2 text-[14px] font-medium">
         {t('scene.placeholder')}
       </span>
     </div>

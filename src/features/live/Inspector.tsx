@@ -53,5 +53,11 @@ export function Inspector() {
       uiStore.getState().select(null);
     },
   };
-  return <Body selection={shown} actions={actions} />;
+  // The wrapper stays mounted while anything is shown, so it slides and fades in once on open (200 ms); switching
+  // between objects only swaps the body.
+  return (
+    <div className="animate-in fade-in-0 slide-in-from-right-3 flex max-h-full min-h-0 flex-col duration-200">
+      <Body selection={shown} actions={actions} />
+    </div>
+  );
 }

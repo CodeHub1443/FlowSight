@@ -1,34 +1,37 @@
-/** Semantic tone -> token classes. Colours come only from the status tokens in src/index.css. */
+/** Semantic tone -> token classes. Colours come only from the tokens in src/index.css (docs/06 §1). */
 export type Tone = 'ok' | 'warn' | 'critical' | 'neutral' | 'idle' | 'offline' | 'info';
 
+/** Solid status colour: dots, bars, filled badges. */
 export const TONE_DOT: Record<Tone, string> = {
-  ok: 'bg-status-ok',
-  warn: 'bg-status-warn',
-  critical: 'bg-status-critical',
-  neutral: 'bg-status-neutral',
-  idle: 'bg-status-idle',
-  offline: 'bg-status-offline',
-  info: 'bg-status-info',
+  ok: 'bg-ok',
+  warn: 'bg-warn',
+  critical: 'bg-critical',
+  neutral: 'bg-neutral',
+  idle: 'bg-idle',
+  offline: 'bg-offline',
+  info: 'bg-info',
 };
 
+/** Tinted background (pills, icon tiles). */
 export const TONE_TINT: Record<Tone, string> = {
-  ok: 'bg-status-ok/15',
-  warn: 'bg-status-warn/20',
-  critical: 'bg-status-critical/15',
-  neutral: 'bg-status-neutral/15',
-  idle: 'bg-status-idle/30',
-  offline: 'bg-status-offline/20',
-  info: 'bg-status-info/15',
+  ok: 'bg-ok-bg',
+  warn: 'bg-warn-bg',
+  critical: 'bg-critical-bg',
+  neutral: 'bg-neutral-bg',
+  idle: 'bg-idle-bg',
+  offline: 'bg-offline-bg',
+  info: 'bg-info-bg',
 };
 
+/** Coloured text on a tinted background or on a card. Idle/offline use ink: their colour is too pale for text. */
 export const TONE_TEXT: Record<Tone, string> = {
-  ok: 'text-status-ok',
-  warn: 'text-status-warn',
-  critical: 'text-status-critical',
-  neutral: 'text-status-neutral',
-  idle: 'text-status-offline',
-  offline: 'text-status-offline',
-  info: 'text-status-info',
+  ok: 'text-ok',
+  warn: 'text-warn',
+  critical: 'text-critical',
+  neutral: 'text-neutral',
+  idle: 'text-ink-400',
+  offline: 'text-ink-400',
+  info: 'text-info',
 };
 
 export const TONE_BAR: Record<Tone, string> = TONE_DOT;

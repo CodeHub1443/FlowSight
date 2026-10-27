@@ -1,8 +1,8 @@
-import type { ReactNode } from 'react';
+import { memo, useState, type ReactNode } from 'react';
 import {
+  ArrowUp,
   Bell,
   ChevronsLeft,
-  ChevronsRight,
   Package,
   ShieldCheck,
   Timer,
@@ -10,9 +10,8 @@ import {
   Workflow,
   type LucideIcon,
 } from 'lucide-react';
-import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { FloatingCard, MaybeValue, SmallCaps, TONE_TEXT } from '@/components/common';
+import { FloatingCard, IconTile, MaybeValue, Num, TONE_TEXT } from '@/components/common';
 import type { SiteState } from '@/domain';
 import { cn } from '@/lib/utils';
 import { useSiteKpi } from '@/stores';
@@ -20,6 +19,7 @@ import { useFmt, type Fmt } from './useFmt';
 
 type Kpi = SiteState['kpi'];
 
+/** Delta vs the same time yesterday: arrow + value, green when the move is good, red when bad (docs/06 §3). */
 function Delta({
   value,
   good,
@@ -38,47 +38,70 @@ function Delta({
         <span
           data-testid="kpi-delta"
           className={cn(
-            'font-semibold tabular-nums',
+            'soft-transition inline-flex items-center gap-0.5 text-[12px] leading-4 font-medium tabular-nums',
             value === 0
-              ? 'text-muted-foreground'
+              ? 'text-ink-400'
               : value > 0 === (good === 'up')
                 ? TONE_TEXT.ok
                 : TONE_TEXT.critical,
           )}
         >
-          {value > 0 ? '▲' : value < 0 ? '▼' : '■'} {children(value)}
+          {/* One arrow, rotated: the sign flipping never swaps (remounts) the icon. */}
+          <ArrowUp
+            aria-hidden
+            strokeWidth={2}
+            className={cn(
+              'soft-transition size-3',
+              value < 0 && 'rotate-180',
+              value === 0 && 'opacity-0',
+            )}
+          />
+          {children(value)}
         </span>
       )}
     </MaybeValue>
   );
 }
 
+/**
+ * One KPI chip (docs/06 §3). Chips share the row equally (`flex-1 basis-0`), so their width never depends on the
+ * values inside: a number growing a digit cannot reflow the row.
+ */
 function Chip({
   testId,
-  icon: Icon,
+  icon,
   label,
   value,
+  delta,
   sub,
+  className,
 }: {
   testId: string;
   icon: LucideIcon;
   label: string;
   value: ReactNode;
+  delta?: ReactNode;
   sub: ReactNode;
+  className?: string;
 }) {
   return (
     <FloatingCard
       data-testid={testId}
-      className="flex min-w-[8.5rem] items-center gap-2.5 px-3 py-2 leading-tight"
+      className={cn(
+        'flex max-w-[272px] min-w-0 flex-1 basis-0 items-center gap-[12px] py-[12px] ps-[12px] pe-[16px]',
+        className,
+      )}
     >
-      {/* Icon tile as in the reference; dropped below 1600 px to keep six chips on one row. */}
-      <span className="bg-primary/10 text-primary hidden size-10 shrink-0 place-items-center rounded-xl min-[1600px]:grid">
-        <Icon className="size-5" aria-hidden />
-      </span>
-      <span className="flex min-w-0 flex-col gap-0.5">
-        <SmallCaps className="truncate">{label}</SmallCaps>
-        <span className="text-[1.65rem] leading-8 font-bold tabular-nums">{value}</span>
-        <span className="text-muted-foreground flex items-center gap-1.5 text-[0.85rem] whitespace-nowrap">
+      <IconTile icon={icon} />
+      <span className="flex min-w-0 flex-1 flex-col">
+        <span className="text-ink-600 truncate text-[12px] leading-4">{label}</span>
+        <span className="flex min-w-0 items-baseline gap-2">
+          <span className="text-ink-900 text-[24px] leading-7 font-semibold whitespace-nowrap tabular-nums">
+            {value}
+          </span>
+          {delta}
+        </span>
+        <span className="text-ink-400 flex min-w-0 items-center gap-1.5 truncate text-[11px] leading-4 whitespace-nowrap">
           {sub}
         </span>
       </span>
@@ -86,7 +109,7 @@ function Chip({
   );
 }
 
-function Chips({ kpi, fmt }: { kpi: Kpi | null; fmt: Fmt }) {
+const Chips = memo(function Chips({ kpi, fmt }: { kpi: Kpi | null; fmt: Fmt }) {
   const { t } = useTranslation('live');
   const noData = t('kpi.noData');
   const unknownDelta = t('kpi.noDelta');
@@ -102,17 +125,15 @@ function Chips({ kpi, fmt }: { kpi: Kpi | null; fmt: Fmt }) {
         label={t('kpi.cases')}
         value={
           <MaybeValue value={kpi?.casesOut} reason={noData}>
-            {fmt.num(kpi?.casesOut ?? 0)}
+            <Num value={kpi?.casesOut ?? 0} format={fmt.int} minCh={6} />
           </MaybeValue>
         }
-        sub={
-          <>
-            <span>{t('kpi.casesIn', { n: kpi ? fmt.num(kpi.casesIn) : '—' })}</span>
-            <Delta value={kpi?.casesOutDeltaPct} good="up" reason={unknownDelta}>
-              {(v) => fmt.pct(Math.abs(v), false, 1)}
-            </Delta>
-          </>
+        delta={
+          <Delta value={kpi?.casesOutDeltaPct} good="up" reason={unknownDelta}>
+            {(v) => <Num value={v} format={fmt.pctAbs1} />}
+          </Delta>
         }
+        sub={<span>{t('kpi.casesIn', { n: kpi ? fmt.num(kpi.casesIn) : '—' })}</span>}
       />
       <Chip
         testId="kpi-trucks"
@@ -120,11 +141,11 @@ function Chips({ kpi, fmt }: { kpi: Kpi | null; fmt: Fmt }) {
         label={t('kpi.trucks')}
         value={
           <MaybeValue value={kpi?.trucksOnSite} reason={noData}>
-            {fmt.num(kpi?.trucksOnSite ?? 0)}
+            <Num value={kpi?.trucksOnSite ?? 0} format={fmt.int} minCh={2} />
           </MaybeValue>
         }
         sub={
-          <span>
+          <span className="truncate">
             {kpi
               ? t('kpi.trucksSplit', {
                   docked: fmt.num(kpi.trucksDocked),
@@ -141,38 +162,41 @@ function Chips({ kpi, fmt }: { kpi: Kpi | null; fmt: Fmt }) {
         value={
           <MaybeValue value={kpi?.baysRunning} reason={noData}>
             {fmt.num(kpi?.baysRunning ?? 0)}
-            <span className="text-muted-foreground text-[1.1rem] font-semibold">
+            <span className="text-ink-400 text-[16px] font-medium">
               /{fmt.num(kpi?.baysTotal ?? 0)}
             </span>
           </MaybeValue>
         }
-        sub={<span>{t('kpi.baysSub')}</span>}
+        sub={<span className="truncate">{t('kpi.baysSub')}</span>}
       />
       <Chip
         testId="kpi-tat"
         icon={Timer}
         label={t('kpi.tat')}
+        className="hidden min-[1700px]:flex"
         value={
           <MaybeValue value={kpi?.avgTatMin} reason={t('kpi.noTat')}>
             {fmt.dur((kpi?.avgTatMin ?? 0) * 60)}
           </MaybeValue>
         }
-        sub={
+        delta={
           <Delta value={kpi?.avgTatDeltaMin} good="down" reason={unknownDelta}>
             {(v) => t('kpi.minutes', { n: fmt.num(Math.abs(v)) })}
           </Delta>
         }
+        sub={<span className="truncate">{t('kpi.tatSub')}</span>}
       />
       <Chip
         testId="kpi-compliance"
         icon={ShieldCheck}
         label={t('kpi.compliance')}
+        className="hidden min-[1800px]:flex"
         value={
           <MaybeValue value={kpi?.complianceScore} reason={t('kpi.noCompliance')}>
-            {fmt.pct(kpi?.complianceScore ?? 0)}
+            <Num value={kpi?.complianceScore ?? 0} format={fmt.pctInt} minCh={4} />
           </MaybeValue>
         }
-        sub={<span>{t('kpi.complianceSub')}</span>}
+        sub={<span className="truncate">{t('kpi.complianceSub')}</span>}
       />
       <Chip
         testId="kpi-alerts"
@@ -180,7 +204,7 @@ function Chips({ kpi, fmt }: { kpi: Kpi | null; fmt: Fmt }) {
         label={t('kpi.alerts')}
         value={
           <MaybeValue value={openTotal} reason={noData}>
-            {fmt.num(openTotal ?? 0)}
+            <Num value={openTotal ?? 0} format={fmt.int} minCh={3} />
           </MaybeValue>
         }
         sub={
@@ -189,7 +213,10 @@ function Chips({ kpi, fmt }: { kpi: Kpi | null; fmt: Fmt }) {
               <span className={kpi.openAlerts.critical > 0 ? TONE_TEXT.critical : undefined}>
                 {t('kpi.sevCritical', { n: fmt.num(kpi.openAlerts.critical) })}
               </span>
-              <span>{t('kpi.sevWarn', { n: fmt.num(kpi.openAlerts.warn) })}</span>
+              <span aria-hidden>·</span>
+              <span className="truncate">
+                {t('kpi.sevWarn', { n: fmt.num(kpi.openAlerts.warn) })}
+              </span>
             </>
           ) : (
             '—'
@@ -198,25 +225,31 @@ function Chips({ kpi, fmt }: { kpi: Kpi | null; fmt: Fmt }) {
       />
     </>
   );
-}
+});
 
-/** KPI chips (top-left). Null values render "—" with a tooltip, never 0. Collapsible to a single toggle. */
+/**
+ * KPI chips (top-left, docs/01 §3.1). Null values render "—" with a tooltip, never 0. Collapsible to a single toggle.
+ * Six chips from 1800 px; turnaround and compliance (also in the depot inspector) give way below that so the row
+ * stays one line, inside the 112 px safe area the 3D view keeps free.
+ */
 export function KpiChips() {
   const { t } = useTranslation('live');
   const kpi = useSiteKpi();
   const fmt = useFmt();
   const [open, setOpen] = useState(true);
-  const Icon = open ? ChevronsLeft : ChevronsRight;
   return (
-    <div className="flex flex-wrap items-start gap-2" data-testid="kpi-chips">
+    <div className="flex items-center gap-[12px]" data-testid="kpi-chips">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
         aria-label={open ? t('kpi.collapse') : t('kpi.expand')}
-        className="bg-card text-muted-foreground hover:text-foreground focus-visible:ring-ring/50 pointer-events-auto grid size-9 place-items-center rounded-xl border shadow-lg shadow-black/10 focus-visible:ring-[3px] focus-visible:outline-none"
+        className="card-surface soft-transition text-ink-400 hover:text-ink-900 focus-visible:ring-ring/50 pointer-events-auto grid size-9 shrink-0 place-items-center rounded-full focus-visible:ring-[3px] focus-visible:outline-none"
       >
-        <Icon className="size-4" />
+        <ChevronsLeft
+          className={cn('soft-transition size-4', !open && 'rotate-180')}
+          strokeWidth={1.75}
+        />
       </button>
       {open && <Chips kpi={kpi} fmt={fmt} />}
     </div>

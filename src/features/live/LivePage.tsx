@@ -10,7 +10,10 @@ import { VisitTracker } from './VisitTracker';
  * The overlay layer ignores pointer events; each card opts back in, so the 3D view stays interactive
  * everywhere else. The middle of the screen is deliberately empty.
  *
- * Layout: KPI chips top-left, inspector top-right, tray bottom-right, visit tracker bottom-left.
+ * Layout contract with the 3D view, which keeps its subject out of { top: 112, right: 384, bottom: 24, left: 24 } px:
+ *  - KPI chips top-left, one row, at most 112 px including the 16 px margin;
+ *  - inspector over tray in a 360 px right column, 24 px from the edge (360 + 24 = 384);
+ *  - visit tracker bottom-left, at most 140 px tall and collapsible; it may overlap the floor.
  * The right column shrinks the inspector (it scrolls) before it would touch the tray.
  */
 export function LivePage({ scene }: { scene?: React.ReactNode }) {
@@ -18,20 +21,20 @@ export function LivePage({ scene }: { scene?: React.ReactNode }) {
   return (
     <div className="relative h-full min-h-0 w-full overflow-hidden" data-testid="live-page">
       <SceneSlot>{scene}</SceneSlot>
-      <div className="pointer-events-none absolute inset-0 z-10 p-3">
-        <div className="absolute start-3 top-3 end-[27rem]">
+      <div className="pointer-events-none absolute inset-0 z-10">
+        <div className="absolute start-[24px] end-[408px] top-[16px]">
           <KpiChips />
         </div>
-        <div className="absolute end-3 top-3 bottom-3 flex w-[25.5rem] flex-col gap-3">
+        <div className="absolute end-[24px] top-[16px] bottom-[24px] flex w-[360px] flex-col gap-[12px]">
           <div className="flex min-h-0 flex-1 flex-col">
             <Inspector />
           </div>
           <Tray />
         </div>
-        <div className="absolute start-3 bottom-3 w-[min(46rem,calc(100%-31rem))]">
+        <div className="absolute start-[24px] bottom-[24px] w-[min(820px,calc(100%-432px))]">
           <VisitTracker />
         </div>
-        <div className="text-muted-foreground absolute start-1/2 bottom-1 -translate-x-1/2 text-[0.75rem] opacity-70">
+        <div className="text-ink-400 absolute end-[24px] bottom-[4px] w-[360px] text-center text-[11px] leading-4 opacity-80">
           {t('app.developedBy')}
         </div>
       </div>

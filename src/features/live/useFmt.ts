@@ -21,6 +21,12 @@ export function useFmt() {
         `${n > 0 ? '+' : ''}${formatNumber(n, { lang, digits, fractionDigits })}`,
       dur: (sec: number) => formatDuration(sec, lang, digits),
       clock: (t: Date | number | string, seconds = false) => formatClock(t, { seconds, digits }),
+      // One-argument formatters with a stable identity per language, for <Num format={...}>.
+      int: (n: number) => formatNumber(n, { lang, digits, fractionDigits: 0 }),
+      pctInt: (n: number) => formatPercent(n, { lang, digits, fractionDigits: 0, signed: false }),
+      pctAbs1: (n: number) =>
+        formatPercent(Math.abs(n), { lang, digits, fractionDigits: 1, signed: false }),
+      durMin: (min: number) => formatDuration(min * 60, lang, digits),
     };
   }, [lang]);
 }
