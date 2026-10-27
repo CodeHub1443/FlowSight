@@ -40,8 +40,18 @@ describe('no React state per frame', () => {
     expect(entries.length).toBeGreaterThan(20);
   });
 
-  it('finds the camera rig as the only useFrame consumer', () => {
-    expect(withFrame.map(([p]) => base(p))).toEqual(['CameraRig.tsx']);
+  // Every useFrame user, each justified (Task 07A):
+  //  - CameraRig.tsx: eased fly-to and pan bounds (refs only).
+  //  - Appear.tsx: 200 ms rise / fade-in of objects and the selection ring (docs/06 section 2 "no popping");
+  //    ref-driven, a finished animation is one boolean check per frame.
+  //  - ContactShadowLayer.tsx: on-demand contact-shadow render; compares a sequence number and returns unless
+  //    something invalidated it (BACKLOG: no frames=1 once anything can move).
+  //  - Pills.tsx (PillProjector): projects the pill anchors and writes CSS transforms through refs (docs/06
+  //    section 4: labels move with the camera without any React render).
+  it('limits useFrame to the camera rig, motion, on-demand contact shadows and the pill projector', () => {
+    expect(withFrame.map(([p]) => base(p)).sort()).toEqual(
+      ['Appear.tsx', 'CameraRig.tsx', 'ContactShadowLayer.tsx', 'Pills.tsx'].sort(),
+    );
   });
 
   it('keeps setters and store writes out of useFrame callbacks', () => {
@@ -56,7 +66,7 @@ describe('no React state per frame', () => {
     }
   });
 
-  it('limits React state to quality tier, tab visibility and the dev preview controls', () => {
+  it('limits React state to quality tier, tab visibility, the shown selection pill and the dev preview', () => {
     const stateFiles = entries.filter(([, src]) => /useState[<(]/.test(src)).map(([p]) => base(p));
     expect(stateFiles.sort()).toEqual(['SceneRoot.tsx', 'ScenePreview.tsx'].sort());
   });

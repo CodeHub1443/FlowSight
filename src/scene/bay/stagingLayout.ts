@@ -18,26 +18,91 @@ export interface StagingResult {
   marks: MarkItem[];
 }
 
-const PALLET: readonly [number, number] = [1.2, 1.0];
-const PALLET_H = 0.14;
+export const PALLET: readonly [number, number] = [1.2, 1.0];
+export const PALLET_H = 0.15;
+const DECK = 0.045;
 
-function pallet(x: number, y: number, z: number, tone: PaletteKey, yaw: number): BoxItem[] {
-  // deck + three runners: reads as a plastic pallet from above and from the side
+type Rot = (dx: number, dy: number) => [number, number];
+
+const rotator = (x: number, y: number, yaw: number): Rot => {
+  const c = Math.cos(yaw);
+  const s = Math.sin(yaw);
+  return (dx, dy) => [x + dx * c - dy * s, y + dx * s + dy * c];
+};
+
+/**
+ * A plastic pallet (docs/06: "pallets get slots"): rounded deck, nine feet with fork pockets between them, three
+ * bottom runners and, when the top is visible, darker slots across the deck.
+ */
+export function pallet(
+  x: number,
+  y: number,
+  z: number,
+  tone: PaletteKey,
+  yaw: number,
+  topVisible: boolean,
+): BoxItem[] {
+  const at = rotator(x, y, yaw);
+  const [pw, pd] = PALLET;
   const out: BoxItem[] = [
-    { at: [x, y, z + PALLET_H - 0.025], size: [PALLET[0], PALLET[1], 0.05], yaw, tone },
+    { at: [...at(0, 0), z + PALLET_H - DECK / 2], size: [pw, pd, DECK], yaw, tone, detail: 'lo' },
   ];
-  for (const dx of [-0.5, 0, 0.5]) {
-    const c = Math.cos(yaw);
-    const s = Math.sin(yaw);
+  const footH = PALLET_H - DECK - 0.02;
+  for (const fx of [-0.5, 0, 0.5]) {
     out.push({
-      at: [x + dx * c, y + dx * s, z + (PALLET_H - 0.05) / 2],
-      size: [0.1, PALLET[1], PALLET_H - 0.05],
+      at: [...at(fx, 0), z + 0.01],
+      size: [0.14, pd, 0.02],
       yaw,
       tone,
-      shade: 0.85,
+      shade: 0.82,
+      detail: 'flat',
     });
+    for (const fy of [-0.42, 0, 0.42]) {
+      out.push({
+        at: [...at(fx, fy), z + 0.02 + footH / 2],
+        size: [0.15, 0.15, footH],
+        yaw,
+        tone,
+        shade: 0.9,
+        // 9 per pallet, 8 cm tall: rounding is invisible there, plain boxes save ~2.6k triangles per pallet
+        detail: 'flat',
+      });
+    }
+  }
+  if (topVisible) {
+    for (let i = 0; i < 6; i++) {
+      out.push({
+        at: [...at(-0.475 + i * 0.19, 0), z + PALLET_H + 0.001],
+        size: [0.07, pd - 0.16, 0.004],
+        yaw,
+        tone,
+        shade: 0.7,
+        detail: 'flat',
+      });
+    }
   }
   return out;
+}
+
+/** A carton with a tape strip over the top and down both ends (docs/06: "cartons get a tape strip"). */
+export function carton(
+  at: readonly [number, number, number],
+  size: readonly [number, number, number],
+  yaw: number,
+  shade: number,
+): BoxItem[] {
+  const [w, d, h] = size;
+  return [
+    { at, size, yaw, tone: 'carton', shade, detail: 'lo' },
+    {
+      at: [at[0], at[1], at[2] + h * 0.3 + 0.002],
+      size: [w * 0.16, d + 0.006, h * 0.4 + 0.004],
+      yaw,
+      tone: 'cartonTape',
+      shade,
+      detail: 'flat',
+    },
+  ];
 }
 
 /** Static staging content for one bay: pallets, crate stacks, cartons and sacks (docs/04 section 3). */
@@ -61,59 +126,59 @@ export function buildStaging(input: StagingInput): StagingResult {
     const kind = r();
     if (kind < 0.22) return; // empty slot
     const baseTone = pick(palletTones);
+    const at = rotator(x, y, yaw);
     let z = 0;
     let top = 0;
     if (kind < 0.5) {
       // stack of empty plastic pallets
       const n = 2 + Math.floor(r() * 3);
       for (let i = 0; i < n; i++) {
-        boxes.push(...pallet(x, y, z, i === n - 1 ? baseTone : pick(palletTones), yaw));
+        boxes.push(
+          ...pallet(x, y, z, i === n - 1 ? baseTone : pick(palletTones), yaw, i === n - 1),
+        );
         z += PALLET_H;
       }
       top = z;
     } else if (kind < 0.8) {
       // pallet of cartons
-      boxes.push(...pallet(x, y, 0, baseTone, yaw));
+      boxes.push(...pallet(x, y, 0, baseTone, yaw, false));
       z = PALLET_H;
       const layers = 2 + Math.floor(r() * 3);
       for (let l = 0; l < layers; l++) {
         for (const dx of [-0.29, 0.29]) {
           for (const dy of [-0.24, 0.24]) {
-            const c = Math.cos(yaw);
-            const s = Math.sin(yaw);
-            boxes.push({
-              at: [x + dx * c - dy * s, y + dx * s + dy * c, z + 0.14],
-              size: [0.56, 0.46, 0.28],
-              yaw,
-              tone: 'carton',
-              shade: 0.92 + r() * 0.16,
-            });
+            boxes.push(
+              ...carton([...at(dx, dy), z + 0.14], [0.56, 0.46, 0.28], yaw, 0.94 + r() * 0.1),
+            );
           }
         }
         z += 0.28;
       }
       top = z;
     } else {
-      // pallet of white sacks with a coloured band
-      boxes.push(...pallet(x, y, 0, baseTone, yaw));
+      // pallet of white sacks with a coloured band: soft pillows, not boxes
+      boxes.push(...pallet(x, y, 0, baseTone, yaw, false));
       z = PALLET_H;
       const layers = 3 + Math.floor(r() * 3);
       for (let l = 0; l < layers; l++) {
         for (const dx of [-0.29, 0.29]) {
-          const c = Math.cos(yaw);
-          const s = Math.sin(yaw);
+          const p = at(dx, 0);
           boxes.push({
-            at: [x + dx * c, y + dx * s, z + 0.08],
+            at: [...p, z + 0.08],
             size: [0.56, 0.9, 0.16],
             yaw,
             tone: 'sack',
-            shade: 0.96 + r() * 0.06,
+            shade: 0.97 + r() * 0.05,
+            round: 0.42,
+            detail: 'lo',
           });
           boxes.push({
-            at: [x + dx * c, y + dx * s, z + 0.08],
-            size: [0.57, 0.14, 0.165],
+            at: [...p, z + 0.08],
+            size: [0.5, 0.12, 0.165],
             yaw,
             tone: 'sackBand',
+            round: 0.35,
+            detail: 'lo',
           });
         }
         z += 0.16;
@@ -122,8 +187,8 @@ export function buildStaging(input: StagingInput): StagingResult {
     }
     if (r() < 0.3) {
       marks.push({
-        at: [x, y + PALLET[1] / 2 + 0.006, Math.min(0.09, top / 2)],
-        size: [0.34, 0.1],
+        at: [x, y + PALLET[1] / 2 + 0.006, Math.min(PALLET_H - DECK / 2, top / 2)],
+        size: [0.3, 0.09],
         text: r() < 0.5 ? 'FG' : 'DC',
       });
     }
@@ -141,20 +206,33 @@ export function buildStaging(input: StagingInput): StagingResult {
   // receiving pallet at the belt mouth
   place(0, input.beltEnd + 1.0);
 
-  // blue crate stacks beside the conveyor (as in the overhead frames)
+  // blue crate stacks beside the conveyor (as in the overhead frames): open crates with a darker inner rim
   for (const [cx, cy] of [
     [-(input.beltHalf + 0.95), 3.4],
     [input.beltHalf + 0.95, 5.2],
   ] as const) {
     const n = 3 + Math.floor(r() * 3);
     for (let i = 0; i < n; i++) {
+      const yaw = (r() - 0.5) * 0.2;
+      const shade = 0.92 + r() * 0.14;
       boxes.push({
         at: [cx, cy, 0.15 + i * 0.3],
         size: [0.62, 0.42, 0.28],
-        yaw: (r() - 0.5) * 0.2,
+        yaw,
         tone: 'crate',
-        shade: 0.9 + r() * 0.2,
+        shade,
+        detail: 'lo',
       });
+      if (i === n - 1) {
+        boxes.push({
+          at: [cx, cy, 0.29 + i * 0.3 + 0.002],
+          size: [0.52, 0.32, 0.004],
+          yaw,
+          tone: 'crate',
+          shade: shade * 0.62,
+          detail: 'flat',
+        });
+      }
     }
   }
   return { boxes, marks };

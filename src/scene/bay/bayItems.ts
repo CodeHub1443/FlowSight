@@ -1,26 +1,28 @@
-import type { BoxItem } from '../items';
+import type { BoxItem, CylItem } from '../items';
 import type { BayLayout, FaceLayout } from '../site/layout';
 import { WALL_THICKNESS } from '../site/layout';
 
-// Pure box lists for the static parts of a bay. Rendering them through BoxInstances keeps a bay at a handful of
-// draw calls instead of ~80 meshes (docs/02 section 6: instancing for repeated meshes).
+// Pure item lists for the static parts of a bay, rendered through BoxInstances / CylInstances so a bay stays at a
+// handful of draw calls (docs/02 section 6: instancing for repeated meshes).
+//
+// The telescopic conveyor follows the real EZ machines in docs/reference/cam-*.jpg: a chunky blue body on a low
+// chassis, three nested boom sections stepping down towards the door, a dark belt with rounded roller ends, flared
+// stainless side guides, a yellow motor housing with grilles and two grey control cabinets with buttons.
 
 type Conveyor = BayLayout['conveyor'];
 
-// Deck height (above dock floor) at the retracted boom tip and at the far end of the fixed body. The real
-// telescopic conveyors rise slightly into the shed; these are approximate and visual only.
-export const TIP_HEIGHT = 0.62;
-const FAR_HEIGHT = 1.0;
-const FRAME_DROP = 0.34;
+// Belt top above the dock floor at the retracted boom tip and at the far end of the fixed body (approximate,
+// visual only: the real conveyors rise slightly into the shed).
+export const TIP_HEIGHT = 0.8;
+const FAR_HEIGHT = 1.08;
+/** Length of the boom-section stretch in front of the main housing (the visible telescopic steps). */
+const SECTION_STEP = 0.42;
+const SECTIONS = 3;
+/** Main housing side beam: width and depth below the belt. */
+const BEAM_W = 0.3;
+const BEAM_H = 0.5;
 
-/** Retracted telescopic sections: [length from the tip, inset from the fixed frame, raise]. */
-const SECTIONS: readonly (readonly [number, number, number])[] = [
-  [6.2, 0.045, 0.035],
-  [4.3, 0.09, 0.07],
-  [2.6, 0.135, 0.105],
-];
-
-/** Pivot of the tilted conveyor frame (u along the belt, v above the deck) in the bay frame. */
+/** Pivot of the tilted conveyor frame (u along the belt, v above the belt top) in the bay frame. */
 export function conveyorFrame(c: Conveyor): { at: [number, number, number]; pitch: number } {
   return {
     at: [0, c.fixedFrom, TIP_HEIGHT],
@@ -28,65 +30,159 @@ export function conveyorFrame(c: Conveyor): { at: [number, number, number]; pitc
   };
 }
 
-/** Deck, frames, stainless guides and the three retracted boom sections, in the tilted conveyor frame. */
+/** Belt-top height above the dock floor at bay y. */
+export function beltTop(c: Conveyor, y: number): number {
+  const k = (y - c.fixedFrom) / Math.max(1e-6, c.fixedTo - c.fixedFrom);
+  return TIP_HEIGHT + (FAR_HEIGHT - TIP_HEIGHT) * Math.min(1, Math.max(0, k));
+}
+
+/** Front of the main (outer) housing, measured from the boom tip. */
+const housingFront = SECTION_STEP * SECTIONS;
+
+/** Body, belt, guides and boom sections in the tilted conveyor frame ([x, u, v]: across, along, above belt top). */
 export function conveyorBodyItems(c: Conveyor): BoxItem[] {
   const w = c.width;
   const L = c.fixedTo - c.fixedFrom;
-  const fx = w / 2 + 0.11;
-  const out: BoxItem[] = [{ at: [0, L / 2, -0.035], size: [w, L, 0.05], tone: 'belt' }];
+  const hl = L - housingFront;
+  const hu = housingFront + hl / 2;
+  const bx = w / 2 + BEAM_W / 2 + 0.02;
+  const out: BoxItem[] = [
+    // belt over the housing
+    { at: [0, hu, -0.03], size: [w + 0.04, hl, 0.06], tone: 'belt', detail: 'lo' },
+    // far-end drum housing
+    {
+      at: [0, L - 0.16, -0.3],
+      size: [w + 2 * BEAM_W + 0.1, 0.34, 0.56],
+      tone: 'brand',
+      detail: 'hi',
+    },
+  ];
   for (const s of [-1, 1]) {
     out.push(
-      { at: [s * fx, L / 2, -0.12], size: [0.22, L, 0.42], tone: 'conveyor' },
-      { at: [s * (w / 2 + 0.005), L / 2, 0.02], size: [0.04, L, 0.2], tone: 'steel' },
-      { at: [s * (w / 2 + 0.09), L / 2, 0.075], size: [0.16, L, 0.03], tone: 'steel' },
+      // chunky side beam of the main housing
+      {
+        at: [s * bx, hu, -BEAM_H / 2 - 0.02],
+        size: [BEAM_W, hl, BEAM_H],
+        tone: 'brand',
+        detail: 'hi',
+      },
+      // flared stainless guide and its rolled top edge
+      {
+        at: [s * (w / 2 + 0.07), hu, 0.09],
+        size: [0.025, hl, 0.24],
+        roll: s * 0.5,
+        tone: 'metal',
+        detail: 'lo',
+      },
+      { at: [s * (w / 2 + 0.135), hu, 0.2], size: [0.05, hl, 0.04], tone: 'metal', detail: 'lo' },
     );
   }
-  for (const [len, inset, raise] of SECTIONS) {
+  // telescopic boom sections: each one narrower and lower than the one around it, fronts 0.42 m apart
+  for (let i = 0; i < SECTIONS; i++) {
+    const depthIn = SECTIONS - i; // 3 = innermost (the tip), 1 = next to the housing
+    const front = SECTION_STEP * i;
+    const back = housingFront + 1.0;
+    const len = back - front;
+    const mid = (front + back) / 2;
+    const inset = 0.055 * depthIn;
+    const drop = 0.03 * depthIn;
+    out.push({
+      at: [0, mid, -0.03 - drop],
+      size: [w - 0.03 * depthIn, len, 0.05],
+      tone: 'belt',
+      detail: 'lo',
+    });
     for (const s of [-1, 1]) {
       out.push(
         {
-          at: [s * (w / 2 - 0.03 - inset), len / 2, 0.01 + raise],
-          size: [0.1, len, 0.2],
-          tone: 'conveyor',
+          at: [s * (bx - inset), mid, -0.2 - drop],
+          size: [BEAM_W - 0.08, len, 0.34 - 0.03 * depthIn],
+          tone: 'brand',
+          shade: 1 - 0.035 * depthIn,
+          detail: 'hi',
         },
         {
-          at: [s * (w / 2 - 0.085 - inset), len / 2, 0.12 + raise],
-          size: [0.035, len, 0.17],
-          tone: 'steel',
+          at: [s * (w / 2 + 0.06 - inset * 0.5), mid, 0.07 - drop],
+          size: [0.022, len, 0.2],
+          roll: s * 0.5,
+          tone: 'metal',
+          detail: 'lo',
         },
       );
     }
-    out.push({
-      at: [0, len / 2, -0.01 + raise],
-      size: [w - 0.22 - inset * 2, len, 0.03],
-      tone: 'belt',
-    });
   }
+  // yellow nose bumper of the boom tip
+  out.push({
+    at: [0, -0.05, -0.24 - 0.03 * SECTIONS],
+    size: [w + 0.14, 0.1, 0.16],
+    tone: 'palletYellow',
+    detail: 'lo',
+  });
   return out;
 }
 
-/** Legs, cross beams, feet, yellow motor housing, control cabinets with posts, in the bay frame. */
-export function conveyorSupportItems(c: Conveyor): BoxItem[] {
+/** Rounded belt ends: rollers at the boom tip and at the far end (tilted conveyor frame). */
+export function conveyorRollerItems(c: Conveyor): CylItem[] {
   const w = c.width;
   const L = c.fixedTo - c.fixedFrom;
-  const { pitch } = conveyorFrame(c);
-  const fx = w / 2 + 0.11;
+  return [
+    {
+      at: [0, 0.03, -0.06 - 0.03 * SECTIONS],
+      radius: 0.05,
+      length: w - 0.1,
+      axis: 'x',
+      tone: 'belt',
+    },
+    { at: [0, L - 0.36, -0.06], radius: 0.06, length: w + 0.02, axis: 'x', tone: 'belt' },
+  ];
+}
+
+/** Chassis, legs, feet, the yellow motor housing (bay frame). */
+export function conveyorSupportItems(c: Conveyor): BoxItem[] {
+  const w = c.width;
+  const bx = w / 2 + BEAM_W / 2 + 0.02;
   const out: BoxItem[] = [];
-  for (const f of [0.12, 0.4, 0.7, 0.96]) {
-    const y = c.fixedFrom + f * L;
-    const h = TIP_HEIGHT + (y - c.fixedFrom) * Math.tan(pitch) - FRAME_DROP;
-    for (const s of [-1, 1]) {
-      out.push(
-        { at: [s * fx, y, h / 2], size: [0.1, 0.1, h], tone: 'conveyor' },
-        { at: [s * fx, y, 0.015], size: [0.24, 0.24, 0.03], tone: 'steel' },
-      );
-    }
-    out.push({ at: [0, y, h - 0.06], size: [w + 0.28, 0.08, 0.08], tone: 'conveyor' });
+  // front support under the boom sections
+  const fy = c.fixedFrom + housingFront + 0.5;
+  const fh = beltTop(c, fy) - 0.5;
+  for (const s of [-1, 1]) {
+    out.push(
+      { at: [s * (bx - 0.06), fy, fh / 2], size: [0.12, 0.12, fh], tone: 'brand', detail: 'lo' },
+      { at: [s * (bx - 0.06), fy, 0.015], size: [0.28, 0.28, 0.03], tone: 'metal', detail: 'lo' },
+    );
   }
-  const my = c.fixedTo - 1.4;
+  out.push({ at: [0, fy, fh - 0.06], size: [2 * bx, 0.1, 0.1], tone: 'brand', detail: 'lo' });
+
+  // low chassis under the rear two thirds (the "machine" body)
+  const c0 = c.fixedFrom + housingFront + 1.6;
+  const c1 = c.fixedTo - 0.3;
+  const ch = beltTop(c, c0) - BEAM_H - 0.06 - 0.16;
+  out.push({
+    at: [0, (c0 + c1) / 2, 0.16 + ch / 2],
+    size: [w + 0.3, c1 - c0, ch],
+    tone: 'brand',
+    shade: 0.86,
+    detail: 'hi',
+  });
+  for (const s of [-1, 1]) {
+    for (const y of [c0 + 0.35, c1 - 0.35]) {
+      out.push({
+        at: [s * (w / 2 + 0.05), y, 0.08],
+        size: [0.2, 0.32, 0.16],
+        tone: 'seal',
+        detail: 'lo',
+      });
+    }
+  }
+
+  // motor housing with grilles on the cabinet side
+  const mx = -(bx + BEAM_W / 2 + 0.42);
+  const my = c.fixedTo - 2.3;
   out.push(
-    { at: [-(w / 2 + 0.62), my, 0.4], size: [0.7, 0.85, 0.7], tone: 'motor' },
-    { at: [-(w / 2 + 0.62), my + 0.43, 0.4], size: [0.5, 0.02, 0.48], tone: 'motorGrille' },
+    { at: [mx, my, 0.43], size: [0.78, 0.95, 0.74], tone: 'motor', detail: 'hi' },
+    { at: [mx, my + 0.48, 0.45], size: [0.6, 0.02, 0.52], tone: 'motorGrille', detail: 'flat' },
+    { at: [mx, my, 0.805], size: [0.62, 0.8, 0.02], tone: 'motorGrille', detail: 'flat' },
+    { at: [mx + 0.28, my, 0.92], size: [0.12, 0.5, 0.2], tone: 'metal', detail: 'lo' },
   );
   return out;
 }
@@ -94,49 +190,151 @@ export function conveyorSupportItems(c: Conveyor): BoxItem[] {
 /** x of the two control cabinets and their y, shared with the label plates. */
 export function cabinetSpots(c: Conveyor): { xs: number[]; y: number } {
   const w = c.width;
-  return { xs: [-(w / 2 + 1.35), -(w / 2 + 2.0)], y: c.fixedTo - 1.8 };
+  return { xs: [-(w / 2 + 1.5), -(w / 2 + 2.18)], y: c.fixedTo - 0.95 };
 }
 
+const CABINET = { w: 0.56, d: 0.3, h: 0.72, z: 1.12 } as const;
+
+/** Grey cabinets with rounded corners on posts, a door seam and a handle (bay frame). */
 export function cabinetItems(c: Conveyor): BoxItem[] {
   const { xs, y } = cabinetSpots(c);
-  return xs.flatMap((x, i): BoxItem[] => [
-    { at: [x, y, 1.08], size: [0.5, 0.26, 0.64], tone: 'cabinet' },
-    { at: [x - 0.18, y, 0.38], size: [0.05, 0.05, 0.76], tone: 'steel' },
-    { at: [x + 0.18, y, 0.38], size: [0.05, 0.05, 0.76], tone: 'steel' },
-    ...(i === 0
-      ? [
-          {
-            at: [x + 0.14, y + 0.135, 0.9],
-            size: [0.1, 0.01, 0.09],
-            tone: 'palletOrange',
-          } as BoxItem,
-        ]
-      : []),
+  const front = y + CABINET.d / 2;
+  return xs.flatMap((x): BoxItem[] => [
+    {
+      at: [x, y, CABINET.z],
+      size: [CABINET.w, CABINET.d, CABINET.h],
+      tone: 'cabinet',
+      detail: 'hi',
+    },
+    // rain hood
+    {
+      at: [x, y + 0.02, CABINET.z + CABINET.h / 2 + 0.02],
+      size: [CABINET.w + 0.06, CABINET.d + 0.08, 0.04],
+      tone: 'cabinet',
+      shade: 1.06,
+      detail: 'lo',
+    },
+    {
+      at: [x + CABINET.w * 0.18, front + 0.004, CABINET.z],
+      size: [0.008, 0.01, CABINET.h - 0.1],
+      tone: 'cabinet',
+      shade: 0.82,
+      detail: 'flat',
+    },
+    {
+      at: [x + CABINET.w * 0.3, front + 0.02, CABINET.z],
+      size: [0.025, 0.03, 0.12],
+      tone: 'metal',
+      detail: 'lo',
+    },
+    {
+      at: [x - 0.2, y, (CABINET.z - CABINET.h / 2) / 2],
+      size: [0.06, 0.06, CABINET.z - CABINET.h / 2],
+      tone: 'metal',
+    },
+    {
+      at: [x + 0.2, y, (CABINET.z - CABINET.h / 2) / 2],
+      size: [0.06, 0.06, CABINET.z - CABINET.h / 2],
+      tone: 'metal',
+    },
   ]);
 }
 
-/** Guide rails, closed-shutter panel with grooves, rubber seals, bumpers and the dock leveller (bay frame, wall at y 0..0.35). */
+/** Push buttons (green, red, yellow) on the cabinet fronts. */
+export function cabinetButtonItems(c: Conveyor): CylItem[] {
+  const { xs, y } = cabinetSpots(c);
+  const front = y + CABINET.d / 2 + 0.012;
+  const tones = ['statusOk', 'statusCritical', 'palletYellow'] as const;
+  return xs.flatMap((x) =>
+    tones.map((tone, i): CylItem => ({
+      at: [x - 0.14 + i * 0.1, front, CABINET.z - 0.16],
+      radius: 0.028,
+      length: 0.025,
+      axis: 'y',
+      tone,
+    })),
+  );
+}
+
+/** Height of the label plate centre on a cabinet front. */
+export const CABINET_LABEL_Z = CABINET.z + 0.16;
+export const CABINET_FRONT = CABINET.d / 2;
+
+/**
+ * Door furniture (bay frame, wall at y 0..t): blue rounded door frames inside and out, shutter rails, the closed
+ * shutter or the open shutter hood, dock shelter pads, bumpers and the dock leveller.
+ */
 export function doorItems(door: FaceLayout['door'], open: boolean): BoxItem[] {
   const t = WALL_THICKNESS;
   const { width: w, height: h } = door;
   const out: BoxItem[] = [];
+  const fw = 0.22;
+  for (const [y, d] of [
+    [t + 0.05, 0.12],
+    [-0.05, 0.1],
+  ] as const) {
+    for (const s of [-1, 1]) {
+      out.push({
+        at: [s * (w / 2 + fw / 2), y, (h + fw) / 2],
+        size: [fw, d, h + fw],
+        tone: 'wallAccent',
+        detail: 'hi',
+      });
+    }
+    out.push({
+      at: [0, y, h + fw / 2],
+      size: [w + 2 * fw, d, fw],
+      tone: 'wallAccent',
+      detail: 'hi',
+    });
+  }
   for (const s of [-1, 1]) {
     out.push(
-      { at: [s * (w / 2 + 0.05), t + 0.04, h / 2], size: [0.1, 0.08, h], tone: 'steel' },
-      { at: [s * (w / 2 + 0.2), -0.3, h / 2], size: [0.4, 0.6, h], tone: 'seal' },
-      { at: [s * (w / 2 + 0.1), -0.15, -0.5], size: [0.25, 0.3, 0.3], tone: 'seal' },
+      {
+        at: [s * (w / 2 - 0.03), t / 2, h / 2],
+        size: [0.07, 0.07, h],
+        tone: 'metal',
+        detail: 'lo',
+      },
+      // dock shelter pads and bumpers on the yard side
+      {
+        at: [s * (w / 2 + 0.42), -0.32, h / 2 + 0.1],
+        size: [0.34, 0.5, h + 0.2],
+        tone: 'seal',
+        detail: 'lo',
+      },
+      {
+        at: [s * (w / 2 - 0.25), -0.14, -0.42],
+        size: [0.3, 0.26, 0.34],
+        tone: 'seal',
+        detail: 'lo',
+      },
     );
   }
-  if (!open) {
-    out.push({ at: [0, t / 2, h / 2], size: [w, 0.1, h], tone: 'shutter' });
-    for (let z = 0.3; z < h; z += 0.36) {
-      out.push({ at: [0, t / 2 + 0.06, z], size: [w - 0.04, 0.02, 0.03], tone: 'leveller' });
+  out.push({ at: [0, -0.32, h + 0.42], size: [w + 1.2, 0.5, 0.42], tone: 'seal', detail: 'lo' });
+  if (open) {
+    // rolled-up shutter in its hood
+    out.push({
+      at: [0, t + 0.24, h + 0.36],
+      size: [w + 0.24, 0.44, 0.5],
+      tone: 'shutter',
+      detail: 'hi',
+    });
+  } else {
+    out.push({ at: [0, t / 2, h / 2], size: [w, 0.09, h], tone: 'shutter', detail: 'lo' });
+    for (let z = 0.28; z < h - 0.1; z += 0.3) {
+      out.push({
+        at: [0, t / 2 + 0.05, z],
+        size: [w - 0.06, 0.012, 0.03],
+        tone: 'shutter',
+        shade: 0.9,
+        detail: 'flat',
+      });
     }
   }
   out.push(
-    { at: [0, -0.3, h - 0.2], size: [w + 0.8, 0.6, 0.4], tone: 'seal' },
-    { at: [0, -0.55, -0.04], size: [w - 0.3, 1.1, 0.08], tone: 'leveller' },
-    { at: [0, -1.0, -0.04], size: [w - 0.3, 0.2, 0.082], tone: 'walkline' },
+    { at: [0, -0.55, -0.03], size: [w - 0.24, 1.1, 0.06], tone: 'leveller', detail: 'lo' },
+    { at: [0, -1.06, -0.028], size: [w - 0.24, 0.1, 0.064], tone: 'walkline', detail: 'flat' },
   );
   return out;
 }

@@ -10,7 +10,10 @@ export interface StorageInput {
   y: readonly [number, number];
 }
 
-/** Low-detail palletised storage blocks behind the aisle (docs/04 section 3), face frame. */
+/**
+ * Low-detail palletised storage blocks behind the aisle (docs/04 section 3), face frame: a pallet base with a
+ * darker fork-pocket band, then one or two rounded carton (or wrapped sack) blocks with a tape line on top.
+ */
 export function buildStorage(input: StorageInput): BoxItem[] {
   const r = rng(input.seed);
   const out: BoxItem[] = [];
@@ -27,22 +30,39 @@ export function buildStorage(input: StorageInput): BoxItem[] {
     }
     for (const dx of offsets) {
       if (r() < 0.14) continue;
+      const x = input.centerX + dx;
       const levels = 1 + Math.floor(r() * 2);
-      out.push({
-        at: [input.centerX + dx, y, 0.07],
-        size: [blockW, 1.2, 0.14],
-        tone: 'palletBlue',
-        shade: 0.8,
-      });
+      out.push(
+        {
+          at: [x, y, 0.075],
+          size: [blockW, 1.2, 0.15],
+          tone: 'palletBlue',
+          shade: 0.9,
+          detail: 'lo',
+        },
+        {
+          at: [x, y + 0.601, 0.06],
+          size: [blockW - 0.3, 0.004, 0.06],
+          tone: 'palletBlue',
+          shade: 0.55,
+          detail: 'flat',
+        },
+      );
       const wrapped = r() < 0.2;
-      const tone: PaletteKey = wrapped ? 'sack' : r() < 0.5 ? 'carton' : 'cartonDark';
+      const tone: PaletteKey = wrapped ? 'sack' : 'carton';
+      const shade = wrapped ? 0.98 : 0.9 + r() * 0.14;
       for (let l = 0; l < levels; l++) {
-        out.push({
-          at: [input.centerX + dx, y, 0.14 + 0.4 + l * 0.8],
-          size: [blockW - 0.1, 1.1, 0.78],
-          tone,
-          shade: 0.93 + r() * 0.14,
-        });
+        const z = 0.15 + 0.4 + l * 0.8;
+        out.push({ at: [x, y, z], size: [blockW - 0.1, 1.1, 0.78], tone, shade, detail: 'lo' });
+        if (!wrapped && l === levels - 1) {
+          out.push({
+            at: [x, y, z + 0.392],
+            size: [0.1, 1.104, 0.006],
+            tone: 'cartonTape',
+            shade,
+            detail: 'flat',
+          });
+        }
       }
     }
     y += rowPitch;

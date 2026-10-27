@@ -1,35 +1,54 @@
 import { MeshStandardMaterial } from 'three';
 
-// Scene palette (docs/04 section 1). The values mirror the --scene-* and --status-* tokens in src/index.css
-// (CSS is the source of truth for the tokens listed under "Requests to main session" in docs/progress/step-06.md);
-// the keys without a CSS token yet are scene-only constants. Site facade colours are physical paint and come from config.
+// Scene palette. The token values are docs/06-visual-language.md section 1 (binding) and are mirrored by the CSS
+// tokens in src/index.css; `materials.test.ts` parses the docs/06 table and fails if a fallback below drifts.
+// Every other scene colour is derived from these tokens (see `derive`), so nothing outside this file is a literal
+// colour. Site facade colours are physical paint and come from config (the one allowed exception).
 
 export type SceneTheme = 'light' | 'dark';
 
-export interface ScenePalette {
-  // --scene-* tokens
+/** Colours named by docs/06 section 1 (plus the four status tokens docs/06 does not redefine). */
+export interface PaletteTokens {
   void: string;
   floor: string;
-  floorGrid: string;
+  floorLine: string;
+  apron: string;
   walkline: string;
   wall: string;
-  wallCap: string;
-  apron: string;
-  conveyor: string;
-  belt: string;
-  // scene-only
-  floorPatchDark: string;
-  floorPatchLight: string;
-  slab: string;
-  steel: string;
-  cabinet: string;
-  motor: string;
-  motorGrille: string;
+  wallAccent: string;
+  brand: string;
+  brandLight: string;
+  brandTint: string;
+  carton: string;
+  cartonTape: string;
   palletBlue: string;
   palletYellow: string;
   palletOrange: string;
-  carton: string;
-  cartonDark: string;
+  metal: string;
+  belt: string;
+  statusOk: string;
+  okBg: string;
+  statusWarn: string;
+  warnBg: string;
+  statusCritical: string;
+  criticalBg: string;
+  ink900: string;
+  ink600: string;
+  ink400: string;
+  card: string;
+  // CLAUDE.md status tokens without a docs/06 counterpart
+  statusNeutral: string;
+  statusIdle: string;
+  statusOffline: string;
+  statusInfo: string;
+}
+
+/** Scene colours derived from the tokens (mixes only, no new literals). */
+export interface DerivedColors {
+  slab: string;
+  cabinet: string;
+  motor: string;
+  motorGrille: string;
   sack: string;
   sackBand: string;
   crate: string;
@@ -38,123 +57,176 @@ export interface ScenePalette {
   leveller: string;
   column: string;
   paintWhite: string;
-  plate: string;
   workZone: string;
   hover: string;
-  // status tokens
-  statusOk: string;
-  statusWarn: string;
-  statusCritical: string;
-  statusNeutral: string;
-  statusIdle: string;
-  statusOffline: string;
-  statusInfo: string;
-  brand: string;
+  selection: string;
+  /** Tint of ambient occlusion and contact shadows: a dark blue, never black. */
+  shade: string;
+  /** Light colours: white key and softbox, cool periwinkle sky fill (theme-independent; the dark theme darkens
+   *  surfaces, not the lights). */
+  keyLight: string;
+  /** Hemisphere light: sky and ground. */
+  skyFill: string;
+  groundFill: string;
 }
 
-const STATUS = {
-  statusOk: '#16A34A',
-  statusWarn: '#F59E0B',
-  statusCritical: '#DC2626',
+export type ScenePalette = PaletteTokens & DerivedColors;
+export type PaletteKey = keyof ScenePalette;
+
+const STATUS_EXTRA = {
   statusNeutral: '#64748B',
   statusIdle: '#CBD5E1',
   statusOffline: '#94A3B8',
   statusInfo: '#2563EB',
 } as const;
 
-export const LIGHT_PALETTE: ScenePalette = {
-  void: '#E8EBF7',
-  floor: '#DCE7DF',
-  floorGrid: '#C3D2C8',
+/** docs/06 section 1, light theme (exact values). */
+export const LIGHT_TOKENS: PaletteTokens = {
+  void: '#E6ECFA',
+  floor: '#EEF2FC',
+  floorLine: '#D4DEF7',
+  apron: '#DCE4F8',
   walkline: '#F2C94C',
-  wall: '#F7F8FC',
-  wallCap: '#1F36C7',
-  apron: '#DDE1F2',
-  conveyor: '#2F55B8',
-  belt: '#3A3F4A',
-  floorPatchDark: '#C9DACE',
-  floorPatchLight: '#E6EEE8',
-  slab: '#C7CFE3',
-  steel: '#C4CAD3',
-  cabinet: '#AEB4BF',
-  motor: '#F0B90B',
-  motorGrille: '#7A6A2A',
-  palletBlue: '#3F6FE0',
-  palletYellow: '#F2C94C',
-  palletOrange: '#F08A3C',
-  carton: '#C9A46A',
-  cartonDark: '#B08B52',
-  sack: '#F4F4F0',
-  sackBand: '#5B8DEF',
-  crate: '#2F63D6',
-  shutter: '#B7BFD6',
-  seal: '#2B2F3A',
-  leveller: '#8C95A8',
-  column: '#B9BFCC',
-  paintWhite: '#FFFFFF',
-  plate: '#1F36C7',
-  workZone: mixHex('#DCE7DF', STATUS.statusNeutral, 0.3),
-  hover: '#93C5FD',
-  brand: '#1F36C7',
-  ...STATUS,
+  wall: '#F7F9FE',
+  wallAccent: '#3D6AE4',
+  brand: '#2C6FED',
+  brandLight: '#5193F3',
+  brandTint: '#EAF2FF',
+  carton: '#E9C6A2',
+  cartonTape: '#D9AE80',
+  palletBlue: '#3F7BF0',
+  palletYellow: '#F5C542',
+  palletOrange: '#F59E5B',
+  metal: '#C9D2E3',
+  belt: '#2E3445',
+  statusOk: '#22AF5B',
+  okBg: '#E3F6EA',
+  statusWarn: '#E8890C',
+  warnBg: '#FFF1DF',
+  statusCritical: '#E5484D',
+  criticalBg: '#FDE8E8',
+  ink900: '#0F172A',
+  ink600: '#475569',
+  ink400: '#94A3B8',
+  card: '#FFFFFF',
+  ...STATUS_EXTRA,
 };
 
-export const DARK_PALETTE: ScenePalette = {
-  ...LIGHT_PALETTE,
-  void: '#0E1424',
-  floor: '#1B2430',
-  floorGrid: '#273341',
+/**
+ * Dark "control room" theme. docs/06 fixes void `#0B1222`, floor `#141C2F` and card `#121A2B`; the rest mirrors
+ * the light tokens at lower value (scene-only until the main session adds dark --scene-* tokens).
+ */
+export const DARK_TOKENS: PaletteTokens = {
+  ...LIGHT_TOKENS,
+  void: '#0B1222',
+  floor: '#141C2F',
+  floorLine: '#22304F',
+  apron: '#101829',
   walkline: '#D9B23F',
-  wall: '#1A2238',
-  wallCap: '#4D63E8',
-  apron: '#151C30',
-  conveyor: '#3C64CC',
-  belt: '#2A2E37',
-  floorPatchDark: '#16202A',
-  floorPatchLight: '#222D3A',
-  slab: '#151C30',
-  steel: '#8E96A4',
-  cabinet: '#7C828D',
-  motor: '#D9A908',
-  motorGrille: '#5A4E1E',
-  palletBlue: '#3562CC',
-  palletYellow: '#D9B23F',
-  palletOrange: '#D9782F',
-  carton: '#A88955',
-  cartonDark: '#8F733F',
-  sack: '#D8D8D2',
-  sackBand: '#4A78D8',
-  crate: '#2955B8',
-  shutter: '#5C6482',
-  seal: '#12141A',
-  leveller: '#6B7385',
-  column: '#4A5266',
-  paintWhite: '#C9CFE0',
-  plate: '#4D63E8',
-  workZone: mixHex('#1B2430', STATUS.statusNeutral, 0.3),
-  hover: '#6F8FD8',
-  brand: '#4D63E8',
+  wall: '#1C2640',
+  wallAccent: '#4A78EE',
+  brand: '#3B7CF2',
+  brandLight: '#5C9BF5',
+  brandTint: '#1A2A4F',
+  carton: '#B9987A',
+  cartonTape: '#A5835F',
+  palletBlue: '#3A6FDA',
+  palletYellow: '#D8AE3C',
+  palletOrange: '#D98A52',
+  metal: '#7E8AA3',
+  okBg: '#12301F',
+  warnBg: '#33240F',
+  criticalBg: '#3A1A1D',
+  ink900: '#E6ECFA',
+  ink600: '#A9B4C8',
+  ink400: '#6B7894',
+  card: '#121A2B',
 };
 
-/** Palette keys backed by a CSS token in src/index.css. `workZone` is derived from `floor`. */
-const CSS_TOKENS: readonly (readonly [PaletteKey, string])[] = [
+/** Mix two hex colours, `t` = share of `b`. */
+export function mixHex(a: string, b: string, t: number): string {
+  const ca = parseInt(a.slice(1), 16);
+  const cb = parseInt(b.slice(1), 16);
+  const ch = (shift: number) =>
+    Math.round(((ca >> shift) & 255) * (1 - t) + ((cb >> shift) & 255) * t);
+  return `#${((ch(16) << 16) | (ch(8) << 8) | ch(0)).toString(16).padStart(6, '0')}`.toUpperCase();
+}
+
+/** `#RRGGBB` + alpha -> `rgba()` for DOM shadows built from tokens. */
+export function hexAlpha(hex: string, alpha: number): string {
+  const c = parseInt(hex.slice(1), 16);
+  return `rgba(${(c >> 16) & 255}, ${(c >> 8) & 255}, ${c & 255}, ${alpha})`;
+}
+
+export function derive(p: PaletteTokens, theme: SceneTheme): ScenePalette {
+  const dark = theme === 'dark';
+  return {
+    ...p,
+    slab: mixHex(p.apron, p.metal, 0.35),
+    cabinet: p.metal,
+    motor: p.palletYellow,
+    motorGrille: mixHex(p.palletYellow, p.belt, 0.5),
+    // physical white goods stay light in the dark theme, a little dimmed
+    sack: dark ? mixHex(LIGHT_TOKENS.wall, p.metal, 0.35) : p.wall,
+    sackBand: p.brandLight,
+    crate: p.palletBlue,
+    shutter: mixHex(p.wall, p.metal, 0.6),
+    seal: mixHex(p.belt, p.metal, 0.18),
+    leveller: p.metal,
+    column: mixHex(p.wall, p.metal, 0.55),
+    paintWhite: dark ? mixHex(p.floor, LIGHT_TOKENS.card, 0.35) : p.card,
+    workZone: mixHex(p.floor, p.statusIdle, dark ? 0.12 : 0.32),
+    hover: p.brandLight,
+    selection: p.statusInfo,
+    shade: mixHex(p.belt, p.brand, 0.22),
+    keyLight: LIGHT_TOKENS.card,
+    skyFill: mixHex(LIGHT_TOKENS.brandTint, LIGHT_TOKENS.brandLight, 0.25),
+    groundFill: mixHex(p.floor, p.brand, 0.08),
+  };
+}
+
+export const LIGHT_PALETTE: ScenePalette = derive(LIGHT_TOKENS, 'light');
+export const DARK_PALETTE: ScenePalette = derive(DARK_TOKENS, 'dark');
+
+/** docs/06 section 1 token names for the palette keys (the CSS side of the mirror). */
+export const CSS_TOKENS: readonly (readonly [keyof PaletteTokens, string])[] = [
   ['void', '--scene-void'],
   ['floor', '--scene-floor'],
-  ['floorGrid', '--scene-floor-grid'],
+  ['floorLine', '--scene-floor-line'],
+  ['apron', '--scene-apron'],
   ['walkline', '--scene-walkline'],
   ['wall', '--scene-wall'],
-  ['wallCap', '--scene-wall-cap'],
-  ['apron', '--scene-apron'],
-  ['conveyor', '--scene-conveyor'],
-  ['belt', '--scene-belt'],
-  ['statusOk', '--status-ok'],
-  ['statusWarn', '--status-warn'],
-  ['statusCritical', '--status-critical'],
+  ['wallAccent', '--scene-wall-accent'],
+  ['brand', '--brand-500'],
+  ['brandLight', '--brand-400'],
+  ['brandTint', '--brand-50'],
+  ['carton', '--carton'],
+  ['cartonTape', '--carton-tape'],
+  ['palletBlue', '--pallet-blue'],
+  ['palletYellow', '--pallet-yellow'],
+  ['palletOrange', '--pallet-orange'],
+  ['metal', '--metal'],
+  ['belt', '--belt'],
+  ['statusOk', '--ok'],
+  ['okBg', '--ok-bg'],
+  ['statusWarn', '--warn'],
+  ['warnBg', '--warn-bg'],
+  ['statusCritical', '--critical'],
+  ['criticalBg', '--critical-bg'],
+  ['ink900', '--ink-900'],
+  ['ink600', '--ink-600'],
+  ['ink400', '--ink-400'],
   ['statusNeutral', '--status-neutral'],
   ['statusIdle', '--status-idle'],
   ['statusOffline', '--status-offline'],
   ['statusInfo', '--status-info'],
 ];
+
+/**
+ * Only read the CSS once it carries the docs/06 token set. Older stylesheets define `--scene-floor` etc. with the
+ * rejected step-06 values; `--scene-floor-line` exists only in the docs/06 set, so it marks the new tokens.
+ */
+const DOCS06_MARKER = '--scene-floor-line';
 
 function normalizeHex(v: string): string | null {
   const s = v.trim();
@@ -166,14 +238,15 @@ function normalizeHex(v: string): string | null {
 
 /**
  * Token values from the document, or nothing when the document does not show `theme` (UiPreferenceSync toggles
- * `.dark` on <html>; the dev preview themes a wrapper instead) or there is no DOM. Non-hex values are skipped.
+ * `.dark` on <html>; the dev preview themes a wrapper instead), has no DOM or predates the docs/06 tokens.
  */
-function readTokens(theme: SceneTheme): Partial<ScenePalette> {
+function readTokens(theme: SceneTheme): Partial<PaletteTokens> {
   if (typeof document === 'undefined') return {};
   const root = document.documentElement;
   if (root.classList.contains('dark') !== (theme === 'dark')) return {};
   const style = getComputedStyle(root);
-  const out: Partial<ScenePalette> = {};
+  if (!normalizeHex(style.getPropertyValue(DOCS06_MARKER))) return {};
+  const out: Partial<PaletteTokens> = {};
   for (const [key, name] of CSS_TOKENS) {
     const hex = normalizeHex(style.getPropertyValue(name));
     if (hex) out[key] = hex;
@@ -184,43 +257,54 @@ function readTokens(theme: SceneTheme): Partial<ScenePalette> {
 let current: { theme: SceneTheme; palette: ScenePalette } | null = null;
 
 /**
- * The palette for `theme`: the CSS tokens over the constants above. The document is read on the first call and
- * again only when the theme changes; every other call returns the same object, so materials are not rebuilt.
+ * The palette for `theme`: the CSS tokens over the constants above, derived colours recomputed from the result.
+ * The document is read on the first call and again only when the theme changes; every other call returns the
+ * same object, so materials are not rebuilt.
  */
 export function paletteFor(theme: SceneTheme): ScenePalette {
   if (current?.theme === theme) return current.palette;
-  const base = theme === 'dark' ? DARK_PALETTE : LIGHT_PALETTE;
-  const tokens = readTokens(theme);
-  const palette: ScenePalette = { ...base, ...tokens };
-  if (tokens.floor || tokens.statusNeutral)
-    palette.workZone = mixHex(palette.floor, palette.statusNeutral, 0.3);
+  const base = theme === 'dark' ? DARK_TOKENS : LIGHT_TOKENS;
+  const palette = derive({ ...base, ...readTokens(theme) }, theme);
   current = { theme, palette };
   return palette;
 }
 
-/** Mix two hex colours, `t` = share of `b`. */
-export function mixHex(a: string, b: string, t: number): string {
-  const ca = parseInt(a.slice(1), 16);
-  const cb = parseInt(b.slice(1), 16);
-  const ch = (shift: number) =>
-    Math.round(((ca >> shift) & 255) * (1 - t) + ((cb >> shift) & 255) * t);
-  return `#${((ch(16) << 16) | (ch(8) << 8) | ch(0)).toString(16).padStart(6, '0')}`;
+/** Surface finish (docs/06 section 2): matte paint/plastic, or steel. */
+export interface Finish {
+  roughness: number;
+  metalness: number;
+}
+export const MATTE: Finish = { roughness: 0.66, metalness: 0 };
+export const STEEL: Finish = { roughness: 0.55, metalness: 0.4 };
+const BELT: Finish = { roughness: 0.75, metalness: 0 };
+const PLASTIC: Finish = { roughness: 0.58, metalness: 0 };
+
+export function finishOf(tone: PaletteKey): Finish {
+  switch (tone) {
+    case 'metal':
+    case 'cabinet':
+    case 'leveller':
+      return STEEL;
+    case 'belt':
+    case 'seal':
+      return BELT;
+    case 'palletBlue':
+    case 'palletYellow':
+    case 'palletOrange':
+    case 'crate':
+      return PLASTIC;
+    default:
+      return MATTE;
+  }
 }
 
-export type PaletteKey = keyof ScenePalette;
-
-/** One shared MeshStandardMaterial per palette colour (matte, roughness 0.9; steel is semi-gloss). */
+/** One shared MeshStandardMaterial per palette colour, for the few non-instanced meshes (floor, plates). */
 export type SceneMaterials = Record<PaletteKey, MeshStandardMaterial>;
 
 export function createMaterials(p: ScenePalette): SceneMaterials {
   const out = {} as Record<PaletteKey, MeshStandardMaterial>;
   for (const key of Object.keys(p) as PaletteKey[]) {
-    const shiny = key === 'steel';
-    out[key] = new MeshStandardMaterial({
-      color: p[key],
-      roughness: shiny ? 0.4 : 0.9,
-      metalness: shiny ? 0.25 : 0,
-    });
+    out[key] = new MeshStandardMaterial({ color: p[key], ...finishOf(key) });
   }
   return out;
 }

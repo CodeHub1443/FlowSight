@@ -1,7 +1,8 @@
 import { CanvasTexture, RepeatWrapping, SRGBColorSpace } from 'three';
 
-// Canvas textures are used only for labels, plates and the facade stripe band (docs/04 section 1).
-// Bangla text is never drawn here (docs/04 section 4): these carry IDs and English equipment names only.
+// Canvas textures are used only for painted-on plates (cabinet names, FG/DC marks) and the facade stripe band.
+// Bangla text is never drawn here (docs/04 section 4): these carry IDs and English equipment names only. Bay
+// numbers and selection labels are DOM pills (labels/Pills.tsx).
 
 const cache = new Map<string, CanvasTexture>();
 
@@ -24,33 +25,33 @@ function finish(key: string, c: HTMLCanvasElement): CanvasTexture {
 }
 
 export interface PlateStyle {
+  /** Palette colours (materials.ts); never literals. */
   bg: string;
   fg: string;
-  border?: string;
+  /** Corner radius as a fraction of the plate height (0.5 = pill). The corners outside are transparent. */
+  radius?: number;
 }
 
 /** A plate with centred text; cached per (text, style, size). */
 export function plateTexture(text: string, style: PlateStyle, w = 256, h = 96): CanvasTexture {
-  const key = `plate|${text}|${style.bg}|${style.fg}|${style.border ?? ''}|${w}x${h}`;
+  const r = Math.min(0.5, style.radius ?? 0) * h;
+  const key = `plate|${text}|${style.bg}|${style.fg}|${r}|${w}x${h}`;
   const hit = cache.get(key);
   if (hit) return hit;
   const { c, g } = canvas(w, h);
   if (g) {
     g.fillStyle = style.bg;
-    g.fillRect(0, 0, w, h);
-    if (style.border) {
-      g.strokeStyle = style.border;
-      g.lineWidth = Math.max(4, h * 0.06);
-      g.strokeRect(g.lineWidth / 2, g.lineWidth / 2, w - g.lineWidth, h - g.lineWidth);
-    }
+    g.beginPath();
+    g.roundRect(0, 0, w, h, r);
+    g.fill();
     g.fillStyle = style.fg;
     g.textAlign = 'center';
     g.textBaseline = 'middle';
-    let size = h * 0.62;
-    g.font = `700 ${size}px Inter, Arial, sans-serif`;
-    while (g.measureText(text).width > w * 0.9 && size > 8) {
+    let size = h * 0.56;
+    g.font = `600 ${size}px Inter, Arial, sans-serif`;
+    while (g.measureText(text).width > w - 2 * Math.max(r, h * 0.2) && size > 8) {
       size -= 2;
-      g.font = `700 ${size}px Inter, Arial, sans-serif`;
+      g.font = `600 ${size}px Inter, Arial, sans-serif`;
     }
     g.fillText(text, w / 2, h / 2 + h * 0.03);
   }

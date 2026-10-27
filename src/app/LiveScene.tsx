@@ -1,10 +1,11 @@
-import { Component, lazy, Suspense, useEffect, useRef, type ReactNode } from 'react';
+import { Component, lazy, Suspense, useEffect, useRef, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { DEFAULT_SITE } from '@/features/live';
 import { SceneSlotPlaceholder } from '@/features/live/SceneSlot';
-import type { SceneSelection } from '@/scene';
-// Direct path (not '@/scene'): the controller is tiny and must not pull three.js into the entry chunk.
+import type { QualityTier, SceneSelection } from '@/scene';
+// Direct paths (not '@/scene'): these are tiny and must not pull three.js into the entry chunk.
 import { useSceneCamera } from '@/scene/camera/cameraController';
+import { SCENE_SAFE_AREA } from '@/scene/camera/view';
 import { alertStore, liveStore, uiStore, useUiStore } from '@/stores';
 import { bayOfSelection, flyTargetFor, type SceneTargetContext } from './sceneTarget';
 import { hasWebGL } from './webgl';
@@ -15,6 +16,14 @@ const SceneRoot = lazy(() => import('@/scene').then((m) => ({ default: m.SceneRo
 const BAY_IDS: ReadonlySet<string> = new Set(
   DEFAULT_SITE.dockFaces.flatMap((f) => f.bays.map((b) => b.id)),
 );
+
+const TIERS: readonly QualityTier[] = ['high', 'med', 'low'];
+
+/** `?quality=high|med|low` pins the tier (screenshots, a weak PC); anything else leaves it automatic. */
+function qualityFromUrl(): QualityTier | undefined {
+  const v = new URLSearchParams(window.location.search).get('quality');
+  return TIERS.find((t) => t === v);
+}
 
 function targetContext(): SceneTargetContext {
   const live = liveStore.getState();
@@ -54,21 +63,26 @@ function SceneSkeleton() {
 }
 
 /**
- * The /live 3D view, wired to the stores: theme and quality from uiStore, bay clicks select the bay, and
+ * The /live 3D view, wired to the stores: theme and labels from uiStore, bay clicks select the bay, and
  * uiStore.cameraTarget flies the camera (bays directly; trucks, people, forklifts and events via their bay).
+ * Quality is automatic (PerformanceMonitor) until uiStore.setQuality is called or `?quality=` pins a tier.
+ * The default framing keeps every bay inside SCENE_SAFE_AREA, clear of the KPI chips and the right column.
  * The scene itself never touches a store.
  */
 export function LiveScene() {
   const camera = useSceneCamera();
   const theme = useUiStore((s) => s.theme);
-  const quality = useUiStore((s) => s.quality);
+  const labels = useUiStore((s) => s.labels);
   const selection = useUiStore((s) => s.selection);
   const selectedBayId = selection ? bayOfSelection(selection, targetContext()) : null;
+  const [quality, setQuality] = useState<QualityTier | undefined>(qualityFromUrl);
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(
     () =>
       uiStore.subscribe((s, prev) => {
+        // uiStore has no "auto" value yet: a change of its tier is a manual override
+        if (s.quality !== prev.quality) setQuality(s.quality);
         const target = s.cameraTarget;
         if (!target || target === prev.cameraTarget) return;
         const fly = flyTargetFor(target, targetContext());
@@ -86,6 +100,8 @@ export function LiveScene() {
             siteConfig={DEFAULT_SITE}
             theme={theme}
             quality={quality}
+            safeArea={SCENE_SAFE_AREA}
+            labels={labels}
             selectedBayId={selectedBayId}
             onSelect={selectBay}
             onReady={() => {

@@ -9,17 +9,26 @@ import {
   MIN_DISTANCE,
   MIN_POLAR,
   SCENE_PRESETS,
+  plainFit,
   presetPose,
 } from './presets';
+import { SCENE_SAFE_AREA, viewFit } from './view';
 
 const layout = buildSiteLayout(SiteConfigSchema.parse(siteConfigJson));
 const dist = (a: number[], b: number[]) => Math.hypot(...a.map((v, i) => v - (b[i] ?? 0)));
 
+const FITS = {
+  '16:9': plainFit(16 / 9),
+  '4:3': plainFit(4 / 3),
+  '1920x1080 safe': viewFit(1920, 1080, SCENE_SAFE_AREA),
+  '1366x768 safe': viewFit(1366, 768, SCENE_SAFE_AREA),
+};
+
 describe('camera presets', () => {
-  for (const aspect of [16 / 9, 4 / 3]) {
-    for (const preset of [...SCENE_PRESETS, 'B04']) {
-      it(`${preset} @ ${aspect.toFixed(2)} stays inside the orbit limits`, () => {
-        const pose = presetPose(layout, preset, aspect);
+  for (const [name, fit] of Object.entries(FITS)) {
+    for (const preset of [...SCENE_PRESETS, 'B01', 'B04', 'B07']) {
+      it(`${preset} @ ${name} stays inside the orbit limits`, () => {
+        const pose = presetPose(layout, preset, fit);
         expect(pose).toBeDefined();
         if (!pose) return;
         const d = dist(pose.position, pose.target);
@@ -33,7 +42,7 @@ describe('camera presets', () => {
   }
 
   it('looks south from the north half of the shed by default (docs/04 section 1)', () => {
-    const pose = presetPose(layout, 'floorOverview', 16 / 9);
+    const pose = presetPose(layout, 'floorOverview', FITS['1920x1080 safe']);
     expect(pose).toBeDefined();
     if (!pose) return;
     expect(pose.position[2]).toBeLessThan(pose.target[2] - 20);
@@ -42,7 +51,14 @@ describe('camera presets', () => {
   });
 
   it('centres a bay preset on that bay and rejects unknown bays', () => {
-    expect(presetPose(layout, 'B02', 16 / 9)?.target[0]).toBeCloseTo(-13, 6);
-    expect(presetPose(layout, 'B99', 16 / 9)).toBeUndefined();
+    expect(presetPose(layout, 'B02', FITS['16:9'])?.target[0]).toBeCloseTo(-13, 6);
+    expect(presetPose(layout, 'B99', FITS['16:9'])).toBeUndefined();
+  });
+
+  it('frames from further away when the safe area is smaller', () => {
+    const plain = presetPose(layout, 'floorOverview', plainFit(1366 / 768));
+    const safe = presetPose(layout, 'floorOverview', FITS['1366x768 safe']);
+    if (!plain || !safe) throw new Error('no pose');
+    expect(dist(safe.position, safe.target)).toBeGreaterThan(dist(plain.position, plain.target));
   });
 });

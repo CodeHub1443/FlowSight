@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { buildStorage } from '../bay/storageLayout';
 import { DockWall } from '../building/DockWall';
 import type { BoxItem } from '../items';
+import { Appear } from '../Appear';
 import { BoxInstances, Bx } from '../primitives';
 import { hashString } from './random';
 import type { FaceLayout, SiteLayout } from './layout';
@@ -17,7 +18,7 @@ function strip(
   z: number,
   tone: BoxItem['tone'] = 'walkline',
 ): BoxItem {
-  return { at: [x, y, z], size: [sx, sy, 0.008], tone };
+  return { at: [x, y, z], size: [sx, sy, 0.008], tone, detail: 'flat' };
 }
 
 function dashes(
@@ -103,10 +104,14 @@ export function FaceContents({ layout, face }: { layout: SiteLayout; face: FaceL
         at={[0, -face.apron.depth / 2, yardZ - 0.15]}
         size={[face.apron.length, face.apron.depth, 0.3]}
         tone="apron"
+        round={0.1}
+        cast={false}
       />
       <BoxInstances items={apronPaint} />
       <BoxInstances items={aisle} />
-      <BoxInstances items={storage} cast />
+      <Appear>
+        <BoxInstances items={storage} cast />
+      </Appear>
     </group>
   );
 }

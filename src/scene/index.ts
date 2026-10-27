@@ -6,3 +6,6 @@ export { SCENE_PRESETS } from './camera/presets';
 export type { ScenePreset } from './camera/presets';
 export type { QualityTier } from './quality';
 export type { SceneTheme } from './materials';
+export { SCENE_SAFE_AREA, NO_SAFE_AREA, viewFit } from './camera/view';
+export type { SafeArea, ViewFit } from './camera/view';
+export { contactShadows } from './contactShadowController';
