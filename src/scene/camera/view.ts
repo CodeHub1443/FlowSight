@@ -16,13 +16,13 @@ export interface SafeArea {
 }
 
 /**
- * The /live overlay layout: top KPI chips at most 112 px tall, the right inspector/tray column at most 360 px wide
- * plus a 24 px gap, 24 px page margins elsewhere (agreed with the UI session, Task 07A).
+ * The /live overlay layout (Task 08): top 160 (top bar + KPI row), the right inspector/tray column at most 360 px
+ * wide plus a 24 px gap, bottom 88 (the collapsed 56 px visit tracker, its 24 px margin and an 8 px gap), left 24.
  */
 export const SCENE_SAFE_AREA: Readonly<SafeArea> = Object.freeze({
-  top: 112,
+  top: 160,
   right: 384,
-  bottom: 24,
+  bottom: 88,
   left: 24,
 });
 

@@ -326,6 +326,7 @@ export function TruckBody({ visitId, actions }: BodyProps & { visitId: string })
       typeLabel={t('inspector.type.truck')}
       title={plate.primary}
       subtitle={plate.secondary}
+      titleOneLine
       pill={<StatusPill tone={PHASE_TONE[visit.phase]}>{t(`phase.${visit.phase}`)}</StatusPill>}
       href="/trucks"
       actions={actions}

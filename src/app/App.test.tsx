@@ -80,9 +80,10 @@ describe('App shell', () => {
 });
 
 describe('App with the DataSource provider (mock mode)', () => {
-  // The factory builds a MockSource; pin the shared simulator to an inline, non-ticking runtime.
+  // The factory builds a MockSource; pin the shared simulator to an inline, non-ticking runtime with one day of
+  // history (the default 7 days grow with the time of day and pushed these tests past the 5 s timeout).
   beforeEach(() => {
-    setSimRuntime(new SimRuntime(new InlineHost({ autoTick: false })));
+    setSimRuntime(new SimRuntime(new InlineHost({ autoTick: false }), { historyDays: 1 }));
   });
   afterEach(() => {
     setSimRuntime(null);

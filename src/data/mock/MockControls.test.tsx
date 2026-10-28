@@ -17,7 +17,10 @@ describe('MockControls', () => {
   let source: MockSource;
 
   beforeEach(async () => {
-    runtime = new SimRuntime(new InlineHost({ autoTick: false, now: () => PEAK }));
+    // one day of history: these tests exercise the controls, not the 7-day backfill
+    runtime = new SimRuntime(new InlineHost({ autoTick: false, now: () => PEAK }), {
+      historyDays: 1,
+    });
     source = new MockSource(OPTS, runtime);
     await runtime.ensure({ seed: 1, scenario: 'peak', speed: 1, startMs: PEAK });
     await act(async () => {

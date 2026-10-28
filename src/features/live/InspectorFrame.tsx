@@ -25,6 +25,7 @@ export function InspectorFrame({
   typeLabel,
   title,
   subtitle,
+  titleOneLine = false,
   pill,
   href,
   actions,
@@ -36,6 +37,8 @@ export function InspectorFrame({
   typeLabel: ReactNode;
   title: ReactNode;
   subtitle?: ReactNode;
+  /** One line with an ellipsis (licence plates) instead of up to two wrapped lines. */
+  titleOneLine?: boolean;
   pill?: ReactNode;
   href?: string;
   actions: FrameActions;
@@ -50,7 +53,13 @@ export function InspectorFrame({
         <div className="min-w-0 flex-1">
           <p className="text-info truncate text-[12px] leading-4 font-medium">{typeLabel}</p>
           <h2
-            className="text-ink-900 bn-leading line-clamp-2 text-[17px] leading-6 font-semibold break-words"
+            className={cn(
+              'text-ink-900 text-[17px] font-semibold',
+              // 28 px line box: Bangla vowel signs stay inside the clipped single line in either UI language
+              titleOneLine
+                ? 'truncate leading-[28px] whitespace-nowrap'
+                : 'bn-leading line-clamp-2 leading-6 break-words',
+            )}
             data-testid="inspector-title"
           >
             {title}

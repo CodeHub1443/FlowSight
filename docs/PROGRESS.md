@@ -267,3 +267,52 @@ The e2e run rewrites older screenshots; they were restored from a backup, so onl
 - `mode-clock` shows the wall clock while the data is on the peak day; the bell lists open alerts from the 3 h connect backfill (45) while `kpi.openAlerts` counts all open (79).
 - Simulator core in the live entry chunk (see Bundle); a lazy factory would remove it.
 
+## Merge 03: vis-3d + vis-ui into master, layout fixes, full green run (task 08)
+
+Baseline `ad1b9d3` (verified clean). Branches `vis-3d` `8a9f469` and `vis-ui` `ad121d0`, both from `815921f`.
+Merged with `--no-ff`, no conflicts (no path is touched by both branches):
+**`e316ca7 merge: vis-3d 3D quality pass`**, **`0a00b74 merge: vis-ui 2D quality pass + flicker`**. Integration edits below are uncommitted (per the brief).
+Branch reports: `docs/progress/vis-3d.md`, `docs/progress/vis-ui.md`.
+
+### Review findings (OPERATING_RULES section 8; no Blocker, both accepted)
+Checked on both diffs: owned paths only (vis-3d: `src/scene/**`, `src/app/LiveScene(.test).tsx`, `scripts/scene-shot.mjs`; vis-ui: `src/index.css`, `src/components/**`, `src/app/shell/**`, `src/features/live/**`, `live` namespace, `e2e/live-*`; plus each branch's `docs/progress` file and `docs/screens/vis-*`); no secrets; no `any` / `@ts-ignore`; no lint/TS config change; no store, data or contract change (privacy unchanged); scene code imports no store, fetch or NATS; React state in `src/scene` only for tier, tab visibility and the shown selection pill (`noFrameState.test.ts`); the three.js PCF shadow patch is guarded by `softShadows.test.ts` (fails if the r186 five-tap block changes).
+
+| Branch | Severity | Finding | Decision |
+|---|---|---|---|
+| vis-3d | Minor | `geometry.ts` patches `#include <begin_vertex>` etc. via `onBeforeCompile` without a guard test (a three upgrade would silently drop the rounding/finish). | Accept; BACKLOG P2. |
+| vis-3d | Minor | `DARK_TOKENS` fallbacks differ from vis-ui's CSS dark values (docs/06 fixes only void/floor/card); the dark app used CSS, preview/jsdom used the constants; CSS had no dark `--pallet-*`, so the dark scene used the light pallet values. | Fixed in integration (mirror + test). |
+| vis-3d | Minor | "Auto" quality emulated in LiveScene: picking the tier uiStore already held did not pin. | Fixed (uiStore `'auto'`). |
+| vis-3d | Info | One `eslint-disable-next-line react-hooks/exhaustive-deps` with a reason (same pattern as baseline `CameraRig.tsx`); `#ffffff` as the instance-colour base (neutral multiplier, not a palette colour). | Accept. |
+| vis-3d | Info | `clickSceneCentre` clicked the canvas centre; the target now projects to the safe-area centre. | Fixed in e2e. |
+| vis-ui | Minor | Inspector title `line-clamp-2` wrapped the Bangla plate. | Fixed (item 3). |
+| vis-ui | Minor | Noto Sans Bengali 600 not bundled (semibold fell back to 700). | Fixed (item 4). |
+| vis-ui | Minor | Step-06 alias tokens (`--scene-floor-grid` … `--scene-roof`) kept. | Removed (item 1). |
+| vis-ui | Minor | `--status-info` = brand-500 `#2C6FED`; status ok/warn/critical = docs/06 values; CLAUDE.md still lists `#2563EB`, `#16A34A` … and brand `#1F36C7`. docs/06 wins per CLAUDE.md. | Accept; docs alignment in BACKLOG (CLAUDE.md/docs/04 read-only here). |
+| vis-ui | Minor | Pill text in docs/06 colours is below WCAG AA at 12 px. | Accept; BACKLOG P2 (docs/06 decision). |
+| vis-ui | Info | `GlobalSearch` re-renders ~2.2/s with an empty query (invisible). | Accept. |
+
+### Integration (uncommitted)
+1. **Tokens.** Every name the scene reads (`CSS_TOKENS`, 30 names, gated on `--scene-floor-line`) exists in `src/index.css`; light values equal docs/06 exactly; dark: void `#0B1222` and floor `#141C2F` (docs/06), the rest are the CSS dark values. `materials.ts` `DARK_TOKENS` now mirrors the CSS dark block; dark `--pallet-blue/-yellow/-orange` added to CSS (vis-3d's tuned values); light `statusInfo` fallback = brand-500. Step-06 aliases removed (their only reader, `SceneSlot.tsx`, now uses `bg-scene-void` / `--scene-floor-line`). New `scripts/scene-tokens.test.mjs` parses `src/index.css` (node:fs; Vitest has `css: false`) and checks every name light + dark against `materials.ts`, the marker, and that no alias returns.
+2. **Safe area and framing.** `SCENE_SAFE_AREA = { top: 160, right: 384, bottom: 88, left: 24 }` (`camera/view.ts`). The /live visit tracker is collapsed by default to one 56 px bar, at most 520 px wide (plate, phase pill, dwell, chevron); it expands on click or when a truck is selected and collapses when the selection is cleared; the stepper stays mounted (hidden), so expanding never remounts it (`VisitTracker.tsx` owns the state; `src/components/**` was out of scope). Floor overview (`camera/presets.ts`): an explicit point set (dock wall band 5 m high, staging back edge at 17 m with 1.2 m stacks) instead of a full-height box, elevation 60°, no lean, centred on B04; then `alignTop()` slides the camera along its up axis until the top point touches the safe-area top (depths unchanged, so the width fit holds; the orbit target is re-seated on the view ray, so it still projects to the safe centre). Parameters in `FLOOR_OVERVIEW`.
+   Projection test (`camera/view.test.ts`, real canvas sizes 1920x1031 and 1366x719 = viewport minus the 49 px top bar): every bay's door band, belt tip and staging corners inside the safe area at both sizes; the door band top within 6 % of the safe top; staging reaches the lower half; storage 8 m in is below the safe bottom. Real-GPU check (Intel UHD, Chrome headless, `docs/screens/merge-03-*`): all 7 bay pills inside the safe area and under no card at both sizes; pill tops 10 px (1920) / 2 px (1366) below the safe top; a click at the safe-area centre selects Bay 4.
+   **Measured, for the record:** inside the canvas the KPI row ends at 97 px (EN) and 105–108 px (BN); 160 matches the viewport-measured chrome (top bar 49 + chips). Implemented as briefed; tightening to ~112 is a one-constant change (BACKLOG).
+3. **Inspector header.** `InspectorFrame` `titleOneLine` (truncate, nowrap, 28 px line box so Bangla marks are not clipped); the truck inspector uses it; the English plate stays on the subtitle line.
+4. **Fonts.** `@fontsource/noto-sans-bengali/bengali-600.css` imported in `src/main.tsx` (Inter 600 was already there; the 700 imports are kept).
+5. **Quality.** uiStore `QualitySetting = QualityTier | 'auto'`, default `'auto'`; LiveScene passes `undefined` for auto, a tier pins it, `?quality=` wins. On the Low tier LiveScene sets `<html data-quality="low">`; `src/index.css` then drops the card backdrop blur and uses 96 % card alpha. In auto mode the attribute follows the auto **start** tier (software rasteriser → Low, from the renderer string in `onReady`); later automatic steps are not reported by SceneRoot (that needs an API change in `src/scene`, out of scope; BACKLOG).
+6. **Dependency.** `@react-three/postprocessing` pinned `3.2.2` (was `^3.2.2`); `pnpm install --offline` changed only the lockfile specifier (no download, no version change).
+7. **Tests.** e2e `clickSceneCentre` clicks `viewFit(w, h, SCENE_SAFE_AREA).centre`; `live-visual` asserts the chips inside the 160 inset, the expanded tracker <= 140 px with a truck selected and the collapsed bar <= 56 x 520 inside the bottom inset after deselect; `live-shell` "panels collapse" expands the tracker first. **Root cause of the App/MockControls timeouts:** every test runtime built the 7-day simulator history (and App.test's "peak" restart built another). `SimRuntime` now takes test defaults (`new SimRuntime(host, { historyDays: 1 })`; production unchanged), and those tests take 1.0–2.4 s instead of 2.6–5.9 s at the default 5 s timeout. **Root cause of the live-scene screenshot timeouts:** `page.clock.setFixedTime` also drives requestAnimationFrame; with the continuous WebGL loop a 1366 screenshot took 45–54 s instead of 10–16 s. The fixed clock was removed from `live-scene.spec.ts` (it only pinned the clock in evidence shots). Measured without it: scene ready ~3 s, frames 0.35–0.55 s, screenshots 10–16 s (1366) / 16–22 s (1920). The scene specs get a deliberate 150 s timeout (longest measured test 59.4 s). The `vis-ui-compare.png` capture is now viewport-only (a full-page capture failed once with "Unable to capture screenshot").
+   New or updated unit tests: `VisitTracker.test.tsx` (collapsed bar, expand on click/truck, collapse on deselect, same stepper node), `LiveScene.test.tsx` (auto/pin, `data-quality` including the software-renderer start tier), `uiStore.test.ts` (default `'auto'`), `camera/view.test.ts` (above).
+
+### Commands and results (final run, one sequence, quiet machine)
+`pnpm typecheck` pass 10 s · `pnpm lint` pass 7 s · `pnpm format:check` pass 4 s · `pnpm test` 47 files / 818 tests pass at the default timeout, 28 s · `pnpm i18n:check` ok 1 s · `pnpm contract:check` ok (7 json blocks, 0 unmapped) 1 s · `pnpm build` pass 24 s · `E2E_PORT=4173 pnpm e2e` **24 passed** (14.5 min, 1 worker, SwiftShader).
+An earlier e2e run in this task (before the clock fix) had 20 passed / 4 failed (3 live-scene screenshot timeouts, 1 composite capture error), fixed as above. The e2e run rewrites 36 tracked `docs/screens/step-*` / `vis-ui-*` files; all were restored byte-for-byte from HEAD (`git show HEAD:<path> > <path>`).
+
+### Screenshots (user sign-off)
+`docs/screens/merge-03-live-{1920x1080,1366x768}-{en-light,bn-light,en-dark}.png` (Bay 4 selected from the 3D view, tracker collapsed), plus `-en-default` (no selection) and `-truck` (a truck selected: tracker expanded, one-line plate), and `merge-03-compare.png` (ours at 1920 EN light next to `docs/reference/video/ui-ref-t09.jpg`). Real GPU (Intel UHD, automatic quality → Med with N8AO/SMAA), mock "now" scenario around 13:04 Dhaka (quiet: 0/7 belts running, 1 truck docked). 0 non-localhost requests.
+
+### Deviations and open points
+- `SCENE_SAFE_AREA.top` is 160 as briefed although the canvas-relative chrome ends at ~97–108 px (item 2).
+- The Low-tier blur fallback in auto mode follows the start tier only (item 5).
+- At 16:9 the first storage rows fill about the bottom quarter of the Floor overview (the 45 m face is width-bound; 60° is the steepest that still reads isometric).
+- The Bangla turnaround KPI delta wraps to two lines at 1920; the truck title ellipsises the plate at 360 px (both in BACKLOG).
+- `MockSource.test.ts` still builds 7-day histories under its explicit 60 s budget (BACKLOG).

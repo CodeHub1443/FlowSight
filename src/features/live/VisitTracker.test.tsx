@@ -1,7 +1,7 @@
-import { screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { BayVisit } from '@/domain';
-import { uiStore } from '@/stores';
+import { liveStore, uiStore } from '@/stores';
 import { makeBay } from '@/stores/testUtils';
 import { VisitTracker } from './VisitTracker';
 import { push, renderWithProviders, resetStores, T0 } from './testHarness';
@@ -139,4 +139,42 @@ describe('VisitTracker', () => {
     // re-render via store subscription
     return waitFor(() => expect(screen.getByTestId('tracker-subject')).toHaveTextContent('Bay 3'));
   });
+
+  it('starts collapsed to a bar with the plate, phase and dwell; the stepper stays mounted but hidden', () => {
+    seedVisit(() => {});
+    renderWithProviders(<VisitTracker />);
+    const tracker = screen.getByTestId('visit-tracker');
+    expect(tracker).toHaveAttribute('data-expanded', 'false');
+    expect(screen.getByTestId('tracker-compact')).toHaveTextContent('Loading');
+    expect(screen.getByTestId('tracker-dwell')).toBeInTheDocument();
+    expect(screen.getByTestId('tracker-steps')).not.toBeVisible();
+    // a click anywhere on the bar opens the stepper
+    fireEvent.click(screen.getByTestId('tracker-compact'));
+    expect(tracker).toHaveAttribute('data-expanded', 'true');
+    expect(screen.getByTestId('tracker-steps')).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'Collapse panel' }));
+    expect(tracker).toHaveAttribute('data-expanded', 'false');
+  });
+
+  it('expands when a truck is selected and collapses again when the selection is cleared', () => {
+    push({ kind: 'bayState', value: makeBay('B02', T0) });
+    renderWithProviders(<VisitTracker />);
+    const tracker = screen.getByTestId('visit-tracker');
+    expect(tracker).toHaveAttribute('data-expanded', 'false');
+    const visitId = liveVisitId();
+    act(() => uiStore.getState().select({ kind: 'truck', id: visitId }));
+    expect(tracker).toHaveAttribute('data-expanded', 'true');
+    const steps = screen.getByTestId('tracker-step-loading');
+    act(() => uiStore.getState().select(null));
+    expect(tracker).toHaveAttribute('data-expanded', 'false');
+    // same node: collapsing never remounts the stepper
+    expect(screen.getByTestId('tracker-step-loading')).toBe(steps);
+  });
 });
+
+/** Visit id of B02's current visit in the live store. */
+function liveVisitId(): string {
+  const id = liveStore.getState().bays.B02?.visit?.visitId;
+  if (!id) throw new Error('no visit at B02');
+  return id;
+}

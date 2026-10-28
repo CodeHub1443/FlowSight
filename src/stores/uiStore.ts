@@ -17,6 +17,8 @@ export interface CameraTarget {
 }
 
 export type QualityTier = 'high' | 'med' | 'low';
+/** 'auto' lets the scene step tiers itself (PerformanceMonitor); a tier pins it. */
+export type QualitySetting = QualityTier | 'auto';
 export type Theme = 'light' | 'dark';
 export type TrayTab = 'bays' | 'trucks' | 'alerts' | 'captains';
 
@@ -25,7 +27,7 @@ export interface UiData {
   cameraTarget: CameraTarget | null;
   xray: boolean;
   labels: boolean;
-  quality: QualityTier;
+  quality: QualitySetting;
   /** Persisted (UI preference only). */
   language: UiLang;
   /** Persisted (UI preference only). */
@@ -38,7 +40,7 @@ export interface UiActions {
   flyTo(kind: CameraTarget['kind'], id?: string | null): void;
   setXray(on: boolean): void;
   setLabels(on: boolean): void;
-  setQuality(tier: QualityTier): void;
+  setQuality(quality: QualitySetting): void;
   setLanguage(lang: UiLang): void;
   setTheme(theme: Theme): void;
   setTrayTab(tab: TrayTab): void;
@@ -63,7 +65,7 @@ export function createUiStore(): UiStore {
     cameraTarget: null,
     xray: false,
     labels: true,
-    quality: 'med',
+    quality: 'auto',
     language: storedLanguage(),
     theme: storedTheme(),
     trayTab: 'bays',

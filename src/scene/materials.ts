@@ -73,11 +73,12 @@ export interface DerivedColors {
 export type ScenePalette = PaletteTokens & DerivedColors;
 export type PaletteKey = keyof ScenePalette;
 
+// CLAUDE.md values; info is --brand-500 (docs/06: brand blue for active states and selection), as in src/index.css
 const STATUS_EXTRA = {
   statusNeutral: '#64748B',
   statusIdle: '#CBD5E1',
   statusOffline: '#94A3B8',
-  statusInfo: '#2563EB',
+  statusInfo: '#2C6FED',
 } as const;
 
 /** docs/06 section 1, light theme (exact values). */
@@ -113,34 +114,41 @@ export const LIGHT_TOKENS: PaletteTokens = {
 };
 
 /**
- * Dark "control room" theme. docs/06 fixes void `#0B1222`, floor `#141C2F` and card `#121A2B`; the rest mirrors
- * the light tokens at lower value (scene-only until the main session adds dark --scene-* tokens).
+ * Dark "control room" theme: the `.dark` block of src/index.css (docs/06 fixes void `#0B1222`, floor `#141C2F` and
+ * card `#121A2B`; the rest are the CSS dark values). `materials.test.ts` checks both sides of the mirror.
  */
 export const DARK_TOKENS: PaletteTokens = {
-  ...LIGHT_TOKENS,
   void: '#0B1222',
   floor: '#141C2F',
-  floorLine: '#22304F',
-  apron: '#101829',
+  floorLine: '#223052',
+  apron: '#111A2E',
   walkline: '#D9B23F',
-  wall: '#1C2640',
-  wallAccent: '#4A78EE',
-  brand: '#3B7CF2',
-  brandLight: '#5C9BF5',
-  brandTint: '#1A2A4F',
-  carton: '#B9987A',
-  cartonTape: '#A5835F',
+  wall: '#1A2338',
+  wallAccent: '#4C79EE',
+  brand: '#4C86F5',
+  brandLight: '#6FA0F7',
+  brandTint: '#172A4F',
+  carton: '#B99673',
+  cartonTape: '#A8825C',
   palletBlue: '#3A6FDA',
   palletYellow: '#D8AE3C',
   palletOrange: '#D98A52',
-  metal: '#7E8AA3',
-  okBg: '#12301F',
-  warnBg: '#33240F',
-  criticalBg: '#3A1A1D',
-  ink900: '#E6ECFA',
-  ink600: '#A9B4C8',
-  ink400: '#6B7894',
+  metal: '#59647C',
+  belt: '#2A2F3D',
+  statusOk: '#34C56F',
+  okBg: '#11301F',
+  statusWarn: '#F2A33A',
+  warnBg: '#3A2810',
+  statusCritical: '#F0676B',
+  criticalBg: '#3B1619',
+  ink900: '#E8EDF8',
+  ink600: '#A4B0C8',
+  ink400: '#6C7A96',
   card: '#121A2B',
+  statusNeutral: '#8E9BB3',
+  statusIdle: '#4A5670',
+  statusOffline: '#6C7A96',
+  statusInfo: '#4C86F5',
 };
 
 /** Mix two hex colours, `t` = share of `b`. */

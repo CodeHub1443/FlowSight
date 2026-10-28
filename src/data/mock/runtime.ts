@@ -95,10 +95,18 @@ export class SimRuntime {
   private readonly errorSubs = new Set<(m: string) => void>();
   private ready_: Promise<ReadyInfo> | null = null;
   private resolveReady: ((i: ReadyInfo) => void) | null = null;
-  private opts: InitOptions = { ...DEFAULT_INIT };
+  private opts: InitOptions;
   info: ReadyInfo | null = null;
 
-  constructor(private readonly host: SimHost) {
+  /**
+   * `defaults` replace DEFAULT_INIT fields for every init of this runtime (tests: `{ historyDays: 1 }` keeps each
+   * history build short). The app's shared runtime uses DEFAULT_INIT unchanged.
+   */
+  constructor(
+    private readonly host: SimHost,
+    defaults: Partial<InitOptions> = {},
+  ) {
+    this.opts = { ...DEFAULT_INIT, ...defaults };
     host.subscribe((e) => this.onEvent(e));
   }
 
@@ -125,7 +133,7 @@ export class SimRuntime {
     }
   }
 
-  /** Initialise once (idempotent) and resolve when the 7-day history is ready. */
+  /** Initialise once (idempotent) and resolve when the history (7 days by default) is ready. */
   ensure(init: Partial<InitOptions> = {}): Promise<ReadyInfo> {
     if (!this.ready_) {
       this.opts = { ...this.opts, ...init };

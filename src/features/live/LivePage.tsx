@@ -10,10 +10,12 @@ import { VisitTracker } from './VisitTracker';
  * The overlay layer ignores pointer events; each card opts back in, so the 3D view stays interactive
  * everywhere else. The middle of the screen is deliberately empty.
  *
- * Layout contract with the 3D view, which keeps its subject out of { top: 112, right: 384, bottom: 24, left: 24 } px:
- *  - KPI chips top-left, one row, at most 112 px including the 16 px margin;
+ * Layout contract with the 3D view, which keeps its subject out of SCENE_SAFE_AREA { top: 160, right: 384,
+ * bottom: 88, left: 24 } px of this page:
+ *  - KPI chips top-left, one row, inside the top 160 px including the 16 px margin;
  *  - inspector over tray in a 360 px right column, 24 px from the edge (360 + 24 = 384);
- *  - visit tracker bottom-left, at most 140 px tall and collapsible; it may overlap the floor.
+ *  - visit tracker bottom-left, collapsed to a 56 px bar (at most 520 px wide) inside the bottom 88 px; expanded
+ *    (a truck selected, or opened) it is at most 140 px tall and may overlap the storage rows below staging.
  * The right column shrinks the inspector (it scrolls) before it would touch the tray.
  */
 export function LivePage({ scene }: { scene?: React.ReactNode }) {

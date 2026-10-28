@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import type { Page } from '@playwright/test';
+import { SCENE_SAFE_AREA } from '../src/scene/camera/view';
 import { expect, test } from './fixtures';
 import { settle, startPeak } from './mockSim';
 
@@ -47,28 +48,52 @@ async function shot(page: Page, name: string) {
   await page.screenshot({ path: path.join(SCREENS, name) });
 }
 
-/** The 2D chrome stays inside the layout contract with the 3D view (safe area 112 / 384 / 24 / 24 px). */
-async function expectLayoutContract(page: Page) {
-  // the inspector slides in (200 ms): measure the resting layout
+/** Every running (finite) animation has finished, so boxes are measured at rest. */
+async function animationsDone(page: Page) {
   await page.waitForFunction(() =>
     document
       .getAnimations()
       .every((a) => a.playState !== 'running' || a.effect?.getTiming().iterations === Infinity),
   );
+}
+
+/** The 2D chrome stays inside the layout contract with the 3D view (SCENE_SAFE_AREA 160 / 384 / 88 / 24 px). */
+async function expectLayoutContract(page: Page) {
+  // the inspector slides in (200 ms): measure the resting layout
+  await animationsDone(page);
   const vw = page.viewportSize()?.width ?? 0;
   const top = await page.getByTestId('top-bar').boundingBox();
   const chips = await page.getByTestId('kpi-chips').boundingBox();
   expect(chips).not.toBeNull();
-  // chips row: at most 112 px tall including margins, measured from the top of the scene area
-  expect((chips?.y ?? 0) + (chips?.height ?? 0) - (top?.height ?? 0)).toBeLessThanOrEqual(112);
+  // chips row inside the top inset, measured from the top of the scene area
+  expect((chips?.y ?? 0) + (chips?.height ?? 0) - (top?.height ?? 0)).toBeLessThanOrEqual(
+    SCENE_SAFE_AREA.top,
+  );
   for (const id of ['inspector', 'tray']) {
     const box = await page.getByTestId(id).boundingBox();
     if (!box) continue;
     expect(box.width, `${id} width`).toBeLessThanOrEqual(360);
     expect(vw - (box.x + box.width), `${id} gap to the edge`).toBeGreaterThanOrEqual(23.5);
   }
+  // a truck is selected, so the tracker shows the full stepper
+  await expect(page.getByTestId('visit-tracker')).toHaveAttribute('data-expanded', 'true');
   const tracker = await page.getByTestId('visit-tracker').boundingBox();
   expect(tracker?.height ?? 999).toBeLessThanOrEqual(140);
+}
+
+/** Without a selection the tracker is the compact bar inside the bottom inset. */
+async function expectCollapsedTracker(page: Page) {
+  await page.getByTestId('inspector-close').click();
+  const tracker = page.getByTestId('visit-tracker');
+  await expect(tracker).toHaveAttribute('data-expanded', 'false');
+  await animationsDone(page);
+  const box = await tracker.boundingBox();
+  const vh = page.viewportSize()?.height ?? 0;
+  expect(box?.height ?? 999, 'collapsed tracker height').toBeLessThanOrEqual(56);
+  expect(box?.width ?? 999, 'collapsed tracker width').toBeLessThanOrEqual(520);
+  expect(vh - (box?.y ?? 0), 'collapsed tracker inside the bottom inset').toBeLessThanOrEqual(
+    SCENE_SAFE_AREA.bottom,
+  );
 }
 
 // Four screenshots per size on SwiftShader take a few minutes.
@@ -97,6 +122,7 @@ for (const { width, height } of SIZES) {
     await expect(page.locator('html')).not.toHaveClass(/dark/);
     await shot(page, `vis-ui-after-${width}x${height}-bn-light.png`);
     await expectLayoutContract(page);
+    await expectCollapsedTracker(page);
   });
 }
 
@@ -116,6 +142,7 @@ async function composite(page: Page) {
       <figure style="margin:0"><img style="height:720px;display:block" src="data:image/jpeg;base64,${ref.toString('base64')}"></figure>
     </body>`,
   );
-  await p.screenshot({ path: path.join(SCREENS, 'vis-ui-compare.png'), fullPage: true });
+  // the page is exactly the 2560 x 760 viewport; a full-page capture failed once under SwiftShader load
+  await p.screenshot({ path: path.join(SCREENS, 'vis-ui-compare.png') });
   await ctx.close();
 }

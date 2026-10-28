@@ -16,7 +16,7 @@ import { useTranslation } from 'react-i18next';
  */
 export function SceneSlot({ children }: { children?: ReactNode }) {
   return (
-    <div data-testid="scene-slot" className="bg-scene-ground absolute inset-0 z-0 overflow-hidden">
+    <div data-testid="scene-slot" className="bg-scene-void absolute inset-0 z-0 overflow-hidden">
       {children ?? <SceneSlotPlaceholder />}
     </div>
   );
@@ -31,7 +31,7 @@ export function SceneSlotPlaceholder() {
       className="text-muted-foreground absolute inset-0 grid place-items-center"
       style={{
         backgroundImage:
-          'linear-gradient(color-mix(in oklab, var(--scene-road) 55%, transparent) 1px, transparent 1px), linear-gradient(90deg, color-mix(in oklab, var(--scene-road) 55%, transparent) 1px, transparent 1px)',
+          'linear-gradient(color-mix(in oklab, var(--scene-floor-line) 55%, transparent) 1px, transparent 1px), linear-gradient(90deg, color-mix(in oklab, var(--scene-floor-line) 55%, transparent) 1px, transparent 1px)',
         backgroundSize: '48px 48px',
       }}
     >

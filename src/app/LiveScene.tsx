@@ -2,10 +2,12 @@ import { Component, lazy, Suspense, useEffect, useRef, useState, type ReactNode 
 import { useTranslation } from 'react-i18next';
 import { DEFAULT_SITE } from '@/features/live';
 import { SceneSlotPlaceholder } from '@/features/live/SceneSlot';
+import type { WebGLRenderer } from 'three';
 import type { QualityTier, SceneSelection } from '@/scene';
 // Direct paths (not '@/scene'): these are tiny and must not pull three.js into the entry chunk.
 import { useSceneCamera } from '@/scene/camera/cameraController';
 import { SCENE_SAFE_AREA } from '@/scene/camera/view';
+import { AUTO_START_TIER, autoStartTier } from '@/scene/quality';
 import { alertStore, liveStore, uiStore, useUiStore } from '@/stores';
 import { bayOfSelection, flyTargetFor, type SceneTargetContext } from './sceneTarget';
 import { hasWebGL } from './webgl';
@@ -23,6 +25,13 @@ const TIERS: readonly QualityTier[] = ['high', 'med', 'low'];
 function qualityFromUrl(): QualityTier | undefined {
   const v = new URLSearchParams(window.location.search).get('quality');
   return TIERS.find((t) => t === v);
+}
+
+/** First automatic tier for the canvas's renderer (the same rule SceneRoot applies). */
+function startTierOf(gl: WebGLRenderer): QualityTier {
+  const ctx = gl.getContext();
+  const info = ctx.getExtension('WEBGL_debug_renderer_info');
+  return autoStartTier(info ? String(ctx.getParameter(info.UNMASKED_RENDERER_WEBGL)) : null);
 }
 
 function targetContext(): SceneTargetContext {
@@ -65,7 +74,9 @@ function SceneSkeleton() {
 /**
  * The /live 3D view, wired to the stores: theme and labels from uiStore, bay clicks select the bay, and
  * uiStore.cameraTarget flies the camera (bays directly; trucks, people, forklifts and events via their bay).
- * Quality is automatic (PerformanceMonitor) until uiStore.setQuality is called or `?quality=` pins a tier.
+ * Quality follows uiStore: 'auto' (default) lets PerformanceMonitor step tiers, a tier pins it; `?quality=` wins.
+ * On the Low tier `<html data-quality="low">` turns off the card backdrop blur (docs/06 section 3 fallback). In auto
+ * mode that is the start tier (a software rasteriser starts at Low); later automatic steps are not reported.
  * The default framing keeps every bay inside SCENE_SAFE_AREA, clear of the KPI chips and the right column.
  * The scene itself never touches a store.
  */
@@ -75,14 +86,25 @@ export function LiveScene() {
   const labels = useUiStore((s) => s.labels);
   const selection = useUiStore((s) => s.selection);
   const selectedBayId = selection ? bayOfSelection(selection, targetContext()) : null;
-  const [quality, setQuality] = useState<QualityTier | undefined>(qualityFromUrl);
+  const setting = useUiStore((s) => s.quality);
+  const [urlQuality] = useState(qualityFromUrl);
+  const quality = urlQuality ?? (setting === 'auto' ? undefined : setting);
+  const [autoStart, setAutoStart] = useState<QualityTier>(AUTO_START_TIER);
+  const lowTier = (quality ?? autoStart) === 'low';
   const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const root = document.documentElement;
+    if (lowTier) root.dataset.quality = 'low';
+    else delete root.dataset.quality;
+    return () => {
+      delete root.dataset.quality;
+    };
+  }, [lowTier]);
 
   useEffect(
     () =>
       uiStore.subscribe((s, prev) => {
-        // uiStore has no "auto" value yet: a change of its tier is a manual override
-        if (s.quality !== prev.quality) setQuality(s.quality);
         const target = s.cameraTarget;
         if (!target || target === prev.cameraTarget) return;
         const fly = flyTargetFor(target, targetContext());
@@ -104,7 +126,8 @@ export function LiveScene() {
             labels={labels}
             selectedBayId={selectedBayId}
             onSelect={selectBay}
-            onReady={() => {
+            onReady={(gl) => {
+              setAutoStart(startTierOf(gl));
               if (ref.current) ref.current.dataset.sceneReady = 'true';
             }}
           />

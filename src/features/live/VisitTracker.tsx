@@ -1,9 +1,19 @@
-import { LogOut, PackageCheck, PackageOpen, Truck, Warehouse, type LucideIcon } from 'lucide-react';
+import {
+  ChevronDown,
+  LogOut,
+  PackageCheck,
+  PackageOpen,
+  Truck,
+  Warehouse,
+  type LucideIcon,
+} from 'lucide-react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Caption, CollapsiblePanel, IconTile, StatusPill } from '@/components/common';
+import { Caption, FloatingCard, IconTile, StatusPill } from '@/components/common';
 import type { BayVisit } from '@/domain';
 import { formatPlate } from '@/lib/format';
 import { cn } from '@/lib/utils';
+import { useUiStore } from '@/stores';
 import {
   dwellSec,
   trackerSteps,
@@ -121,11 +131,7 @@ function Subject({ active, fmt }: { active: ActiveVisit | null; fmt: Fmt }) {
         <span className="text-ink-900 min-w-0 flex-1 truncate text-[14px] leading-5 font-semibold">
           {plate.primary}
         </span>
-        {waiting ? (
-          <StatusPill tone="neutral">{t('queue.waiting')}</StatusPill>
-        ) : (
-          <StatusPill tone={PHASE_TONE[visit.phase]}>{t(`phase.${visit.phase}`)}</StatusPill>
-        )}
+        <PhasePill active={active} />
       </div>
       <p className="text-ink-400 truncate text-[12px] leading-4">
         {[plate.secondary, bayLabel(bay, fmt.lang)].filter(Boolean).join(' · ')} ·{' '}
@@ -149,15 +155,53 @@ function Subject({ active, fmt }: { active: ActiveVisit | null; fmt: Fmt }) {
   );
 }
 
-function Header({ active, fmt }: { active: ActiveVisit | null; fmt: Fmt }) {
+/** Phase pill of the tracked visit ("Waiting" for a truck queued on the apron). */
+function PhasePill({ active }: { active: ActiveVisit }) {
+  const { t } = useTranslation('live');
+  return active.waiting ? (
+    <StatusPill tone="neutral">{t('queue.waiting')}</StatusPill>
+  ) : (
+    <StatusPill tone={PHASE_TONE[active.visit.phase]}>
+      {t(`phase.${active.visit.phase}`)}
+    </StatusPill>
+  );
+}
+
+/**
+ * Header row, the whole card when collapsed: icon, then the title (expanded) or the tracked truck's plate and phase
+ * (collapsed), the dwell clock and the chevron. The dwell node is the same in both states.
+ */
+function Header({
+  active,
+  expanded,
+  onToggle,
+  fmt,
+}: {
+  active: ActiveVisit | null;
+  expanded: boolean;
+  onToggle: () => void;
+  fmt: Fmt;
+}) {
   const { t } = useTranslation('live');
   const now = useStreamNow();
   return (
     <div className="flex min-w-0 items-center gap-2.5">
       <IconTile icon={Truck} size="sm" />
-      <span className="text-ink-900 truncate text-[14px] leading-5 font-semibold">
-        {t('tracker.title')}
-      </span>
+      {expanded || !active ? (
+        <span className="text-ink-900 min-w-0 truncate text-[14px] leading-5 font-semibold">
+          {t('tracker.title')}
+        </span>
+      ) : (
+        <span className="flex min-w-0 items-center gap-2" data-testid="tracker-compact">
+          <span
+            lang={active.visit.plate.bn.trim() ? 'bn' : undefined}
+            className="text-ink-900 min-w-0 truncate text-[14px] leading-6 font-semibold"
+          >
+            {formatPlate(active.visit.plate).primary}
+          </span>
+          <PhasePill active={active} />
+        </span>
+      )}
       {active && (
         <span
           className="ms-auto flex shrink-0 items-baseline gap-1.5 whitespace-nowrap"
@@ -169,6 +213,24 @@ function Header({ active, fmt }: { active: ActiveVisit | null; fmt: Fmt }) {
           </span>
         </span>
       )}
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          onToggle();
+        }}
+        aria-expanded={expanded}
+        aria-label={expanded ? t('panel.collapse') : t('panel.expand')}
+        className={cn(
+          'soft-transition text-ink-400 hover:bg-row-hover hover:text-ink-900 focus-visible:ring-ring/50 grid size-7 shrink-0 place-items-center rounded-full focus-visible:ring-[3px] focus-visible:outline-none',
+          !active && 'ms-auto',
+        )}
+      >
+        <ChevronDown
+          className={cn('soft-transition size-4', !expanded && 'rotate-180')}
+          strokeWidth={1.75}
+        />
+      </button>
     </div>
   );
 }
@@ -176,24 +238,51 @@ function Header({ active, fmt }: { active: ActiveVisit | null; fmt: Fmt }) {
 /**
  * Bottom-left visit tracker (docs/01 §3.1): Arrived -> Docked -> Loading n/expected -> Finished -> Departed for the
  * selected visit. A truck queued on the apron starts at "Waiting" (with its holding slot) instead of "Arrived".
- * Compact (at most 140 px tall) and collapsible: it may overlap the shed floor.
+ * Collapsed by default to one 56 px bar (plate, phase, dwell; at most 520 px wide) so the scene's safe area keeps
+ * its bottom row; it expands on click or when a truck is selected and collapses again when the selection is cleared.
+ * The stepper stays mounted while collapsed (hidden), so expanding never remounts it.
  */
 export function VisitTracker() {
   const { t } = useTranslation('live');
   const fmt = useFmt();
   const active = useSelectedVisit();
+  const selection = useUiStore((s) => s.selection);
+  const [expanded, setExpanded] = useState(selection?.kind === 'truck');
+  const [seen, setSeen] = useState(selection);
+  if (selection !== seen) {
+    setSeen(selection);
+    if (selection === null) setExpanded(false);
+    else if (selection.kind === 'truck') setExpanded(true);
+  }
   return (
-    <CollapsiblePanel
-      testId="visit-tracker"
-      className="w-full"
-      headerClassName="ps-[16px] pe-[12px] pt-[12px] pb-[6px]"
-      bodyClassName="grid grid-cols-[minmax(0,1fr)_248px] items-center gap-[20px] ps-[16px] pe-[16px] pb-[12px]"
-      collapseLabel={t('panel.collapse')}
-      expandLabel={t('panel.expand')}
-      header={<Header active={active} fmt={fmt} />}
+    <FloatingCard
+      data-testid="visit-tracker"
+      data-expanded={expanded}
+      aria-label={t('tracker.title')}
+      className={cn('flex min-h-0 flex-col', expanded ? 'w-full' : 'w-full max-w-[520px]')}
     >
-      <Stepper visit={active?.visit ?? null} waiting={active?.waiting != null} fmt={fmt} />
-      <Subject active={active} fmt={fmt} />
-    </CollapsiblePanel>
+      <div
+        className={cn(
+          'shrink-0 ps-[16px] pe-[12px]',
+          // collapsed: 11 + 32 px tile + 11 + the 1 px borders = 56 px
+          expanded ? 'pt-[12px] pb-[6px]' : 'cursor-pointer py-[11px]',
+        )}
+        onClick={expanded ? undefined : () => setExpanded(true)}
+      >
+        <Header
+          active={active}
+          expanded={expanded}
+          onToggle={() => setExpanded((v) => !v)}
+          fmt={fmt}
+        />
+      </div>
+      <div
+        hidden={!expanded}
+        className="animate-in fade-in-0 slide-in-from-bottom-1 grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)_248px] items-center gap-[20px] ps-[16px] pe-[16px] pb-[12px] duration-200"
+      >
+        <Stepper visit={active?.visit ?? null} waiting={active?.waiting != null} fmt={fmt} />
+        <Subject active={active} fmt={fmt} />
+      </div>
+    </FloatingCard>
   );
 }

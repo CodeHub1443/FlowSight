@@ -14,7 +14,7 @@ describe('uiStore', () => {
       cameraTarget: null,
       xray: false,
       labels: true,
-      quality: 'med',
+      quality: 'auto',
       language: 'en',
       theme: 'light',
       trayTab: 'bays',

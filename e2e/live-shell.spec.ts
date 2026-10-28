@@ -142,8 +142,13 @@ test('/live panels collapse', async ({ page }) => {
   await openLive(page, 1366, 768);
   await page.getByTestId('tray').getByRole('button', { name: 'Collapse panel' }).click();
   await expect(page.getByTestId('tray-bay-B02')).toHaveCount(0);
-  await page.getByTestId('visit-tracker').getByRole('button', { name: 'Collapse panel' }).click();
-  await expect(page.getByTestId('tracker-steps')).toHaveCount(0);
+  // the visit tracker starts as a compact bar; it opens and closes on its chevron
+  const tracker = page.getByTestId('visit-tracker');
+  await expect(page.getByTestId('tracker-steps')).toBeHidden();
+  await tracker.getByRole('button', { name: 'Expand panel' }).click();
+  await expect(page.getByTestId('tracker-steps')).toBeVisible();
+  await tracker.getByRole('button', { name: 'Collapse panel' }).click();
+  await expect(page.getByTestId('tracker-steps')).toBeHidden();
   await page.getByRole('button', { name: 'Hide KPI chips' }).click();
   await expect(page.getByTestId('kpi-cases')).toHaveCount(0);
 });

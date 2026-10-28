@@ -84,17 +84,6 @@
   --pallet-orange: #f59e5b;
   --metal: #c9d2e3;
   --belt: #2e3445;
-  /* Aliases still read by scene/materials.ts and older classes (the 3D session moves to the names above). */
-  --scene-floor-grid: var(--scene-floor-line);
-  --scene-wall-cap: var(--scene-wall-accent);
-  --scene-conveyor: var(--brand-500);
-  --scene-belt: var(--belt);
-  --scene-ground: var(--scene-void);
-  --scene-yard: var(--scene-apron);
-  --scene-road: var(--scene-floor-line);
-  --scene-grass: #d7f0dc;
-  --scene-tree: #9fddb0;
-  --scene-roof: #e3e9f8;
 
   /* shadcn/ui semantic tokens */
   --radius: 0.75rem;
@@ -161,11 +150,11 @@
   --scene-wall-accent: #4c79ee;
   --carton: #b99673;
   --carton-tape: #a8825c;
+  --pallet-blue: #3a6fda;
+  --pallet-yellow: #d8ae3c;
+  --pallet-orange: #d98a52;
   --metal: #59647c;
   --belt: #2a2f3d;
-  --scene-grass: #14261e;
-  --scene-tree: #2e6b4a;
-  --scene-roof: #1f2840;
 
   --background: #0b1222;
   --card: #121a2b;
@@ -252,16 +241,6 @@
   --color-scene-walkline: var(--scene-walkline);
   --color-scene-wall: var(--scene-wall);
   --color-scene-wall-accent: var(--scene-wall-accent);
-  --color-scene-ground: var(--scene-ground);
-  --color-scene-yard: var(--scene-yard);
-  --color-scene-road: var(--scene-road);
-  --color-scene-grass: var(--scene-grass);
-  --color-scene-tree: var(--scene-tree);
-  --color-scene-roof: var(--scene-roof);
-  --color-scene-floor-grid: var(--scene-floor-grid);
-  --color-scene-wall-cap: var(--scene-wall-cap);
-  --color-scene-conveyor: var(--scene-conveyor);
-  --color-scene-belt: var(--scene-belt);
 
   --shadow-card: var(--shadow-card);
   --shadow-card-hover: var(--shadow-card-hover);
@@ -307,6 +286,18 @@
       animation-duration: 0ms !important;
     }
   }
+}
+
+/*
+ * Low quality tier (LiveScene sets <html data-quality="low">): no backdrop blur, which costs about 20 % of the frame
+ * on CPU rendering; the card falls back to 96 % opaque (docs/06 section 3).
+ */
+:root[data-quality='low'] {
+  --card-alpha: 96%;
+}
+:root[data-quality='low'] .card-surface {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
 }
 
 /*

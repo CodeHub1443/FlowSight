@@ -18,6 +18,12 @@ import {
 
 const layout = buildSiteLayout(SiteConfigSchema.parse(siteConfigJson));
 
+/** /live canvas sizes at the two reference viewports: the 49 px top bar (h-14 at the 14 px root) sits above it. */
+const CANVASES = [
+  [1920, 1080 - 49],
+  [1366, 768 - 49],
+] as const;
+
 /** A camera set up exactly like CameraRig does it for a canvas and a preset. */
 function cameraFor(width: number, height: number, preset = 'floorOverview') {
   const fit = viewFit(width, height, SCENE_SAFE_AREA);
@@ -47,14 +53,14 @@ function project(
 }
 
 describe('SCENE_SAFE_AREA', () => {
-  it('is the agreed card layout (top chips 112, right column 360 + 24 gap, 24 margins)', () => {
-    expect(SCENE_SAFE_AREA).toEqual({ top: 112, right: 384, bottom: 24, left: 24 });
+  it('is the agreed card layout (top 160, right column 360 + 24 gap, collapsed tracker 88, left 24)', () => {
+    expect(SCENE_SAFE_AREA).toEqual({ top: 160, right: 384, bottom: 88, left: 24 });
     expect(Object.isFrozen(SCENE_SAFE_AREA)).toBe(true);
   });
 
   it('moves the optical axis to the centre of the safe rectangle, keeping the canvas fov and aspect', () => {
     const fit = viewFit(1920, 1080, SCENE_SAFE_AREA);
-    expect(fit.centre).toEqual({ x: 24 + (1920 - 408) / 2, y: 112 + (1080 - 136) / 2 });
+    expect(fit.centre).toEqual({ x: 24 + (1920 - 408) / 2, y: 160 + (1080 - 248) / 2 });
     const o = fit.offset;
     if (!o) throw new Error('expected a view offset');
     expect(o.fullWidth / o.fullHeight).toBeCloseTo(1920 / 1080, 9);
@@ -71,10 +77,7 @@ describe('SCENE_SAFE_AREA', () => {
   });
 
   it('projects the camera target onto the safe-rectangle centre (applied through setViewOffset)', () => {
-    for (const [w, h] of [
-      [1920, 1080],
-      [1366, 768],
-    ] as const) {
+    for (const [w, h] of CANVASES) {
       const { camera, fit } = cameraFor(w, h);
       expect(camera.view?.enabled).toBe(true);
       const pose = presetPose(layout, 'floorOverview', fit);
@@ -85,11 +88,8 @@ describe('SCENE_SAFE_AREA', () => {
     }
   });
 
-  it('keeps every bay, B01 included, clear of the cards in the default view at 1920x1080 and 1366x768', () => {
-    for (const [w, h] of [
-      [1920, 1080],
-      [1366, 768],
-    ] as const) {
+  it('keeps every bay, B01 and B07 included, clear of the cards in the default view at 1920x1080 and 1366x768', () => {
+    for (const [w, h] of CANVASES) {
       const { camera, fit } = cameraFor(w, h);
       const { top, right, bottom, left } = fit.insets;
       for (const bay of layout.bays) {
@@ -108,6 +108,28 @@ describe('SCENE_SAFE_AREA', () => {
           expect(px.y, `${bay.id} ${p.join(',')} @ ${w}`).toBeGreaterThanOrEqual(top);
           expect(px.y, `${bay.id} ${p.join(',')} @ ${w}`).toBeLessThanOrEqual(h - bottom);
         }
+      }
+    }
+  });
+
+  it('frames the dock wall at the top of the safe area and leaves storage mostly out of frame', () => {
+    for (const [w, h] of CANVASES) {
+      const { camera, fit } = cameraFor(w, h);
+      const { top, bottom } = fit.insets;
+      const safeH = h - top - bottom;
+      for (const bay of layout.bays) {
+        // no empty band: the top of the door band is within 6 % of the safe top
+        const wall = project(camera, w, h, bay.id, [0, 0, 4.8]);
+        expect(wall.y - top, `${bay.id} wall @ ${w}`).toBeLessThanOrEqual(0.06 * safeH);
+        // staging fills the lower half; storage (from y 20) is out of frame 8 m in
+        expect(
+          project(camera, w, h, bay.id, [0, 16, 0]).y,
+          `${bay.id} staging @ ${w}`,
+        ).toBeGreaterThan(top + safeH / 2);
+        expect(
+          project(camera, w, h, bay.id, [0, 28, 0]).y,
+          `${bay.id} storage @ ${w}`,
+        ).toBeGreaterThan(h - bottom);
       }
     }
   });

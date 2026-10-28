@@ -1,5 +1,6 @@
 import path from 'node:path';
 import type { Page } from '@playwright/test';
+import { SCENE_SAFE_AREA, viewFit } from '../src/scene/camera/view';
 import { expect, test } from './fixtures';
 
 // /live with the lazy 3D shed interior mounted behind the shell (step-05 + step-06 integration).
@@ -10,9 +11,14 @@ const SIZES = [
   { width: 1920, height: 1080 },
   { width: 1366, height: 768 },
 ];
-const FIXED_NOW = new Date('2026-10-24T13:50:45Z');
 /** Camera fly is 800 ms; SwiftShader renders a few frames per second. */
 const FLY_SETTLE_MS = 3000;
+
+// No page.clock here: Playwright's clock also drives requestAnimationFrame, and with the continuous WebGL loop a
+// screenshot then took 45-54 s instead of 10-16 s (1366, SwiftShader, Task 08). Measured on a quiet machine without
+// it: scene ready ~3 s after load, frames 0.35-0.55 s, a screenshot 10-16 s at 1366 and 16-22 s at 1920; a test
+// with two screenshots needs ~60-70 s at 1920, so the scene specs get 150 s instead of the 90 s default.
+test.describe.configure({ timeout: 150_000 });
 
 async function openLive(page: Page, width: number, height: number) {
   await page.setViewportSize({ width, height });
@@ -29,12 +35,13 @@ async function openLive(page: Page, width: number, height: number) {
   await page.waitForTimeout(FLY_SETTLE_MS);
 }
 
-/** Click the middle of the 3D canvas: the camera target projects there, the overlays leave it free. */
+/** Click the centre of the safe area: the camera target projects there (setViewOffset), the overlays leave it free. */
 async function clickSceneCentre(page: Page) {
   const box = await page.getByTestId('scene-slot').locator('canvas').boundingBox();
   expect(box).not.toBeNull();
   if (!box) return;
-  await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+  const { centre } = viewFit(box.width, box.height, SCENE_SAFE_AREA);
+  await page.mouse.click(box.x + centre.x, box.y + centre.y);
 }
 
 test('tray row flies the camera to the bay; clicking a bay in 3D opens the bay inspector', async ({
@@ -63,7 +70,6 @@ test('tray row flies the camera to the bay; clicking a bay in 3D opens the bay i
 
 for (const { width, height } of SIZES) {
   test(`/live with the 3D interior at ${width}x${height}, EN and BN`, async ({ page }) => {
-    await page.clock.setFixedTime(FIXED_NOW);
     await openLive(page, width, height);
     // Select the middle bay from the 3D view (no camera move), so the inspector and ring show over all 7 belts.
     await clickSceneCentre(page);
@@ -84,7 +90,6 @@ for (const { width, height } of SIZES) {
 }
 
 test('/live dark theme re-themes the scene', async ({ page }) => {
-  await page.clock.setFixedTime(FIXED_NOW);
   await openLive(page, 1920, 1080);
   await page.getByRole('button', { name: 'Switch to dark theme' }).click();
   await expect(page.locator('html')).toHaveClass(/dark/);
