@@ -1,5 +1,7 @@
 import { useMemo } from 'react';
-import { buildStorage } from '../bay/storageLayout';
+import { GlbOrProcedural } from '../assets/GlbOrProcedural';
+import { PropInstances } from '../assets/PropInstances';
+import { buildStorage, storageProps } from '../bay/storageLayout';
 import { DockWall } from '../building/DockWall';
 import type { BoxItem } from '../items';
 import { Appear } from '../Appear';
@@ -113,6 +115,7 @@ export function FaceContents({ layout, face }: { layout: SiteLayout; face: FaceL
       ),
     [face],
   );
+  const storageGlb = useMemo(() => storageProps(storage), [storage]);
 
   return (
     <group>
@@ -136,7 +139,11 @@ export function FaceContents({ layout, face }: { layout: SiteLayout; face: FaceL
       )}
       <BoxInstances items={aisle} />
       <Appear>
-        <BoxInstances items={storage} cast />
+        <BoxInstances items={storageGlb.rest} cast />
+        <GlbOrProcedural procedural={storageGlb.procedural}>
+          <PropInstances model="pallet_b01_far" items={storageGlb.pallets} cast />
+          <PropInstances model="box_brown_b28" items={storageGlb.cartons} cast />
+        </GlbOrProcedural>
       </Appear>
     </group>
   );

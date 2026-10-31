@@ -12,14 +12,15 @@ import { useTranslation } from 'react-i18next';
 import type { BeltStatus } from '@/domain';
 import { DEFAULT_SITE } from '@/features/live';
 import { SceneSlotPlaceholder } from '@/features/live/SceneSlot';
-import type { WebGLRenderer } from 'three';
 import type { QualityTier, SceneSelection } from '@/scene';
 // Direct paths (not '@/scene'): these are tiny and must not pull three.js into the entry chunk.
 import { useSceneCamera } from '@/scene/camera/cameraController';
 import { SCENE_SAFE_AREA } from '@/scene/camera/view';
-import { AUTO_START_TIER, autoStartTier } from '@/scene/quality';
+import { AUTO_START_TIER } from '@/scene/quality';
+import { QUALITY_DEBUG } from '@/scene/qualityProbe';
 import { alertStore, liveStore, uiStore, useLiveStore, useUiStore } from '@/stores';
 import { MapControls } from './MapControls';
+import { QualityBadge } from './QualityBadge';
 import { bayOfSelection, flyTargetFor, type SceneTargetContext } from './sceneTarget';
 import { hasWebGL } from './webgl';
 
@@ -32,17 +33,13 @@ const BAY_IDS: ReadonlySet<string> = new Set(
 
 const TIERS: readonly QualityTier[] = ['high', 'med', 'low'];
 
-/** `?quality=high|med|low` pins the tier (screenshots, a weak PC); anything else leaves it automatic. */
-function qualityFromUrl(): QualityTier | undefined {
+/**
+ * `?quality=high|med|low` pins the tier (screenshots, a weak PC), `?quality=auto` forces the automatic mode over a
+ * uiStore pin; anything else defers to uiStore.
+ */
+function qualityFromUrl(): QualityTier | 'auto' | undefined {
   const v = new URLSearchParams(window.location.search).get('quality');
-  return TIERS.find((t) => t === v);
-}
-
-/** First automatic tier for the canvas's renderer (the same rule SceneRoot applies). */
-function startTierOf(gl: WebGLRenderer): QualityTier {
-  const ctx = gl.getContext();
-  const info = ctx.getExtension('WEBGL_debug_renderer_info');
-  return autoStartTier(info ? String(ctx.getParameter(info.UNMASKED_RENDERER_WEBGL)) : null);
+  return v === 'auto' ? 'auto' : TIERS.find((t) => t === v);
 }
 
 function targetContext(): SceneTargetContext {
@@ -85,9 +82,9 @@ function SceneSkeleton() {
 /**
  * The /live 3D view, wired to the stores: theme and labels from uiStore, bay clicks select the bay, and
  * uiStore.cameraTarget flies the camera (bays directly; trucks, people, forklifts and events via their bay).
- * Quality follows uiStore: 'auto' (default) lets PerformanceMonitor step tiers, a tier pins it; `?quality=` wins.
- * On the Low tier `<html data-quality="low">` turns off the card backdrop blur (docs/06 section 3 fallback). In auto
- * mode that is the start tier (a software rasteriser starts at Low); later automatic steps are not reported.
+ * Quality follows uiStore: 'auto' (default) lets TierGovernor step tiers, a tier pins it; `?quality=` wins.
+ * On the Low tier, pinned or automatic, `<html data-quality="low">` turns off the card backdrop blur (docs/06 section 3
+ * fallback).
  * The default framing keeps every bay inside SCENE_SAFE_AREA, clear of the KPI chips and the right column.
  * The scene itself never touches a store.
  */
@@ -99,9 +96,10 @@ export function LiveScene() {
   const selectedBayId = selection ? bayOfSelection(selection, targetContext()) : null;
   const setting = useUiStore((s) => s.quality);
   const [urlQuality] = useState(qualityFromUrl);
-  const quality = urlQuality ?? (setting === 'auto' ? undefined : setting);
-  const [autoStart, setAutoStart] = useState<QualityTier>(AUTO_START_TIER);
-  const lowTier = (quality ?? autoStart) === 'low';
+  const requested = urlQuality ?? setting;
+  const quality = requested === 'auto' ? undefined : requested;
+  const [tier, setTier] = useState<QualityTier>(AUTO_START_TIER);
+  const lowTier = (quality ?? tier) === 'low';
   const ref = useRef<HTMLDivElement>(null);
   // one string, so the scene re-renders when a belt status changes and not on every store flush
   const statusKey = useLiveStore((s) =>
@@ -149,19 +147,20 @@ export function LiveScene() {
             siteConfig={DEFAULT_SITE}
             theme={theme}
             quality={quality}
+            onTierChange={setTier}
             safeArea={SCENE_SAFE_AREA}
             labels={labels}
             selectedBayId={selectedBayId}
             bayStatus={bayStatus}
             onSelect={selectBay}
-            onReady={(gl) => {
-              setAutoStart(startTierOf(gl));
+            onReady={() => {
               if (ref.current) ref.current.dataset.sceneReady = 'true';
             }}
           />
         </Suspense>
       </SceneBoundary>
       <MapControls />
+      {QUALITY_DEBUG && <QualityBadge tier={quality ?? tier} />}
     </div>
   );
 }

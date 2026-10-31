@@ -60,11 +60,14 @@ export const QUALITY: Record<QualityTier, QualitySettings> = {
 
 export const TIER_ORDER: readonly QualityTier[] = ['low', 'med', 'high'];
 
-/** First tier of the automatic mode; PerformanceMonitor steps it up or down from here. */
+/** First tier of the automatic mode; TierGovernor (tierGovernor.ts) steps it up or down from here. */
 export const AUTO_START_TIER: QualityTier = 'med';
 
-/** Software rasterisers (GPU acceleration off, VMs, headless CI): no GPU to spend on AO, shadows or post. */
-const SOFTWARE_RENDERER = /swiftshader|llvmpipe|softpipe|software|basic render driver/i;
+/**
+ * Software rasterisers (GPU acceleration off, VMs, headless CI): no GPU to spend on AO, shadows or post. Exact names
+ * only, so no real GPU or vendor string can match.
+ */
+const SOFTWARE_RENDERER = /swiftshader|llvmpipe|softpipe|microsoft basic render driver/i;
 
 /** First automatic tier for a WebGL renderer string (`UNMASKED_RENDERER_WEBGL`, or null when hidden). */
 export function autoStartTier(renderer: string | null): QualityTier {

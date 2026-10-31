@@ -17,7 +17,7 @@ export interface CameraTarget {
 }
 
 export type QualityTier = 'high' | 'med' | 'low';
-/** 'auto' lets the scene step tiers itself (PerformanceMonitor); a tier pins it. */
+/** 'auto' lets the scene step tiers itself (TierGovernor); a tier pins it. */
 export type QualitySetting = QualityTier | 'auto';
 export type Theme = 'light' | 'dark';
 export type TrayTab = 'bays' | 'trucks' | 'alerts' | 'captains';

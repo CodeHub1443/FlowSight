@@ -1,9 +1,10 @@
-import { PerformanceMonitor } from '@react-three/drei';
 import { Canvas, useThree } from '@react-three/fiber';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Color, SRGBColorSpace, type Scene, type WebGLRenderer } from 'three';
 import type { BeltStatus, SiteConfig } from '@/domain';
+import { preloadLiveModels } from './assets/loader';
+import { AutoQuality } from './AutoQuality';
 import { Bay, type BaySelection } from './bay/Bay';
 import { Shed } from './building/Shed';
 import { CameraRig } from './camera/CameraRig';
@@ -18,7 +19,7 @@ import {
   paletteFor,
   type SceneTheme,
 } from './materials';
-import { AUTO_START_TIER, autoStartTier, QUALITY, stepTier, type QualityTier } from './quality';
+import { AUTO_START_TIER, autoStartTier, QUALITY, type QualityTier } from './quality';
 import { SceneLights } from './SceneLights';
 import { ScenePost } from './ScenePost';
 import { SceneEnvContext, type SceneEnv } from './sceneEnv';
@@ -49,8 +50,10 @@ const VIGNETTE_ALPHA = 0.7;
 
 export interface SceneRootProps {
   siteConfig: SiteConfig;
-  /** Fixed quality tier. When omitted the tier is automatic: it starts at Med and PerformanceMonitor steps it. */
+  /** Fixed quality tier. When omitted the tier is automatic: it starts at Med and TierGovernor steps it. */
   quality?: QualityTier;
+  /** Called with the tier in force, on mount and whenever it changes, pinned or automatic. */
+  onTierChange?: (tier: QualityTier) => void;
   theme?: SceneTheme;
   /** Screen insets covered by overlays; the default framing keeps every bay inside the rest (docs/06 section 2). */
   safeArea?: Readonly<SafeArea>;
@@ -89,6 +92,7 @@ function RendererToneMapping({ mapping, active }: { mapping: SceneToneMapping; a
 export function SceneRoot({
   siteConfig,
   quality,
+  onTierChange,
   theme = 'light',
   safeArea = NO_SAFE_AREA,
   labels = true,
@@ -109,6 +113,9 @@ export function SceneRoot({
   const [autoTier, setAutoTier] = useState<QualityTier>(AUTO_START_TIER);
   const tier = quality ?? autoTier;
   const settings = QUALITY[tier];
+  // before the first frame, so the props are usually there when the bays mount; Low never downloads them
+  if (tier !== 'low') preloadLiveModels();
+  useEffect(() => onTierChange?.(tier), [tier, onTierChange]);
 
   const [visible, setVisible] = useState(() => document.visibilityState !== 'hidden');
   useEffect(() => {
@@ -190,14 +197,7 @@ export function SceneRoot({
           <primitive attach="background" object={voidColor} />
           <RendererToneMapping mapping={toneMapping} active={!hasPost} />
           <fog attach="fog" args={[fogColor, FOG[theme][0], FOG[theme][1]]} />
-          {quality === undefined && (
-            <PerformanceMonitor
-              onDecline={() => setAutoTier((t) => stepTier(t, -1))}
-              onIncline={() => setAutoTier((t) => stepTier(t, 1))}
-              flipflops={4}
-              onFallback={() => setAutoTier('low')}
-            />
-          )}
+          {quality === undefined && <AutoQuality tier={autoTier} onStep={setAutoTier} />}
           <SceneLights layout={layout} />
           <CameraRig layout={layout} safeArea={safeArea} />
           <Shed layout={layout} />

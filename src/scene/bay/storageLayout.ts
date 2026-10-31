@@ -1,3 +1,4 @@
+import type { PropItem } from '../assets/PropInstances';
 import type { BoxItem } from '../items';
 import type { PaletteKey } from '../materials';
 import { rng } from '../site/random';
@@ -76,6 +77,40 @@ export function buildStorage(input: StorageInput): BoxItem[] {
     }
     y += ROW_PITCH;
     sinceAisle++;
+  }
+  return out;
+}
+
+export interface StorageProps {
+  /** Pallet bases and carton blocks as GLB instances; the far pallet LOD, since there are hundreds of them. */
+  pallets: PropItem[];
+  cartons: PropItem[];
+  /** Wrapped sacks and tape lines stay procedural on every tier. */
+  rest: BoxItem[];
+  /** What the GLB props replace: the procedural pallets, fork-pocket bands and carton blocks. */
+  procedural: BoxItem[];
+}
+
+/** The same storage as GLB props (ADR-13). `buildStorage` stays the one layout: Low tier draws it as it is. */
+export function storageProps(items: readonly BoxItem[]): StorageProps {
+  const out: StorageProps = { pallets: [], cartons: [], rest: [], procedural: [] };
+  for (const it of items) {
+    const base = {
+      at: [it.at[0], it.at[1], it.at[2] - it.size[2] / 2] as const,
+      size: it.size,
+      tone: it.tone,
+      shade: it.shade,
+    };
+    if (it.tone === 'storagePallet') {
+      out.procedural.push(it);
+      // the darker fork-pocket band is a painted stand-in for what the model has as geometry
+      if (it.detail !== 'flat') out.pallets.push(base);
+    } else if (it.tone === 'storageCarton') {
+      out.procedural.push(it);
+      out.cartons.push(base);
+    } else {
+      out.rest.push(it);
+    }
   }
   return out;
 }

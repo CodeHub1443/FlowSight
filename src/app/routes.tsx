@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react';
 import { Navigate, Route, Routes } from 'react-router';
 import { LivePage } from '@/features/live';
 import { ADMIN_CHILDREN } from './adminRoutes';
@@ -5,6 +6,9 @@ import { AppShell, PageLayout } from './AppShell';
 import { LiveScene } from './LiveScene';
 import { NotFound } from './NotFound';
 import { Placeholder } from './Placeholder';
+
+// Dev only: `import.meta.env.DEV` is false at build time, so neither the route nor its chunk reaches production.
+const AssetPreview = import.meta.env.DEV ? lazy(() => import('./dev/AssetPreview')) : null;
 
 const page = (titleKey: string) => <Placeholder titleKey={titleKey} />;
 
@@ -31,6 +35,16 @@ export function AppRoutes() {
           <Route path="*" element={<NotFound />} />
         </Route>
       </Route>
+      {AssetPreview && (
+        <Route
+          path="dev/assets"
+          element={
+            <Suspense>
+              <AssetPreview />
+            </Suspense>
+          }
+        />
+      )}
       <Route path="wall" element={page('routes.wall')} />
       <Route path="login" element={page('routes.login')} />
     </Routes>

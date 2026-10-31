@@ -1,0 +1,109 @@
+{
+  "$comment": "What `pnpm assets:build` converts. `source` is relative to assets-src/. `targetTris` is what the simplifier aims for and stays at or under the budget in budget.test.mjs. `place`: the frame of the GLB (three.js axes, metres, origin on the ground). `creaseDeg`: faces meeting at a sharper angle than this keep a hard edge. `derivedFrom`: a further LOD of an already exported raw mesh.",
+  "assets": [
+    {
+      "name": "pallet_b01",
+      "kind": "pallet",
+      "source": "simready/pallet_b01/simready_usd/sm_pallet_b01_01.usd",
+      "palette": "pallet_b01",
+      "targetTris": 1100,
+      "creaseDeg": 35
+    },
+    {
+      "name": "pallet_b01_far",
+      "kind": "pallet",
+      "derivedFrom": "pallet_b01",
+      "palette": "pallet_b01_far",
+      "targetTris": 200,
+      "creaseDeg": 35
+    },
+    {
+      "name": "pallet_assembly_a03",
+      "kind": "pallet",
+      "source": "simready/pallet_assembly_a03/simready_usd/sm_pallet_assembly_a03_01.usd",
+      "palette": "pallet_assembly_a03",
+      "splitBelow": {
+        "belowM": 0.13,
+        "tone": "palletBlue"
+      },
+      "targetTris": 1500,
+      "creaseDeg": 35
+    },
+    {
+      "name": "pallet_rackable_solid_a01",
+      "kind": "pallet",
+      "source": "Warehouse_NVD@10013/Assets/DigitalTwin/Assets/Warehouse/Shipping/Pallets/Plastic/SolidTopRackable_A/SolidTopRackablePallet_A01_PR_V_NVD_01.usd",
+      "palette": "pallet_rackable",
+      "targetTris": 1500,
+      "creaseDeg": 35
+    },
+    {
+      "name": "box_brown_b28",
+      "kind": "box",
+      "source": "simready/box_corrugated_brown_b28/simready_usd/sm_box_corrugated_brown_b28_01.usd",
+      "palette": "box_brown",
+      "targetTris": 100,
+      "creaseDeg": 30
+    },
+    {
+      "name": "box_white_a11",
+      "kind": "box",
+      "source": "Warehouse_NVD@10013/Assets/DigitalTwin/Assets/Warehouse/Shipping/Cardboard_Boxes/White_A/WhiteCorrugatedBox_A11_46x47x47cm_PR_NVD_01.usd",
+      "palette": "box_white",
+      "targetTris": 100,
+      "creaseDeg": 30
+    },
+    {
+      "name": "pallet_jack",
+      "kind": "palletJack",
+      "source": "simready/palletJack_scale_a01/simready_usd/sm_palletJack_scale_a01_01.usd",
+      "palette": "pallet_jack",
+      "targetTris": 4000,
+      "creaseDeg": 40
+    },
+    {
+      "name": "forklift",
+      "kind": "forklift",
+      "source": "Warehouse_NVD@10013/Assets/DigitalTwin/Assets/Warehouse/Equipment/Forklifts/Forklift_C/Forklift_C01_PR_V_NVD_01.usd",
+      "palette": "forklift",
+      "targetTris": 10000,
+      "creaseDeg": 40
+    },
+    {
+      "name": "crate",
+      "kind": "crate",
+      "source": "Warehouse_NVD@10013/Assets/DigitalTwin/Assets/Warehouse/Storage/Containers/Container_C/Container_C03_60x40x36cm_PR_V_NVD_01.usd",
+      "palette": "crate",
+      "targetTris": 800,
+      "creaseDeg": 35
+    },
+    {
+      "name": "scanner",
+      "kind": "scanner",
+      "source": "Warehouse_NVD@10013/Assets/DigitalTwin/Assets/Warehouse/Electronics/Barcode/Scanner_A/BarcodeScanner_A01_01.usd",
+      "palette": "scanner",
+      "targetTris": 1500,
+      "creaseDeg": 40
+    },
+    {
+      "name": "truck",
+      "kind": "truck",
+      "source": "simready/box truck 3d model.usdz",
+      "palette": "truck",
+      "place": {
+        "lengthM": 7.5,
+        "yawDeg": 90,
+        "origin": "rearAxle",
+        "rearSign": -1
+      },
+      "texture": {
+        "member": "textures/box_truck_3d_model_basecolor.JPEG",
+        "size": 1024,
+        "quality": 80,
+        "rawCopy": true
+      },
+      "targetTris": 15000,
+      "creaseDeg": 45
+    }
+  ]
+}

@@ -2,6 +2,8 @@ import { useEffect, useMemo, useRef } from 'react';
 import { MeshBasicMaterial, type Group } from 'three';
 import type { BeltStatus } from '@/domain';
 import { Appear } from '../Appear';
+import { GlbOrProcedural } from '../assets/GlbOrProcedural';
+import { PropInstances } from '../assets/PropInstances';
 import { BoxInstances, CylInstances, MarkInstances } from '../primitives';
 import { Plate } from '../Plate';
 import { useSceneEnv } from '../sceneEnv';
@@ -197,6 +199,11 @@ export function Bay({ face, bay, selected, doorOpen, status, onSelect }: BayProp
           />
         ))}
         <BoxInstances items={staging.boxes} cast />
+        <GlbOrProcedural procedural={staging.procedural}>
+          <PropInstances model="pallet_b01" items={staging.pallets} cast />
+          <PropInstances model="box_brown_b28" items={staging.cartons} cast />
+          <PropInstances model="pallet_jack" items={staging.jacks} cast />
+        </GlbOrProcedural>
         <MarkInstances marks={staging.marks} />
       </Appear>
     </group>

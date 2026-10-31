@@ -7,6 +7,11 @@
     "apron": "অ্যাপ্রন"
   },
   "dev": {
+    "assetsTitle": "অ্যাসেট প্রিভিউ",
+    "assetTris": "{{tris}} ত্রিভুজ (উৎস {{source}})",
+    "assetSize": "{{kb}} কেবি · {{size}} মি",
+    "assetRaw": "মূল মেশ (অপরিবর্তিত)",
+    "assetRawTris": "{{tris}} ত্রিভুজ",
     "title": "দৃশ্য প্রিভিউ",
     "bay": "বে",
     "light": "হালকা",

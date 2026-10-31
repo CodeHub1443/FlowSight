@@ -400,3 +400,93 @@ KPI chips: narrower padding below 1700 px and the delta moves to the sub-line th
 
 ### Screenshots
 `docs/screens/t10-{light-en,dark-en,light-bn,selected-bay-light,selected-bay-away,overview-light-en}-{1920x1080,1366x768}.png` and `t10-compare.png`. RTX 3050, Med pinned, mock evening peak, 0 non-localhost requests. `selected-bay-light` has the pointer on the bay, `selected-bay-away` off it.
+
+## Task 11: asset pipeline (USD/USDZ -> web GLB), /dev/assets, first integration
+
+Baseline `c614c59`; only `.gitignore` modified at the start (assets-src/). Uncommitted, per the brief. ADR-13 in docs/02.
+
+### Route and what changed
+- **Converter:** Blender is not installed. Python 3.10 + `usd-core`, numpy, pillow in `assets-src/.venv` (`scripts/assets/usd_export.py`), then Node `@gltf-transform/*` + `meshoptimizer` (`scripts/assets/build.mjs`, `simplify.mjs`, `normals.mjs`). Config: `assets.json`, `palette.json`. `pnpm assets:build` (`--skip-usd`, or asset names). A full rebuild reproduced every GLB byte for byte.
+- **Runtime:** `src/scene/assets/` (`loader.ts`, `PropInstances.tsx`, `GlbOrProcedural.tsx`, `models.ts`). `manifest.generated.json` is a bundled copy of `public/models/manifest.json`, because Vite rejects imports from public/; a test keeps them equal.
+- **Live scene:** staging pallets and cartons, storage pallets and carton blocks, one static jack per bay (in a staging slot that bay's stacks left free). Stack positions and the seeded stream are unchanged; tests compare GLB and procedural positions. Sacks, crates, tape and FG/DC marks stay procedural.
+- **Tiers:** High and Med load GLBs; Low keeps procedural props, downloads nothing, and has no jack. A failed load falls back to procedural (verified by blocking `.glb` fetches: triangles equal the baseline).
+
+### Substitutions (exact names not in assets-src)
+`vehicle_forklift_blue_a01` -> `Forklift_C01` (`Forklift_A`/`B` are a stacker and an order picker); `crate_blue_a01` -> `Container_C03` without its cover; `computer_scanner_barcode_a01` -> `BarcodeScanner_A01` without stand and cable; `pallet_rackable_blue_a01` -> `SolidTopRackablePallet_A01`, because the grid-deck `RackablePallet_A01` (461,642 tris) tears visibly at 1,500 tris; white carton -> `WhiteCorrugatedBox_A11`. No separate yellow pallet was needed: pallets take blue, yellow or orange per instance. Added: `pallet_b01_far` (192 tris) for the storage rows. A 36-tri far carton collapsed into V-shapes and was removed.
+
+### Frame rate and counts (Med pinned, 1920x1080, /live, mock evening peak, pointer parked, headless Chromium D3D11, adapter read back from WebGL)
+Intel UHD, interleaved A/B on one build, 4 rounds x 3 x 8 s (n = 12 per cell). Fallback = same build with `.glb` fetches blocked:
+| Theme | Fallback mean (min-max) | GLB mean (min-max) | GLB runs below 48 |
+|---|---|---|---|
+| Light | 57.8 (48.5-71.1) | 57.4 (49.3-79.7) | 0 of 12 |
+| Dark | 55.7 (46.5-67.6) | 52.4 (41.2-60.6) | 2 of 12 |
+
+Earlier non-interleaved Intel runs, for the record: unmodified baseline build 48.0 light (50.1, 45.7, 48.2) and 49.2 dark (58.2, 52.4, 36.9). GLB straight after a fallback block on a loaded machine: 44.3 light and 44.7 dark (5 x 8 s each), below 48. The interleaved run did not reproduce that, so run order or heat is the likely cause, not proven.
+RTX 3050, 5 x 8 s, sequential: fallback 355.0 light / 327.4 dark; GLB 323.2 light / 306.1 dark. The first baseline run on the unmodified build read 159 / 151 on this GPU; that is about half of every later run including the fallback, so it was probably disturbed and is not used for comparison.
+
+| Light, /live | Baseline | Fallback | GLB |
+|---|---|---|---|
+| Draw calls (renderer.info, preview) | 200 | - | 244 |
+| Triangles (renderer.info, preview) | 226,451 | - | 321,963 |
+| Draw calls (GL hook) | 200 | 216 | 244 |
+| Triangles (GL hook) | 226,499 | 226,499 | 322,011 |
+
+### Deviations and open points
+- `pallet_b01` targets 1,100 tris (budget 1,500) to save frame time on Intel; no visible loss at bay distance.
+- GLB cartons have sharp edges instead of the procedural rounding (docs/06 D6 asks for 10-15 %), because a 100-tri box cannot carry a bevel. Their proportions and tape match the old ones. For the user to judge.
+- Truck is 7.484 m long, not 7.5: the raw mesh is scaled to 7.5 and simplification pruned a small tip. Rear doors' relief is lost (below).
+- `scripts/assets/live-perf.mjs`, `preview-shot.mjs`, `usd_inspect.py` are dev tools. `page.route` does not see fetches made through the MSW service worker, so `--block-glb` wraps `window.fetch` in the page.
+- `@gltf-transform/cli` is installed as briefed, but the build does not use it.
+- e2e: `startPeak` (e2e/mockSim.ts) has a clock race: when the wall clock is 19:20-19:59 Dhaka the wait passes before the simulator restarts. `live-visual` 1920 failed twice in that window and passed once past 20:00 on the same code. Not edited (BACKLOG).
+
+### Truck verdict
+Usable for waiting and departing trucks at normal /live distance, with reservations; not good close up. The 14,888-tri mesh keeps the silhouette, cab, wheels and chassis, but tyres are visibly faceted, and the rear door panels and side relief are gone (geometry detail, and the normal map was dropped as briefed). Much of the roughness is the source itself: an AI-generated (`tripo_mesh`) fused mesh with a lumpy hood, a door fused ajar and dents in the box, and it is not a Bangladeshi covered van. Not integrated. Before/after: `docs/screens/t11-truck-compare.png`, `-compare-rear.png`, `-wire.png`.
+
+### Commands and results (final tree)
+`pnpm typecheck` pass · `pnpm lint` pass · `pnpm format:check` pass · `pnpm test` 54 files, 1037 tests pass (incl. `scripts/assets/budget.test.mjs`, `src/scene/bay/stagingLayout.test.ts`) · `pnpm i18n:check` ok · `pnpm contract:check` ok (7 json blocks, 0 unmapped) · `pnpm build` pass; 0 `dist` files mention `dev/assets`, `asset-preview`, gstatic, jsdelivr or unpkg; models 977 KB of the 4 MB budget.
+e2e (`E2E_PORT=4173`, SwiftShader). First run `assets`, `live-scene`, `live-visual`: 9 passed, 2 failed (`map controls`, `live-visual` 1920). Re-run of those two alone: `map controls` passed, `live-visual` 1920 failed again (clock race above). Re-run of `live-scene` + `live-visual`: 8 passed (9.9 min). `assets.spec` (3 tests) passed in the first run and was not re-run; only the dev-only preview's lights changed afterwards. Other e2e specs were not run (not in the brief). The e2e rewrote 12 tracked older screenshots; all restored from HEAD.
+Bundle gzip: entry 263 kB, lazy scene 477 kB, MSW chunks 25 + 73 kB (mock only).
+
+### Screenshots
+`docs/screens/t11-{light,dark}-en-1920x1080.png` (Intel UHD), `t11-bay-{light,dark}-en-1920x1080.png`, `t11-before-{light,dark}-en-1920x1080.png` (unmodified baseline), `t11-before-bay-light-en-1920x1080.png` (fallback, same camera), `t11-compare.png`, `t11-assets-{light,dark}.png`, `t11-truck-*.png`. 0 non-localhost requests. The 1366x768 and Bangla views were exercised by e2e, not saved as t11 shots; no 2D layout changed.
+
+## Task 12: scene dropped to the Low tier on a real GPU (uncommitted)
+
+### Root cause (reproduced headed, real Chrome, RTX 3050, 165 Hz panel)
+drei `PerformanceMonitor` counts every step in `flipped`, inclines included, and `flipflops={4}` fired `onFallback` -> `setAutoTier('low')` after the fifth. High was already the top tier, so a fast GPU kept "inclining" every 2.5 s and locked itself to Low. No decline ever fired. Hypothesis 1 (low fps, DevTools, occlusion) was wrong; the same log came with and without DevTools.
+`incline` flipped 1..5 at 105-150 fps, then `FALLBACK` at 113 fps (1920x1080) and 129 fps (1910x902, DevTools). Low then ran at 124-141 fps. The logs also show why warm-up is needed: the first sample after load or a tier step reads 1-3 fps.
+
+### Fix
+- `src/scene/tierGovernor.ts`: pure state machine, replaces PerformanceMonitor. 5 s warm-up, then waits for the models (at most 30 s) and settles 3 s; pauses while hidden or unfocused; 1 s fps windows. Down: High below 40 fps for 6 s, Med below 20 fps for 8 s (80 % of the windows). Up: Low at 40+, Med at 55+ for 10 s. A tier left within 30 s of stepping up to it waits 60 s before a retry, doubling to 30 min.
+- `src/scene/AutoQuality.tsx`: drives it from `useFrame`; React state only on a step. `SceneRoot.onTierChange` reports the tier, so the Low card-blur fallback now follows automatic steps too (closes the BACKLOG item "SceneRoot does not report automatic tier steps").
+- Software-renderer regex is now `swiftshader|llvmpipe|softpipe|microsoft basic render driver`.
+- Dev: `?quality=auto` joins `high|med|low`; `QualityBadge` (bottom centre) and `window.__qualityProbe` exist only in `pnpm dev` and `VITE_DEBUG_PANEL=1` builds (0 mentions in a production `dist`).
+
+### Frame rate (headed Chrome on RTX 3050, Vite dev, last 30 s median of 1 s rAF samples, 60 s+ idle)
+| Viewport | Before (locked Low) | After (High), light | After (High), dark |
+|---|---|---|---|
+| 1920x1080 | not logged | 128 | 119 |
+| 1910x902 | 124-141, DevTools | 139, DevTools | 136 |
+| 1366x768 | - | 161 | - |
+Intel UHD (headless Chromium, default adapter, 100 s): stays on Med at median 47 fps, 0 steps. Its trial of High was not exercised: it never held 55 fps. Single runs; the user's own /live tab may have been open on the same GPU during some of them.
+
+Real frames on the RTX (busy-wait in rAF): 200 ms frames for 3.5 s in warm-up: no drop. 100 ms frames: High -> Med after 5 s, Med -> Low 11 s later. Load removed: Low -> Med after 8 s. rAF at 1 Hz in a page reporting visible and focused (Playwright background tab): held, state warmup. Unfocused: held, state paused.
+
+### Hypotheses and side checks
+- Low look is by design (ADR-13): procedural pallets and slab storage, no jack, no GLB download, no AO. Not a regression.
+- `THREE.Clock` warning: not ours. `new THREE.Clock()` is inside `@react-three/fiber` 9.8.2 (`events-*.esm.js:1207`), and `src/` has none. Needs an R3F release; no change.
+- MSW: `public/mockServiceWorker.js:250` is the passthrough `fetch` of the /live document; it rejects when that request fails. The worker's console does not reach Playwright, so this was read from the source and the user's log, not reproduced. Harmless, vendored, not changed.
+- Framing, not changed: 1910x902 fits the whole depot, smaller and with spare void on the left; 1366x768 fits all seven bays with the tray over the storage rows. Neither is worse than 1920x1080.
+
+### Known limits
+- A page below ~1.25 fps is treated as "browser not drawing" and never steps down. Software rasterisers start at Low, and `?quality=low` remains.
+- A GPU holding 55+ fps on Med but too slow for High (possible on a vsynced 60 Hz panel) tries High for about 9 s, then at growing intervals up to every 30 min.
+- A page that really reports `visibilityState: hidden` was not observed in the runs (Playwright kept it `visible`); covered by unit tests of `active = false`.
+- The hold-time values are judgement calls and tested on this one laptop.
+
+### Open, not in the brief's edit list
+- `docs/02-architecture.md` section 6 rule 4 still names PerformanceMonitor; the BACKLOG item above is still open there.
+- `e2e/live-flicker.spec.ts` fails on this tree and is not caused by this task: `kpi-label` and `kpi-sub` are shared testids, and the spec keys boxes by testid, so it compares different chips with each other. Both files are unchanged from HEAD, where the same testids exist. Fix: unique ids per chip, or leave them out of `LAYOUT`.
+
+### Commands and results
+See the task's final report. Screenshots: `docs/screens/t12-{light,dark}-en-{1920x1080,1910x902}.png`, `t12-light-en-1366x768.png`, `t12-before-light-en-1910x902.png`. The dev badge is visible in the shots. The e2e run rewrote 36 tracked older screenshots; all restored from HEAD.

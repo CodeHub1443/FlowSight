@@ -1,3 +1,4 @@
+import type { PropItem } from '../assets/PropInstances';
 import type { BoxItem, MarkItem } from '../items';
 import type { PaletteKey } from '../materials';
 import { rng } from '../site/random';
@@ -14,14 +15,24 @@ export interface StagingInput {
 }
 
 export interface StagingResult {
+  /** Drawn on every tier: sacks, crates, carton tape. */
   boxes: BoxItem[];
   marks: MarkItem[];
+  /** The procedural pallets and carton bodies: Low tier, and while the GLBs load or if they fail (ADR-13). */
+  procedural: BoxItem[];
+  /** The same pallets and cartons as GLB instances, in the same places. */
+  pallets: PropItem[];
+  cartons: PropItem[];
+  /** One static pallet jack, in a slot this bay's stacks left free. GLB tiers only. */
+  jacks: PropItem[];
 }
 
 // docs/06 D6: chunky toy proportions, slightly oversized on purpose (a real pallet is 1.2 x 1.0 m).
 export const PALLET: readonly [number, number] = [1.5, 1.25];
 export const PALLET_H = 0.2;
 const DECK = 0.07;
+/** Pallet jack extents (m): the model's 0.70 x 1.52 x 1.26 at the same 1.2 oversize as the pallets. */
+export const JACK: readonly [number, number, number] = [0.84, 1.82, 1.51];
 
 type Rot = (dx: number, dy: number) => [number, number];
 
@@ -114,6 +125,31 @@ export function buildStaging(input: StagingInput): StagingResult {
   const r = rng(input.seed);
   const boxes: BoxItem[] = [];
   const marks: MarkItem[] = [];
+  const procedural: BoxItem[] = [];
+  const pallets: PropItem[] = [];
+  const cartons: PropItem[] = [];
+  const addPallet = (
+    x: number,
+    y: number,
+    z: number,
+    tone: PaletteKey,
+    yaw: number,
+    top: boolean,
+  ) => {
+    procedural.push(...pallet(x, y, z, tone, yaw, top));
+    pallets.push({ at: [x, y, z], size: [PALLET[0], PALLET[1], PALLET_H], yaw, tone });
+  };
+  const addCarton = (
+    at: readonly [number, number, number],
+    size: readonly [number, number, number],
+    yaw: number,
+    shade: number,
+  ) => {
+    const [body, tape] = carton(at, size, yaw, shade);
+    if (body) procedural.push(body);
+    if (tape) boxes.push(tape);
+    cartons.push({ at: [at[0], at[1], at[2] - size[2] / 2], size, yaw, tone: 'carton', shade });
+  };
   const half = Math.min(-input.x[0], input.x[1]);
   const palletTones: PaletteKey[] = [
     'palletBlue',
@@ -134,29 +170,25 @@ export function buildStaging(input: StagingInput): StagingResult {
       // stack of empty plastic pallets
       const n = 3 + Math.floor(r() * 3);
       for (let i = 0; i < n; i++) {
-        boxes.push(
-          ...pallet(x, y, z, i === n - 1 ? baseTone : pick(palletTones), yaw, i === n - 1),
-        );
+        addPallet(x, y, z, i === n - 1 ? baseTone : pick(palletTones), yaw, i === n - 1);
         z += PALLET_H;
       }
     } else if (kind < 0.75) {
       // pallet of cartons
-      boxes.push(...pallet(x, y, 0, baseTone, yaw, false));
+      addPallet(x, y, 0, baseTone, yaw, false);
       z = PALLET_H;
       const layers = 2 + Math.floor(r() * 2);
       for (let l = 0; l < layers; l++) {
         for (const dx of [-0.36, 0.36]) {
           for (const dy of [-0.3, 0.3]) {
-            boxes.push(
-              ...carton([...at(dx, dy), z + 0.18], [0.7, 0.58, 0.36], yaw, 0.94 + r() * 0.1),
-            );
+            addCarton([...at(dx, dy), z + 0.18], [0.7, 0.58, 0.36], yaw, 0.94 + r() * 0.1);
           }
         }
         z += 0.36;
       }
     } else {
       // pallet of white sacks with a coloured band: soft pillows, not boxes
-      boxes.push(...pallet(x, y, 0, baseTone, yaw, false));
+      addPallet(x, y, 0, baseTone, yaw, false);
       z = PALLET_H;
       const layers = 3 + Math.floor(r() * 2);
       for (let l = 0; l < layers; l++) {
@@ -238,5 +270,10 @@ export function buildStaging(input: StagingInput): StagingResult {
       }
     }
   }
-  return { boxes, marks };
+  // the first slot no stack took; never draws from the seeded stream, so the stacks stay where they were
+  const spare = slots[0];
+  const jacks: PropItem[] = spare
+    ? [{ at: [spare[0], spare[1], 0], size: JACK, yaw: (input.seed % 2 ? 1 : -1) * 0.18 }]
+    : [];
+  return { boxes, marks, procedural, pallets, cartons, jacks };
 }

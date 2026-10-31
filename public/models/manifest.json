@@ -1,0 +1,138 @@
+{
+  "totalBytes": 1000720,
+  "assets": {
+    "box_brown_b28": {
+      "file": "box_brown_b28.c7f09e747f.glb",
+      "kind": "box",
+      "bytes": 3452,
+      "tris": 99,
+      "trisSource": 15936,
+      "source": "simready/box_corrugated_brown_b28/simready_usd/sm_box_corrugated_brown_b28_01.usd",
+      "sourceBytes": 54600916,
+      "sizeM": [0.221, 0.153, 0.293],
+      "tones": ["carton"],
+      "textured": false
+    },
+    "box_white_a11": {
+      "file": "box_white_a11.705c29e05c.glb",
+      "kind": "box",
+      "bytes": 3420,
+      "tris": 100,
+      "trisSource": 5122,
+      "source": "Warehouse_NVD@10013/Assets/DigitalTwin/Assets/Warehouse/Shipping/Cardboard_Boxes/White_A/WhiteCorrugatedBox_A11_46x47x47cm_PR_NVD_01.usd",
+      "sourceBytes": 87101627,
+      "sizeM": [0.458, 0.466, 0.469],
+      "tones": ["sack"],
+      "textured": false
+    },
+    "crate": {
+      "file": "crate.5ae782c1e7.glb",
+      "kind": "crate",
+      "bytes": 15764,
+      "tris": 798,
+      "trisSource": 19858,
+      "source": "Warehouse_NVD@10013/Assets/DigitalTwin/Assets/Warehouse/Storage/Containers/Container_C/Container_C03_60x40x36cm_PR_V_NVD_01.usd",
+      "sourceBytes": 18593037,
+      "sizeM": [0.6, 0.34, 0.4],
+      "tones": ["palletBlue"],
+      "textured": false
+    },
+    "forklift": {
+      "file": "forklift.c0dc19bba5.glb",
+      "kind": "forklift",
+      "bytes": 197580,
+      "tris": 9989,
+      "trisSource": 1007107,
+      "source": "Warehouse_NVD@10013/Assets/DigitalTwin/Assets/Warehouse/Equipment/Forklifts/Forklift_C/Forklift_C01_PR_V_NVD_01.usd",
+      "sourceBytes": 511631621,
+      "sizeM": [1.359, 2.163, 3.732],
+      "tones": ["belt", "brand", "brandLight", "ink600", "metal"],
+      "textured": false
+    },
+    "pallet_assembly_a03": {
+      "file": "pallet_assembly_a03.a5c868d129.glb",
+      "kind": "pallet",
+      "bytes": 28896,
+      "tris": 1498,
+      "trisSource": 102247,
+      "source": "simready/pallet_assembly_a03/simready_usd/sm_pallet_assembly_a03_01.usd",
+      "sourceBytes": 95039057,
+      "sizeM": [0.895, 0.606, 0.901],
+      "tones": ["carton", "palletBlue"],
+      "textured": false
+    },
+    "pallet_b01": {
+      "file": "pallet_b01.cfcf2277c8.glb",
+      "kind": "pallet",
+      "bytes": 20592,
+      "tris": 1100,
+      "trisSource": 2160,
+      "source": "simready/pallet_b01/simready_usd/sm_pallet_b01_01.usd",
+      "sourceBytes": 26548940,
+      "sizeM": [1.21, 0.208, 1.002],
+      "tones": ["palletBlue"],
+      "textured": false
+    },
+    "pallet_b01_far": {
+      "file": "pallet_b01_far.fd0bfa7282.glb",
+      "kind": "pallet",
+      "bytes": 4884,
+      "tris": 192,
+      "trisSource": 2160,
+      "source": "simready/pallet_b01/simready_usd/sm_pallet_b01_01.usd",
+      "sourceBytes": 26548940,
+      "sizeM": [1.208, 0.207, 1.001],
+      "tones": ["palletBlue"],
+      "textured": false
+    },
+    "pallet_jack": {
+      "file": "pallet_jack.69c30dd8d0.glb",
+      "kind": "palletJack",
+      "bytes": 83584,
+      "tris": 3989,
+      "trisSource": 193011,
+      "source": "simready/palletJack_scale_a01/simready_usd/sm_palletJack_scale_a01_01.usd",
+      "sourceBytes": 23411902,
+      "sizeM": [0.704, 1.26, 1.517],
+      "tones": ["belt", "ink600", "metal", "palletYellow"],
+      "textured": false
+    },
+    "pallet_rackable_solid_a01": {
+      "file": "pallet_rackable_solid_a01.7a33dd46b7.glb",
+      "kind": "pallet",
+      "bytes": 26436,
+      "tris": 1500,
+      "trisSource": 22524,
+      "source": "Warehouse_NVD@10013/Assets/DigitalTwin/Assets/Warehouse/Shipping/Pallets/Plastic/SolidTopRackable_A/SolidTopRackablePallet_A01_PR_V_NVD_01.usd",
+      "sourceBytes": 5539474,
+      "sizeM": [1, 0.159, 1.238],
+      "tones": ["palletBlue"],
+      "textured": false
+    },
+    "scanner": {
+      "file": "scanner.80fa592ad6.glb",
+      "kind": "scanner",
+      "bytes": 26700,
+      "tris": 1478,
+      "trisSource": 72947,
+      "source": "Warehouse_NVD@10013/Assets/DigitalTwin/Assets/Warehouse/Electronics/Barcode/Scanner_A/BarcodeScanner_A01_01.usd",
+      "sourceBytes": 58461994,
+      "sizeM": [0.082, 0.174, 0.123],
+      "tones": ["ink600"],
+      "textured": false
+    },
+    "truck": {
+      "file": "truck.a173d68fc7.glb",
+      "kind": "truck",
+      "bytes": 589412,
+      "tris": 14888,
+      "trisSource": 461312,
+      "source": "simready/box truck 3d model.usdz",
+      "sourceBytes": 20535485,
+      "sizeM": [2.18, 2.431, 7.484],
+      "tones": ["truckTexture"],
+      "textured": true,
+      "axlesBeforeOrigin": [-2.0776, -1.216, 2.6746]
+    }
+  }
+}

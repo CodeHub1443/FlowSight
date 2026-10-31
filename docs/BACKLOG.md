@@ -27,7 +27,12 @@ Spec: `docs/06-visual-language.md`. Evidence: `docs/screens/step-merge-02-live-1
 - [ ] Task 04A · ~250 hygiene events/day → group alerts per visit in UI · step 9
 
 ## P1 — Next build steps
-- [ ] user · use NVIDIA SimReady assets (ADR-12): forklift, plastic pallets, crates, cartons, pallet truck, barcode scanner → asset pipeline task before step 7; CC-BY-4.0 attribution
+- [x] user · use NVIDIA SimReady assets (ADR-12): forklift, plastic pallets, crates, cartons, pallet truck, barcode scanner → asset pipeline task before step 7; CC-BY-4.0 attribution — pipeline done in Task 11 (ADR-13); attribution still open below
+- [ ] Task 11 · integrate the converted forklift, scanner and crate models into the live scene (converted, shown in `/dev/assets` only) · step 7
+- [ ] Task 11 · waiting and departing trucks: integrate `truck` GLB (exterior only, no opening doors; see the verdict in PROGRESS Task 11) · step 7
+- [ ] Task 11 · docked trucks need a procedural open-rear van: the truck model has no opening doors · step 7
+- [ ] Task 11 · optional: a purpose-built truck model (BD covered van), because the supplied mesh is AI-generated, lumpy up close and not a local vehicle · client decision
+- [ ] Task 11 · `docs/ATTRIBUTION.md` and the About dialog (ADR-12) were not written: licensing was out of scope by owner decision; source paths are in `public/models/manifest.json`
 - [ ] Task 07A · default Floor overview leaves a large empty band above the dock wall and storage fills the bottom → tighter framing
 - [ ] Task 07A · SCENE_SAFE_AREA top must be 160 (top bar + KPI row), bottom must account for the visit tracker (or collapse it by default)
 - [ ] step 7 · actors: trucks (BD covered van), people (captain full vest + scanner, worker cross-vest), forklifts, items on belts — built in the docs/06 style from the start
@@ -39,6 +44,8 @@ Spec: `docs/06-visual-language.md`. Evidence: `docs/screens/step-merge-02-live-1
 - [ ] Task 08 · Bangla turnaround KPI delta (`↑ ৭ মিনিট`) wraps to two lines inside the chip at 1920 → nowrap / shorter unit (`docs/screens/merge-03-live-1920x1080-bn-light.png`)
 
 ## P2
+- [ ] Task 11 · `e2e/mockSim.ts` `startPeak` waits for a clock matching `19:[2-5]x`, which the wall clock itself satisfies from 19:20 to 19:59 Dhaka, so tests can select a truck before the restart wipes it → wait on the peak date or a restart signal
+- [ ] Task 11 · GLB cartons have sharp edges against docs/06 D6 rounding (100-tri budget) → user decision after `docs/screens/t11-bay-light-en-1920x1080.png`
 - [ ] Task 05 · e2e ~7 min on 1 worker (CPU WebGL) → tag scene specs, `pnpm e2e:fast` · step 14
 - [ ] Task 04B · inspector scrolls at 1366×768 with no fade hint · step 14
 - [ ] Task 06 · internal /__mock/presence route has no role check · step 12

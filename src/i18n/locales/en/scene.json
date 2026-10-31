@@ -7,6 +7,11 @@
     "apron": "Apron"
   },
   "dev": {
+    "assetsTitle": "Asset preview",
+    "assetTris": "{{tris}} tris (source {{source}})",
+    "assetSize": "{{kb}} KB · {{size}} m",
+    "assetRaw": "Source mesh (raw)",
+    "assetRawTris": "{{tris}} tris",
     "title": "Scene preview",
     "bay": "Bay",
     "light": "Light",

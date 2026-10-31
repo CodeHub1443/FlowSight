@@ -1,0 +1,168 @@
+{
+  "$comment": "Source mesh path + material name (lower case; `match` is a case-insensitive substring, first rule wins) -> scene palette token (PaletteKey in src/scene/materials.ts). The token is written as the glTF material name, so the runtime paints each primitive from the live palette and both themes stay in docs/06. `default` catches the rest of that asset. `drop: true` removes the matching source faces.",
+  "pallet_b01": {
+    "default": "palletBlue"
+  },
+  "pallet_b01_far": {
+    "default": "palletBlue"
+  },
+  "pallet_assembly_a03": {
+    "default": "carton"
+  },
+  "pallet_rackable": {
+    "default": "palletBlue"
+  },
+  "box_brown": {
+    "rules": [
+      {
+        "match": "decals",
+        "drop": true
+      },
+      {
+        "match": "tape",
+        "drop": true
+      }
+    ],
+    "default": "carton"
+  },
+  "box_white": {
+    "rules": [
+      {
+        "match": "decal_",
+        "drop": true
+      },
+      {
+        "match": "scotch",
+        "drop": true
+      }
+    ],
+    "default": "sack"
+  },
+  "pallet_jack": {
+    "rules": [
+      {
+        "match": "decals",
+        "drop": true
+      },
+      {
+        "match": "screen",
+        "tone": "ink600"
+      },
+      {
+        "match": "plastic",
+        "tone": "ink600"
+      },
+      {
+        "match": "rubber",
+        "tone": "belt"
+      },
+      {
+        "match": "yellow_painted",
+        "tone": "palletYellow"
+      },
+      {
+        "match": "painted",
+        "tone": "metal"
+      },
+      {
+        "match": "steel",
+        "tone": "metal"
+      }
+    ],
+    "default": "metal"
+  },
+  "forklift": {
+    "rules": [
+      {
+        "match": "decals",
+        "drop": true
+      },
+      {
+        "match": "mastchain",
+        "drop": true
+      },
+      {
+        "match": "maststagewheel",
+        "drop": true
+      },
+      {
+        "match": "hose",
+        "drop": true
+      },
+      {
+        "match": "gearstick",
+        "drop": true
+      },
+      {
+        "match": "rearaxle",
+        "drop": true
+      },
+      {
+        "match": "_mirror",
+        "drop": true
+      },
+      {
+        "match": "_lights",
+        "tone": "ink600"
+      },
+      {
+        "match": "_glass",
+        "tone": "brandLight"
+      },
+      {
+        "match": "_wheel",
+        "tone": "belt"
+      },
+      {
+        "match": "operatorchair",
+        "tone": "belt"
+      },
+      {
+        "match": "steeringwheel",
+        "tone": "belt"
+      },
+      {
+        "match": "_fork0",
+        "tone": "belt"
+      },
+      {
+        "match": "forcer",
+        "tone": "ink600"
+      },
+      {
+        "match": "_mast",
+        "tone": "ink600"
+      },
+      {
+        "match": "_body02",
+        "tone": "brand"
+      }
+    ],
+    "default": "metal"
+  },
+  "crate": {
+    "rules": [
+      {
+        "match": "_cover",
+        "drop": true
+      }
+    ],
+    "default": "palletBlue"
+  },
+  "scanner": {
+    "rules": [
+      {
+        "match": "_cable",
+        "drop": true
+      },
+      {
+        "match": "_stand",
+        "drop": true
+      }
+    ],
+    "default": "ink600"
+  },
+  "truck": {
+    "default": "truckTexture"
+  }
+}
