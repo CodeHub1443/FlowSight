@@ -23,15 +23,15 @@ export const TONE_TINT: Record<Tone, string> = {
   info: 'bg-info-bg',
 };
 
-/** Coloured text on a tinted background or on a card. Idle/offline use ink: their colour is too pale for text. */
+/** Coloured text on a tinted background or on a card (`*-ink` tokens, WCAG AA). Idle/offline use ink: too pale. */
 export const TONE_TEXT: Record<Tone, string> = {
-  ok: 'text-ok',
-  warn: 'text-warn',
-  critical: 'text-critical',
-  neutral: 'text-neutral',
+  ok: 'text-ok-ink',
+  warn: 'text-warn-ink',
+  critical: 'text-critical-ink',
+  neutral: 'text-neutral-ink',
   idle: 'text-ink-400',
   offline: 'text-ink-400',
-  info: 'text-info',
+  info: 'text-info-ink',
 };
 
 export const TONE_BAR: Record<Tone, string> = TONE_DOT;

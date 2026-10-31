@@ -26,7 +26,7 @@ describe('pill anchors', () => {
     const b04 = layout.bays.find((b) => b.id === 'B04');
     const a = selectionPillAnchor(layout, 'B04');
     expect(a?.[0]).toBeCloseTo(b04?.door.X ?? NaN, 6);
-    expect(a?.[1]).toBeCloseTo(layout.floorLevel + 2.5, 6);
+    expect(a?.[1]).toBeCloseTo(layout.floorLevel + 3.4, 6);
     expect(a?.[2]).toBeCloseTo((b04?.door.Z ?? NaN) - 8, 6);
     expect(selectionPillAnchor(layout, 'B99')).toBeNull();
     expect(bayPillAnchor(layout, 'B99')).toBeNull();

@@ -93,7 +93,7 @@ export function AlertBell() {
         ))}
         <DropdownMenuSeparator />
         <DropdownMenuItem
-          className="text-info justify-center text-[13px] font-medium"
+          className="text-info-ink justify-center text-[13px] font-medium"
           onSelect={() => void navigate('/events')}
         >
           {t('bell.viewAll')}

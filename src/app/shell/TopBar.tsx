@@ -14,7 +14,7 @@ export function TopBar() {
   return (
     <header
       data-testid="top-bar"
-      className="bg-card border-hairline relative z-30 flex h-14 shrink-0 items-center gap-4 border-b px-6 shadow-topbar"
+      className="bg-topbar border-hairline shadow-topbar relative z-30 flex h-14 shrink-0 items-center gap-4 border-b px-6 backdrop-blur-[var(--topbar-blur)]"
     >
       <Link to="/live" className="flex shrink-0 items-center gap-2.5">
         <img src="/brand/unilever-logo.svg" alt={t('app.logoAlt')} className="h-8" />

@@ -1,7 +1,8 @@
 import { MeshStandardMaterial } from 'three';
 
-// Scene palette. The token values are docs/06-visual-language.md section 1 (binding) and are mirrored by the CSS
-// tokens in src/index.css; `materials.test.ts` parses the docs/06 table and fails if a fallback below drifts.
+// Scene palette. The token values are docs/06-visual-language.md section 1 with the section 7 overrides (light) and
+// section 8 (dark), all binding, and are mirrored by the CSS tokens in src/index.css; `materials.test.ts` parses
+// docs/06 and fails if a fallback below drifts.
 // Every other scene colour is derived from these tokens (see `derive`), so nothing outside this file is a literal
 // colour. Site facade colours are physical paint and come from config (the one allowed exception).
 
@@ -41,6 +42,32 @@ export interface PaletteTokens {
   statusIdle: string;
   statusOffline: string;
   statusInfo: string;
+  // docs/06 section 7 (D2-D8) and section 8
+  zone: string;
+  zoneLine: string;
+  aisle: string;
+  aisleLine: string;
+  wallRib: string;
+  wallTop: string;
+  eaveTop: string;
+  conveyor: string;
+  conveyorTop: string;
+  beltStripe: string;
+  beltTick: string;
+  sack: string;
+  selectionPill: string;
+  pillBg: string;
+  pillFg: string;
+  pillBorder: string;
+  hemiSky: string;
+  hemiGround: string;
+  keyLight: string;
+  rimLight: string;
+  workLight: string;
+  aoColor: string;
+  contactShade: string;
+  vignette: string;
+  voidGlow: string;
 }
 
 /** Scene colours derived from the tokens (mixes only, no new literals). */
@@ -49,25 +76,19 @@ export interface DerivedColors {
   cabinet: string;
   motor: string;
   motorGrille: string;
-  sack: string;
   sackBand: string;
   crate: string;
   shutter: string;
   seal: string;
   leveller: string;
+  doorFrame: string;
   column: string;
   paintWhite: string;
   workZone: string;
   hover: string;
   selection: string;
-  /** Tint of ambient occlusion and contact shadows: a dark blue, never black. */
+  /** Tint of cast shadows on the void: periwinkle or navy, never black. */
   shade: string;
-  /** Light colours: white key and softbox, cool periwinkle sky fill (theme-independent; the dark theme darkens
-   *  surfaces, not the lights). */
-  keyLight: string;
-  /** Hemisphere light: sky and ground. */
-  skyFill: string;
-  groundFill: string;
 }
 
 export type ScenePalette = PaletteTokens & DerivedColors;
@@ -81,14 +102,14 @@ const STATUS_EXTRA = {
   statusInfo: '#2C6FED',
 } as const;
 
-/** docs/06 section 1, light theme (exact values). */
+/** docs/06 section 1 with the section 7 overrides, light theme (exact values). */
 export const LIGHT_TOKENS: PaletteTokens = {
   void: '#E6ECFA',
-  floor: '#EEF2FC',
+  floor: '#E8ECF8',
   floorLine: '#D4DEF7',
   apron: '#DCE4F8',
   walkline: '#F2C94C',
-  wall: '#F7F9FE',
+  wall: '#F3F6FE',
   wallAccent: '#3D6AE4',
   brand: '#2C6FED',
   brandLight: '#5193F3',
@@ -99,56 +120,106 @@ export const LIGHT_TOKENS: PaletteTokens = {
   palletYellow: '#F5C542',
   palletOrange: '#F59E5B',
   metal: '#C9D2E3',
-  belt: '#2E3445',
-  statusOk: '#22AF5B',
+  belt: '#3A4A73',
+  statusOk: '#1FA653',
   okBg: '#E3F6EA',
-  statusWarn: '#E8890C',
+  statusWarn: '#D87C00',
   warnBg: '#FFF1DF',
   statusCritical: '#E5484D',
   criticalBg: '#FDE8E8',
   ink900: '#0F172A',
   ink600: '#475569',
-  ink400: '#94A3B8',
+  ink400: '#5F6E85',
   card: '#FFFFFF',
   ...STATUS_EXTRA,
+  zone: '#D7E2FA',
+  zoneLine: '#F2C94C',
+  aisle: '#C9D7F7',
+  aisleLine: '#F2C94C',
+  wallRib: '#DCE4F8',
+  wallTop: '#F7F9FE',
+  eaveTop: '#6EA7F9',
+  conveyor: '#2C6FED',
+  conveyorTop: '#5193F3',
+  beltStripe: '#4A5C8A',
+  beltTick: '#64769F',
+  sack: '#F7F9FE',
+  selectionPill: '#2C5BD8',
+  pillBg: '#FFFFFF',
+  pillFg: '#0F172A',
+  pillBorder: '#0F172A',
+  hemiSky: '#C4DAFC',
+  hemiGround: '#9FB4F0',
+  keyLight: '#FFF6EC',
+  rimLight: '#C4DAFC',
+  workLight: '#FFE3B0',
+  aoColor: '#8EA6EC',
+  contactShade: '#7F98E6',
+  vignette: '#C7D3F5',
+  voidGlow: '#E6ECFA',
 };
 
 /**
- * Dark "control room" theme: the `.dark` block of src/index.css (docs/06 fixes void `#0B1222`, floor `#141C2F` and
- * card `#121A2B`; the rest are the CSS dark values). `materials.test.ts` checks both sides of the mirror.
+ * Dark "night shift" theme: docs/06 section 8, mirrored by the `.dark` block of src/index.css. The translucent pill
+ * and row fills of section 8.4 are stored composited over the card, so every token stays a plain hex colour.
  */
 export const DARK_TOKENS: PaletteTokens = {
-  void: '#0B1222',
-  floor: '#141C2F',
-  floorLine: '#223052',
-  apron: '#111A2E',
-  walkline: '#D9B23F',
-  wall: '#1A2338',
-  wallAccent: '#4C79EE',
+  void: '#0E1730',
+  floor: '#1E2E58',
+  floorLine: '#3A5596',
+  apron: '#17244A',
+  walkline: '#E8B93C',
+  wall: '#2A3B68',
+  wallAccent: '#3E73FF',
   brand: '#4C86F5',
   brandLight: '#6FA0F7',
   brandTint: '#172A4F',
-  carton: '#B99673',
-  cartonTape: '#A8825C',
-  palletBlue: '#3A6FDA',
-  palletYellow: '#D8AE3C',
-  palletOrange: '#D98A52',
-  metal: '#59647C',
-  belt: '#2A2F3D',
-  statusOk: '#34C56F',
-  okBg: '#11301F',
-  statusWarn: '#F2A33A',
-  warnBg: '#3A2810',
-  statusCritical: '#F0676B',
-  criticalBg: '#3B1619',
-  ink900: '#E8EDF8',
-  ink600: '#A4B0C8',
-  ink400: '#6C7A96',
-  card: '#121A2B',
-  statusNeutral: '#8E9BB3',
-  statusIdle: '#4A5670',
-  statusOffline: '#6C7A96',
-  statusInfo: '#4C86F5',
+  carton: '#C99D72',
+  cartonTape: '#B0845C',
+  palletBlue: '#4A7FF5',
+  palletYellow: '#E8B93C',
+  palletOrange: '#E98A4F',
+  metal: '#8A9BC4',
+  belt: '#2B3863',
+  statusOk: '#3DDC84',
+  okBg: '#1C3A48',
+  statusWarn: '#FFB547',
+  warnBg: '#37353F',
+  statusCritical: '#FF6B6B',
+  criticalBg: '#3B2C45',
+  ink900: '#E8EDFF',
+  ink600: '#A3B0D6',
+  ink400: '#98A5CA',
+  card: '#16203E',
+  statusNeutral: '#A3B0D6',
+  statusIdle: '#4A5A8A',
+  statusOffline: '#6F7DA6',
+  statusInfo: '#7EA2FF',
+  zone: '#25386A',
+  zoneLine: '#3A5596',
+  aisle: '#1A2850',
+  aisleLine: '#AA8E42',
+  wallRib: '#344777',
+  wallTop: '#3B5190',
+  eaveTop: '#6E95FF',
+  conveyor: '#4C7DFF',
+  conveyorTop: '#6E95FF',
+  beltStripe: '#3A4A7E',
+  beltTick: '#5266A6',
+  sack: '#D9E1F2',
+  selectionPill: '#3468F0',
+  pillBg: '#1C2A55',
+  pillFg: '#E8EDFF',
+  pillBorder: '#8CA5FF',
+  hemiSky: '#6F86C9',
+  hemiGround: '#1A2650',
+  keyLight: '#B9C8FF',
+  rimLight: '#7EA2FF',
+  workLight: '#FFE3B0',
+  aoColor: '#0A1330',
+  contactShade: '#0F1A3A',
+  vignette: '#0E1730',
+  voidGlow: '#16244A',
 };
 
 /** Mix two hex colours, `t` = share of `b`. */
@@ -174,22 +245,20 @@ export function derive(p: PaletteTokens, theme: SceneTheme): ScenePalette {
     cabinet: p.metal,
     motor: p.palletYellow,
     motorGrille: mixHex(p.palletYellow, p.belt, 0.5),
-    // physical white goods stay light in the dark theme, a little dimmed
-    sack: dark ? mixHex(LIGHT_TOKENS.wall, p.metal, 0.35) : p.wall,
     sackBand: p.brandLight,
     crate: p.palletBlue,
     shutter: mixHex(p.wall, p.metal, 0.6),
-    seal: mixHex(p.belt, p.metal, 0.18),
+    // docs/06 D4: no dark gaps around the door openings
+    seal: mixHex(p.apron, p.metal, 0.6),
     leveller: p.metal,
+    // docs/06 D5 (--brand-500) and section 8.1 (dock band / frames: --scene-wall-accent)
+    doorFrame: dark ? p.wallAccent : p.brand,
     column: mixHex(p.wall, p.metal, 0.55),
     paintWhite: dark ? mixHex(p.floor, LIGHT_TOKENS.card, 0.35) : p.card,
-    workZone: mixHex(p.floor, p.statusIdle, dark ? 0.12 : 0.32),
+    workZone: mixHex(p.zone, p.statusIdle, dark ? 0.2 : 0.4),
     hover: p.brandLight,
     selection: p.statusInfo,
-    shade: mixHex(p.belt, p.brand, 0.22),
-    keyLight: LIGHT_TOKENS.card,
-    skyFill: mixHex(LIGHT_TOKENS.brandTint, LIGHT_TOKENS.brandLight, 0.25),
-    groundFill: mixHex(p.floor, p.brand, 0.08),
+    shade: p.contactShade,
   };
 }
 
@@ -228,6 +297,31 @@ export const CSS_TOKENS: readonly (readonly [keyof PaletteTokens, string])[] = [
   ['statusIdle', '--status-idle'],
   ['statusOffline', '--status-offline'],
   ['statusInfo', '--status-info'],
+  ['zone', '--scene-zone'],
+  ['zoneLine', '--scene-zone-line'],
+  ['aisle', '--scene-aisle'],
+  ['aisleLine', '--scene-aisle-line'],
+  ['wallRib', '--scene-wall-rib'],
+  ['wallTop', '--scene-wall-top'],
+  ['eaveTop', '--scene-eave-top'],
+  ['conveyor', '--conveyor-frame'],
+  ['conveyorTop', '--conveyor-top'],
+  ['beltStripe', '--belt-stripe'],
+  ['beltTick', '--belt-tick'],
+  ['sack', '--sack'],
+  ['selectionPill', '--selection-pill'],
+  ['pillBg', '--scene-pill-bg'],
+  ['pillFg', '--scene-pill-fg'],
+  ['pillBorder', '--scene-pill-border'],
+  ['hemiSky', '--scene-hemi-sky'],
+  ['hemiGround', '--scene-hemi-ground'],
+  ['keyLight', '--scene-key-light'],
+  ['rimLight', '--scene-rim-light'],
+  ['workLight', '--scene-work-light'],
+  ['aoColor', '--scene-ao'],
+  ['contactShade', '--scene-contact-shade'],
+  ['vignette', '--scene-vignette'],
+  ['voidGlow', '--scene-void-glow'],
 ];
 
 /**
@@ -306,13 +400,41 @@ export function finishOf(tone: PaletteKey): Finish {
   }
 }
 
+/** Emissive intensity of a palette colour (docs/06 section 8.1-8.3): only the dark theme glows. */
+export function emissiveOf(tone: PaletteKey, theme: SceneTheme): number {
+  if (theme !== 'dark') return 0;
+  switch (tone) {
+    case 'wallAccent':
+    case 'eaveTop':
+    case 'doorFrame':
+      return 0.15;
+    case 'conveyor':
+    case 'conveyorTop':
+      return 0.08;
+    case 'statusOk':
+    case 'statusWarn':
+    case 'statusNeutral':
+    case 'statusIdle':
+    case 'statusOffline':
+    case 'statusCritical':
+      return 0.6;
+    default:
+      return 0;
+  }
+}
+
 /** One shared MeshStandardMaterial per palette colour, for the few non-instanced meshes (floor, plates). */
 export type SceneMaterials = Record<PaletteKey, MeshStandardMaterial>;
 
-export function createMaterials(p: ScenePalette): SceneMaterials {
+export function createMaterials(p: ScenePalette, theme: SceneTheme = 'light'): SceneMaterials {
   const out = {} as Record<PaletteKey, MeshStandardMaterial>;
   for (const key of Object.keys(p) as PaletteKey[]) {
-    out[key] = new MeshStandardMaterial({ color: p[key], ...finishOf(key) });
+    out[key] = new MeshStandardMaterial({
+      color: p[key],
+      emissive: p[key],
+      emissiveIntensity: emissiveOf(key, theme),
+      ...finishOf(key),
+    });
   }
   return out;
 }

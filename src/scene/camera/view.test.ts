@@ -53,14 +53,14 @@ function project(
 }
 
 describe('SCENE_SAFE_AREA', () => {
-  it('is the agreed card layout (top 160, right column 360 + 24 gap, collapsed tracker 88, left 24)', () => {
-    expect(SCENE_SAFE_AREA).toEqual({ top: 160, right: 384, bottom: 88, left: 24 });
+  it('is the agreed card layout (top 120, right column 360 + 24 gap, collapsed tracker 88, left 24)', () => {
+    expect(SCENE_SAFE_AREA).toEqual({ top: 120, right: 384, bottom: 88, left: 24 });
     expect(Object.isFrozen(SCENE_SAFE_AREA)).toBe(true);
   });
 
   it('moves the optical axis to the centre of the safe rectangle, keeping the canvas fov and aspect', () => {
     const fit = viewFit(1920, 1080, SCENE_SAFE_AREA);
-    expect(fit.centre).toEqual({ x: 24 + (1920 - 408) / 2, y: 160 + (1080 - 248) / 2 });
+    expect(fit.centre).toEqual({ x: 24 + (1920 - 408) / 2, y: 120 + (1080 - 208) / 2 });
     const o = fit.offset;
     if (!o) throw new Error('expected a view offset');
     expect(o.fullWidth / o.fullHeight).toBeCloseTo(1920 / 1080, 9);
@@ -88,40 +88,54 @@ describe('SCENE_SAFE_AREA', () => {
     }
   });
 
-  it('keeps every bay, B01 and B07 included, clear of the cards in the default view at 1920x1080 and 1366x768', () => {
-    for (const [w, h] of CANVASES) {
-      const { camera, fit } = cameraFor(w, h);
-      const { top, right, bottom, left } = fit.insets;
-      for (const bay of layout.bays) {
-        const half = bay.pitch / 2 - 0.2;
-        // door band top corners, belt tip, staging far corners
-        for (const p of [
-          [-half, 0, 4.8],
-          [half, 0, 4.8],
-          [0, 0.5, 0.8],
-          [-half, 16, 0],
-          [half, 16, 0],
-        ] as [number, number, number][]) {
-          const px = project(camera, w, h, bay.id, p);
-          expect(px.x, `${bay.id} ${p.join(',')} @ ${w}`).toBeGreaterThanOrEqual(left);
-          expect(px.x, `${bay.id} ${p.join(',')} @ ${w}`).toBeLessThanOrEqual(w - right);
-          expect(px.y, `${bay.id} ${p.join(',')} @ ${w}`).toBeGreaterThanOrEqual(top);
-          expect(px.y, `${bay.id} ${p.join(',')} @ ${w}`).toBeLessThanOrEqual(h - bottom);
+  for (const preset of ['floorOverview', 'plan']) {
+    it(`keeps every bay, B01 and B07 included, clear of the cards in ${preset} at 1920x1080 and 1366x768`, () => {
+      for (const [w, h] of CANVASES) {
+        const { camera, fit } = cameraFor(w, h, preset);
+        const { top, right, bottom, left } = fit.insets;
+        for (const bay of layout.bays) {
+          const half = bay.pitch / 2 - 0.2;
+          // eave top corners, belt tip, staging far corners
+          for (const p of [
+            [-half, 0, 5.2],
+            [half, 0, 5.2],
+            [0, 0.5, 0.8],
+            [-half, 16, 0],
+            [half, 16, 0],
+          ] as [number, number, number][]) {
+            const px = project(camera, w, h, bay.id, p);
+            expect(px.x, `${bay.id} ${p.join(',')} @ ${w}`).toBeGreaterThanOrEqual(left);
+            expect(px.x, `${bay.id} ${p.join(',')} @ ${w}`).toBeLessThanOrEqual(w - right);
+            expect(px.y, `${bay.id} ${p.join(',')} @ ${w}`).toBeGreaterThanOrEqual(top);
+            expect(px.y, `${bay.id} ${p.join(',')} @ ${w}`).toBeLessThanOrEqual(h - bottom);
+          }
         }
+      }
+    });
+  }
+
+  it('recedes along the diagonal in the hero view: B07 nearest on the left, B01 furthest on the right', () => {
+    for (const [w, h] of CANVASES) {
+      const { camera } = cameraFor(w, h);
+      const px = layout.bays.map((b) => project(camera, w, h, b.id, [0, 0, 5.2]));
+      for (let i = 1; i < px.length; i++) {
+        const [east = { x: 0, y: 0 }, west = { x: 0, y: 0 }] = [px[i], px[i - 1]];
+        expect(east.x, `step ${i} @ ${w}`).toBeLessThan(west.x);
+        expect(east.y, `step ${i} @ ${w}`).toBeGreaterThan(west.y);
       }
     }
   });
 
-  it('frames the dock wall at the top of the safe area and leaves storage mostly out of frame', () => {
+  it('frames the dock wall at the top of the safe area in Plan and leaves the far floor out of frame', () => {
     for (const [w, h] of CANVASES) {
-      const { camera, fit } = cameraFor(w, h);
+      const { camera, fit } = cameraFor(w, h, 'plan');
       const { top, bottom } = fit.insets;
       const safeH = h - top - bottom;
       for (const bay of layout.bays) {
         // no empty band: the top of the door band is within 6 % of the safe top
-        const wall = project(camera, w, h, bay.id, [0, 0, 4.8]);
+        const wall = project(camera, w, h, bay.id, [0, 0, 5.2]);
         expect(wall.y - top, `${bay.id} wall @ ${w}`).toBeLessThanOrEqual(0.06 * safeH);
-        // staging fills the lower half; storage (from y 20) is out of frame 8 m in
+        // staging fills the lower half; the floor 12 m behind the aisle is out of frame
         expect(
           project(camera, w, h, bay.id, [0, 16, 0]).y,
           `${bay.id} staging @ ${w}`,

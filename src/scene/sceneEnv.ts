@@ -1,10 +1,11 @@
 import { createContext, useContext } from 'react';
-import type { SceneMaterials, ScenePalette } from './materials';
+import type { SceneMaterials, ScenePalette, SceneTheme } from './materials';
 import type { QualitySettings, QualityTier } from './quality';
 import type { SceneToneMapping } from './toneMapping';
 
 /** Palette, shared materials and quality settings for everything inside <SceneRoot/>. */
 export interface SceneEnv {
+  theme: SceneTheme;
   palette: ScenePalette;
   materials: SceneMaterials;
   tier: QualityTier;

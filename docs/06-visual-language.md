@@ -93,6 +93,23 @@ Sampled values are 5×5 averages from the key frame.
 | U6 | Tray: **segmented tabs** inside a light pill track, active tab white with shadow; rows 40–44 px dense with bold ids, status pill, mini green bar | Taller rows, plain tabs | Segmented control; rows 48 px; id bold 13 px; mini progress 36×4 px. |
 | U7 | Tracker: 40 px step circles, completed = solid blue with white icon, current = blue ring with soft halo, future = grey ring; times under labels; shipment mini-card on the right with a truck illustration | Smaller steps | Steps 40 px; halo `0 0 0 6px rgba(44,111,237,.15)` on current; mini-card with icon tile. |
 
+### 7.3 Values changed while implementing §7 and §8 (Task 09)
+The values above and in §8 stay as written except for these, each forced by a measurement. Status fills, ink and the dark pill come from the WCAG AA requirement of §8.4 (4.5:1 text, 3:1 graphics), which `src/lib/contrast.test.ts` now enforces.
+| Token / value | Spec | Now | Why |
+|---|---|---|---|
+| `--ink-400` (light text) | `#94A3B8` | `#5F6E85` | 2.56:1 on a card |
+| tertiary text (dark, §8.4) | `#6F7DA6` | `#98A5CA` | 3.94:1 on the card, 3.83:1 on a selected row |
+| `--ok` fill (light) | `#22AF5B` | `#1FA653` | 2.86:1 on a card as a graphic |
+| `--warn` fill (light) | `#E8890C` | `#D87C00` | 2.62:1 on a card as a graphic |
+| Selected bay pill fill (dark, §8.4) | `#3E73FF` | `#3468F0` | 4.12:1 with white text |
+| Status text on pills | §1 `--ok` etc. | new `--ok-ink` `#14753A`, `--warn-ink` `#A85B00`, `--critical-ink` `#C42B30`, `--neutral-ink` `#556377`, `--info-ink` `#1F5AD0` (dark: the §8.4 pill colours) | §1 colours are 2.5:1 on their own tint; fills keep §1 |
+| Dark pill and row fills (§8.4) | `rgba(...)` | the same colour composited over the card, as a hex token | every scene-readable token stays a plain hex; identical on a card |
+| Fog (D7, §8.3) | light 60–140 m, dark 50–120 m | light 85–170 m, dark 75–150 m | the hero camera stands 75–105 m from the bays, so the specified range washed out the props in view |
+| Dark tone mapping (§2) | Neutral | none (linear) | Neutral's toe subtracts the darkest channel below 0.08 linear, turning the §8 palette saturated blue and hiding the warm pools |
+| Dark light intensities (§8.3) | key 0.8, hemisphere 0.55, rim 0.6 | key and hemisphere × 1.35 π, rim × π | three.js lights divide by π; calibrated so the floor renders near `#1E2E58` |
+| Work-light pools (§8.3) | a spot per bay, decal on Low only | floor pool on every tier, spots on High only | seven spot lights took Med from 52 to 45 fps (p95 24 to 42 ms) on Intel UHD, and a warm lamp barely shows on a blue floor anyway |
+| Vignette (D7) | "in the post stack" | a CSS radial gradient over the canvas | the post `Vignette` effect can only darken, not tint towards `#C7D3F5`, and it would miss the Low tier |
+
 ## 8. Dark theme — "night shift" design (binding)
 Goal: a night-shift control room, **not** a black screen. Readability comes from **value layering** (each layer clearly lighter than
 the one behind it), **cool rim light** to separate silhouettes, **warm work-light pools** over active bays, and **saturation kept on

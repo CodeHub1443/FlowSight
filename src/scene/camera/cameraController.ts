@@ -6,6 +6,10 @@ export type FlyTarget = ScenePreset | (string & {});
 
 interface Rig {
   flyTo(target: FlyTarget): void;
+  /** Scale the distance to the orbit target (< 1 = closer), within the zoom limits. */
+  zoomBy(factor: number): void;
+  /** Orbit around the target by `radians` (positive = counter-clockwise from above). */
+  orbitBy(radians: number): void;
 }
 
 // The camera rig lives inside <SceneRoot/>'s Canvas, while callers (tray rows, search, a preset switcher) live
@@ -29,9 +33,22 @@ export const cameraController = {
     if (rig) rig.flyTo(target);
     else pending = target;
   },
+  zoomBy(factor: number): void {
+    rig?.zoomBy(factor);
+  },
+  orbitBy(radians: number): void {
+    rig?.orbitBy(radians);
+  },
 };
 
 /** Stable API for moving the scene camera: `useSceneCamera().flyTo('floorOverview' | 'dockWall' | ... | 'B04')`. */
-export function useSceneCamera(): { flyTo: (target: FlyTarget) => void } {
-  return useMemo(() => ({ flyTo: cameraController.flyTo }), []);
+export function useSceneCamera(): Pick<typeof cameraController, 'flyTo' | 'zoomBy' | 'orbitBy'> {
+  return useMemo(
+    () => ({
+      flyTo: cameraController.flyTo,
+      zoomBy: cameraController.zoomBy,
+      orbitBy: cameraController.orbitBy,
+    }),
+    [],
+  );
 }

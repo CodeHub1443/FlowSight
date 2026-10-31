@@ -316,3 +316,42 @@ An earlier e2e run in this task (before the clock fix) had 20 passed / 4 failed 
 - At 16:9 the first storage rows fill about the bottom quarter of the Floor overview (the 45 m face is width-bound; 60° is the steepest that still reads isometric).
 - The Bangla turnaround KPI delta wraps to two lines at 1920; the truck title ellipsises the plate at 360 px (both in BACKLOG).
 - `MockSource.test.ts` still builds 7-day histories under its explicit 60 s budget (BACKLOG).
+
+## Task 09: visual fidelity pass + dark "night shift" theme
+
+Baseline `9a4afff`, clean. Spec: docs/06 §7 (D1-D10, U1-U7) and §8. Only the look changed: no data, contract or store change. Uncommitted, per the brief.
+
+### What changed
+- **Tokens.** 25 new palette tokens (`--scene-zone`, `--scene-aisle`, `--belt-stripe`, `--selection-pill`, lights, AO, ...) in `src/index.css` and mirrored in `scene/materials.ts`; light values follow §7, dark values §8. New `*-ink` text tokens keep the §1 fills while pill text passes AA. `emissiveOf()` gives the dark theme its glow; the rounded-box shader's `instanceFinish` grew to vec4 to carry it per instance, so it costs no extra draw call.
+- **3D.** Hero camera (`floorOverview`: elevation 40, azimuth 35) with the old view as preset `plan`; periwinkle lights, AO and contact shadows; two-tone ground; lighter belt with stripe and roller ticks; ribbed walls, blue eave and 18 cm door frames; chunkier props (rounding 13 %, 3-5 stacks per bay, 2 storage rows at the far edge); fog + vignette; selection brackets, floor glow and filled pill; `EventPin`; dark rig, work-light pools, status plate and strip.
+- **2D.** `src/app/MapControls.tsx` (D10, mounted with the scene; the camera controller gained `zoomBy` / `orbitBy`), solid icon tiles, 26 px bold values, new card surface, tinted top bar, inspector caption, segmented tray, 48 px rows, 40 px tracker steps.
+- **Safe area.** `SCENE_SAFE_AREA.top` 160 -> 120.
+
+### Values changed from the spec
+docs/06 §7.3 lists each with its measurement: ink-400, dark tertiary, `--ok` / `--warn` fills, dark selected pill, fog ranges, dark tone mapping (linear), dark light intensities, work lights (spots on High only), vignette as CSS.
+
+### Tests retargeted (none weakened)
+`materials.test.ts` now parses §7.3 / §8.1 for the overridden values and checks each override appears in §7; `presets.test.ts` keeps the straight-on assertions on `plan` and adds the D1 ranges at four sizes; `view.test.ts` checks every bay clear of the cards in both presets and adds the diagonal order. The plan storage assertion now reads "the far floor". `noFrameState.test.ts` allow-lists `EventPin.tsx`, with its reason. `e2e/live-scene.spec.ts` clicks B04 at its projected position, because the safe-area centre no longer lands on it. New: `scripts/contrast.test.mjs` (AA, both themes, plus the §8.1 layer order), `bay/brackets.test.ts`, `labels/pinShape.test.ts`. `scene/site/layout.ts` imports `SiteConfig` by relative path so the e2e tsconfig can load it.
+
+### Frame rate (Intel UHD, Chrome, D3D11, Med pinned, /live, 8 s)
+| | 1920x1080 before | 1920x1080 after | 1366x768 after |
+|---|---|---|---|
+| Light | 52.1 fps, p95 24.3 ms | 53.8 fps, p95 24.4 ms | 113.6 fps, p95 12.3 ms |
+| Dark | 52.5 fps, p95 24.3 ms | 54.1 fps, p95 24.3 ms | 111.9 fps, p95 12.3 ms |
+
+Dark Med with spot lights was 45 fps, p95 42.4 ms, so spots stayed on High only. Auto stepping is untouched.
+
+### Open points
+- Dark status colours are bound to live belt status (§8.3 requires it); light keeps the idle plate until step 8, so the two themes differ here for now.
+- Med has no cast shadows (unchanged): ground shadows come from AO and contact shadows. High shows them.
+- The pin is built and shown in the dev preview (`?pins=1`), not on /live: live events bind in step 9.
+- docs/04 §1 still describes the default view as about 55 deg looking south; D1 supersedes it.
+- KPI row: the map pill and 26 px values left too little width, so the delta moved to the label row and the compliance chip now needs 2000 px (was 1800); 1920 shows five chips. Compliance stays in the depot inspector.
+- At 20 px bold the truck inspector title ellipsises the Bangla plate sooner (the English plate is also cut in the subtitle); the full plate is in the tray.
+- At 1366 the narrower KPI chips ellipsise some text: "Cases t…" beside its delta (EN and BN), "6 docked · 0 waiti…".
+
+### Commands and results (final run)
+`pnpm typecheck` pass · `pnpm lint` pass · `pnpm format:check` pass · `pnpm test` 50 files, 922 tests pass · `pnpm i18n:check` ok · `pnpm contract:check` ok (7 json blocks, 0 unmapped) · `pnpm build` pass · `E2E_PORT=4173 pnpm e2e` 25 passed (14.7 min, 1 worker, SwiftShader). The e2e run rewrites 36 tracked older screenshots; all were restored from HEAD.
+
+### Screenshots
+`docs/screens/vf-{light-en,dark-en,light-bn,dark-bn,selected}-{1920x1080,1366x768}.png` and `vf-compare.png`. Real GPU (Intel UHD), Med pinned, mock evening peak, 0 non-localhost requests. Checked by script at both sizes, EN and BN: no bay pill under a card; the KPI row ends 107 px into the canvas (inset 120).

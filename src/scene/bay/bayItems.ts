@@ -1,4 +1,5 @@
 import type { BoxItem, CylItem } from '../items';
+import type { PaletteKey } from '../materials';
 import type { BayLayout, FaceLayout } from '../site/layout';
 import { WALL_THICKNESS } from '../site/layout';
 
@@ -18,9 +19,11 @@ const FAR_HEIGHT = 1.08;
 /** Length of the boom-section stretch in front of the main housing (the visible telescopic steps). */
 const SECTION_STEP = 0.42;
 const SECTIONS = 3;
-/** Main housing side beam: width and depth below the belt. */
-const BEAM_W = 0.3;
-const BEAM_H = 0.5;
+/** Main housing side beam: width and depth below the belt (docs/06 D6: 20 % chunkier). */
+const BEAM_W = 0.36;
+const BEAM_H = 0.6;
+/** Spacing of the roller ticks across the belt (docs/06 D4). */
+const TICK_PITCH = 0.6;
 
 /** Pivot of the tilted conveyor frame (u along the belt, v above the belt top) in the bay frame. */
 export function conveyorFrame(c: Conveyor): { at: [number, number, number]; pitch: number } {
@@ -47,34 +50,45 @@ export function conveyorBodyItems(c: Conveyor): BoxItem[] {
   const hu = housingFront + hl / 2;
   const bx = w / 2 + BEAM_W / 2 + 0.02;
   const out: BoxItem[] = [
-    // belt over the housing
+    // belt over the housing, its lighter centre stripe
     { at: [0, hu, -0.03], size: [w + 0.04, hl, 0.06], tone: 'belt', detail: 'lo' },
+    { at: [0, hu, 0.002], size: [w * 0.24, hl, 0.004], tone: 'beltStripe', detail: 'flat' },
     // far-end drum housing
     {
       at: [0, L - 0.16, -0.3],
-      size: [w + 2 * BEAM_W + 0.1, 0.34, 0.56],
-      tone: 'brand',
+      size: [w + 2 * BEAM_W + 0.1, 0.34, 0.66],
+      tone: 'conveyor',
       detail: 'hi',
     },
   ];
+  for (let u = housingFront + TICK_PITCH / 2; u < L - 0.4; u += TICK_PITCH) {
+    out.push({ at: [0, u, 0.003], size: [w, 0.05, 0.004], tone: 'beltTick', detail: 'flat' });
+  }
   for (const s of [-1, 1]) {
     out.push(
       // chunky side beam of the main housing
       {
         at: [s * bx, hu, -BEAM_H / 2 - 0.02],
         size: [BEAM_W, hl, BEAM_H],
-        tone: 'brand',
+        tone: 'conveyor',
         detail: 'hi',
+      },
+      // lighter top face of the beam, outside the guide
+      {
+        at: [s * (bx + 0.07), hu, -0.018],
+        size: [BEAM_W - 0.16, hl - 0.1, 0.01],
+        tone: 'conveyorTop',
+        detail: 'flat',
       },
       // flared stainless guide and its rolled top edge
       {
         at: [s * (w / 2 + 0.07), hu, 0.09],
-        size: [0.025, hl, 0.24],
+        size: [0.05, hl, 0.24],
         roll: s * 0.5,
         tone: 'metal',
         detail: 'lo',
       },
-      { at: [s * (w / 2 + 0.135), hu, 0.2], size: [0.05, hl, 0.04], tone: 'metal', detail: 'lo' },
+      { at: [s * (w / 2 + 0.135), hu, 0.2], size: [0.08, hl, 0.06], tone: 'metal', detail: 'lo' },
     );
   }
   // telescopic boom sections: each one narrower and lower than the one around it, fronts 0.42 m apart
@@ -97,7 +111,7 @@ export function conveyorBodyItems(c: Conveyor): BoxItem[] {
         {
           at: [s * (bx - inset), mid, -0.2 - drop],
           size: [BEAM_W - 0.08, len, 0.34 - 0.03 * depthIn],
-          tone: 'brand',
+          tone: 'conveyor',
           shade: 1 - 0.035 * depthIn,
           detail: 'hi',
         },
@@ -119,6 +133,19 @@ export function conveyorBodyItems(c: Conveyor): BoxItem[] {
     detail: 'lo',
   });
   return out;
+}
+
+/** Status strip along both sides of the main housing (docs/04 section 5, tilted conveyor frame). */
+export function conveyorStatusItems(c: Conveyor, tone: PaletteKey): BoxItem[] {
+  const hl = c.fixedTo - c.fixedFrom - housingFront;
+  const hu = housingFront + hl / 2;
+  const x = c.width / 2 + BEAM_W + 0.03;
+  return [-1, 1].map((s) => ({
+    at: [s * x, hu, -0.14],
+    size: [0.03, hl - 0.2, 0.1],
+    tone,
+    detail: 'flat',
+  }));
 }
 
 /** Rounded belt ends: rollers at the boom tip and at the far end (tilted conveyor frame). */
@@ -147,11 +174,11 @@ export function conveyorSupportItems(c: Conveyor): BoxItem[] {
   const fh = beltTop(c, fy) - 0.5;
   for (const s of [-1, 1]) {
     out.push(
-      { at: [s * (bx - 0.06), fy, fh / 2], size: [0.12, 0.12, fh], tone: 'brand', detail: 'lo' },
+      { at: [s * (bx - 0.06), fy, fh / 2], size: [0.14, 0.14, fh], tone: 'conveyor', detail: 'lo' },
       { at: [s * (bx - 0.06), fy, 0.015], size: [0.28, 0.28, 0.03], tone: 'metal', detail: 'lo' },
     );
   }
-  out.push({ at: [0, fy, fh - 0.06], size: [2 * bx, 0.1, 0.1], tone: 'brand', detail: 'lo' });
+  out.push({ at: [0, fy, fh - 0.06], size: [2 * bx, 0.12, 0.12], tone: 'conveyor', detail: 'lo' });
 
   // low chassis under the rear two thirds (the "machine" body)
   const c0 = c.fixedFrom + housingFront + 1.6;
@@ -160,7 +187,7 @@ export function conveyorSupportItems(c: Conveyor): BoxItem[] {
   out.push({
     at: [0, (c0 + c1) / 2, 0.16 + ch / 2],
     size: [w + 0.3, c1 - c0, ch],
-    tone: 'brand',
+    tone: 'conveyor',
     shade: 0.86,
     detail: 'hi',
   });
@@ -260,6 +287,9 @@ export function cabinetButtonItems(c: Conveyor): CylItem[] {
 export const CABINET_LABEL_Z = CABINET.z + 0.16;
 export const CABINET_FRONT = CABINET.d / 2;
 
+/** Thickness of the blue door frames (docs/06 D5). */
+const DOOR_FRAME = 0.18;
+
 /**
  * Door furniture (bay frame, wall at y 0..t): blue rounded door frames inside and out, shutter rails, the closed
  * shutter or the open shutter hood, dock shelter pads, bumpers and the dock leveller.
@@ -268,23 +298,23 @@ export function doorItems(door: FaceLayout['door'], open: boolean): BoxItem[] {
   const t = WALL_THICKNESS;
   const { width: w, height: h } = door;
   const out: BoxItem[] = [];
-  const fw = 0.22;
+  const fw = DOOR_FRAME;
   for (const [y, d] of [
-    [t + 0.05, 0.12],
+    [t + 0.08, 0.16],
     [-0.05, 0.1],
   ] as const) {
     for (const s of [-1, 1]) {
       out.push({
         at: [s * (w / 2 + fw / 2), y, (h + fw) / 2],
         size: [fw, d, h + fw],
-        tone: 'wallAccent',
+        tone: 'doorFrame',
         detail: 'hi',
       });
     }
     out.push({
       at: [0, y, h + fw / 2],
       size: [w + 2 * fw, d, fw],
-      tone: 'wallAccent',
+      tone: 'doorFrame',
       detail: 'hi',
     });
   }

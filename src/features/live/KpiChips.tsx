@@ -38,7 +38,7 @@ function Delta({
         <span
           data-testid="kpi-delta"
           className={cn(
-            'soft-transition inline-flex items-center gap-0.5 text-[12px] leading-4 font-medium tabular-nums',
+            'soft-transition inline-flex items-center gap-0.5 text-[12px] leading-4 font-medium whitespace-nowrap tabular-nums',
             value === 0
               ? 'text-ink-400'
               : value > 0 === (good === 'up')
@@ -64,8 +64,9 @@ function Delta({
 }
 
 /**
- * One KPI chip (docs/06 §3). Chips share the row equally (`flex-1 basis-0`), so their width never depends on the
- * values inside: a number growing a digit cannot reflow the row.
+ * One KPI chip (docs/06 §3, U2). Chips share the row equally (`flex-1 basis-0`), so their width never depends on the
+ * values inside: a number growing a digit cannot reflow the row. The delta sits on the label row, because beside a
+ * 26 px value it overflows the narrower chips.
  */
 function Chip({
   testId,
@@ -94,14 +95,16 @@ function Chip({
     >
       <IconTile icon={icon} />
       <span className="flex min-w-0 flex-1 flex-col">
-        <span className="text-ink-600 truncate text-[12px] leading-4">{label}</span>
-        <span className="flex min-w-0 items-baseline gap-2">
-          <span className="text-ink-900 text-[24px] leading-7 font-semibold whitespace-nowrap tabular-nums">
-            {value}
+        <span className="flex min-w-0 items-baseline justify-between gap-2">
+          <span className="text-ink-600 min-w-0 truncate text-[13px] leading-[18px] font-medium">
+            {label}
           </span>
           {delta}
         </span>
-        <span className="text-ink-400 flex min-w-0 items-center gap-1.5 truncate text-[11px] leading-4 whitespace-nowrap">
+        <span className="text-ink-900 text-[26px] leading-[30px] font-bold whitespace-nowrap tabular-nums">
+          {value}
+        </span>
+        <span className="text-ink-400 flex min-w-0 items-center gap-1.5 truncate text-[12px] leading-4 whitespace-nowrap">
           {sub}
         </span>
       </span>
@@ -190,7 +193,7 @@ const Chips = memo(function Chips({ kpi, fmt }: { kpi: Kpi | null; fmt: Fmt }) {
         testId="kpi-compliance"
         icon={ShieldCheck}
         label={t('kpi.compliance')}
-        className="hidden min-[1800px]:flex"
+        className="hidden min-[2000px]:flex"
         value={
           <MaybeValue value={kpi?.complianceScore} reason={t('kpi.noCompliance')}>
             <Num value={kpi?.complianceScore ?? 0} format={fmt.pctInt} minCh={4} />
@@ -229,8 +232,9 @@ const Chips = memo(function Chips({ kpi, fmt }: { kpi: Kpi | null; fmt: Fmt }) {
 
 /**
  * KPI chips (top-left, docs/01 §3.1). Null values render "—" with a tooltip, never 0. Collapsible to a single toggle.
- * Six chips from 1800 px; turnaround and compliance (also in the depot inspector) give way below that so the row
- * stays one line, inside the 112 px safe area the 3D view keeps free.
+ * Six chips from 2000 px, five from 1700 px; compliance, then turnaround (both also in the depot inspector) give way
+ * so the row
+ * stays one line, inside the 120 px safe area the 3D view keeps free.
  */
 export function KpiChips() {
   const { t } = useTranslation('live');

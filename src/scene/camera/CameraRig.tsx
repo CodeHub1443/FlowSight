@@ -15,9 +15,13 @@ import {
 import { applyViewFit, easeInOutCubic, FLY_MS, NO_SAFE_AREA, viewFit, type SafeArea } from './view';
 
 const PAN_MARGIN = 4;
+/** Map-control steps (docs/06 D10) ease quicker than a fly-to. */
+const NUDGE_MS = 280;
+const UP = new Vector3(0, 1, 0);
 
 interface Fly {
   t0: number;
+  ms: number;
   fromPos: Vector3;
   fromTarget: Vector3;
   toPos: Vector3;
@@ -66,6 +70,24 @@ export function CameraRig({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- apply only reads refs and the camera
   }, [fit, camera, layout, invalidate]);
 
+  /** Ease the camera to a changed offset from the orbit target; it then counts as moved by the user. */
+  const nudge = (change: (offset: Vector3) => void) => {
+    const c = controls.current;
+    if (!c) return;
+    const offset = camera.position.clone().sub(c.target);
+    change(offset);
+    userMoved.current = true;
+    fly.current = {
+      t0: performance.now(),
+      ms: NUDGE_MS,
+      fromPos: camera.position.clone(),
+      fromTarget: c.target.clone(),
+      toPos: offset.add(c.target),
+      toTarget: c.target.clone(),
+    };
+    invalidate();
+  };
+
   useEffect(
     () =>
       cameraController.register({
@@ -77,6 +99,7 @@ export function CameraRig({
           userMoved.current = false;
           fly.current = {
             t0: performance.now(),
+            ms: FLY_MS,
             fromPos: camera.position.clone(),
             fromTarget: c.target.clone(),
             toPos: new Vector3(...pose.position),
@@ -84,7 +107,16 @@ export function CameraRig({
           };
           invalidate();
         },
+        zoomBy(factor) {
+          nudge((offset) =>
+            offset.setLength(MathUtils.clamp(offset.length() * factor, MIN_DISTANCE, MAX_DISTANCE)),
+          );
+        },
+        orbitBy(radians) {
+          nudge((offset) => offset.applyAxisAngle(UP, radians));
+        },
       }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- nudge only reads refs and the camera
     [layout, camera, invalidate],
   );
 
@@ -94,7 +126,7 @@ export function CameraRig({
     if (!c) return;
     const f = fly.current;
     if (f) {
-      const k = MathUtils.clamp((performance.now() - f.t0) / FLY_MS, 0, 1);
+      const k = MathUtils.clamp((performance.now() - f.t0) / f.ms, 0, 1);
       const e = easeInOutCubic(k);
       camera.position.lerpVectors(f.fromPos, f.toPos, e);
       c.target.lerpVectors(f.fromTarget, f.toTarget, e);

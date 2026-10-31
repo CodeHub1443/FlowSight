@@ -1,13 +1,16 @@
 import { Environment, Lightformer } from '@react-three/drei';
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { ContactShadowLayer } from './ContactShadowLayer';
 import { contactShadows } from './contactShadowController';
+import { radialTexture } from './labels/textures';
 import { useSceneEnv } from './sceneEnv';
 import type { SiteLayout } from './site/layout';
+import { unlitColor } from './toneMapping';
 
 // docs/06 section 2 lighting: an environment built only from local Lightformers (no HDR download, offline LAN rule),
 // a hemisphere fill, one soft key light (PCF shadow, radius >= 6, tuned bias) and contact shadows. Top faces read
-// lighter than side faces because the big soft light is overhead, not because of different colours.
+// lighter than side faces because the big soft light is overhead, not because of different colours. Colours are
+// theme tokens: warm key and periwinkle shadows in light (D2), moonlight and a cool rim in dark (section 8.3).
 
 /**
  * Light balance. The key light carries enough of the total that its soft shadows read (with more fill they vanish
@@ -18,6 +21,20 @@ export const ENV_INTENSITY = 0.24;
 export const HEMI_INTENSITY = 0.32;
 /** Low, shadowless fill from the opposite side: lifts faces turned away from the key, hardly touches the floor. */
 export const FILL_INTENSITY = 0.9;
+/**
+ * Dark rig. docs/06 section 8.3 gives relative intensities; three.js lights divide by pi and the hemisphere and key
+ * colours are blue, so they are calibrated (docs/06 section 7.3) until the shed floor renders at its token #1E2E58.
+ */
+const DARK_RIG = {
+  key: 0.8 * Math.PI * 1.35,
+  hemi: 0.55 * Math.PI * 1.35,
+  rim: 0.6 * Math.PI,
+  env: 0.12,
+} as const;
+/** Contact-shadow strength (docs/06 D2 in light; the dark tint is close to the floor, so it can be stronger). */
+const CONTACT_OPACITY = { light: 0.35, dark: 0.7 } as const;
+/** Size of the radial glow behind the shed in the dark theme (docs/06 section 8.1). */
+const VOID_GLOW_SIZE = 420;
 /** Shadow softness of the key light (PCF radius, docs/06: >= 6) and its sample count. */
 export const KEY_SHADOW_RADIUS = 6;
 export const KEY_SHADOW_SAMPLES = 16;
@@ -26,18 +43,26 @@ export const KEY_SHADOW_BIAS = -0.0003;
 export const KEY_SHADOW_NORMAL_BIAS = 0.03;
 
 export function SceneLights({ layout }: { layout: SiteLayout }) {
-  const { palette, quality, shadows, tier } = useSceneEnv();
+  const { palette, quality, shadows, tier, theme } = useSceneEnv();
   const { width, depth } = layout.footprint;
   const reach = Math.max(width, depth) * 0.62 + 6;
   const size = quality.shadowMapSize ?? 1024;
   const cs = quality.contactShadows;
+  const dark = theme === 'dark';
+  const glowColor = useMemo(() => unlitColor(palette.voidGlow, theme), [palette.voidGlow, theme]);
 
   // a theme or tier switch changes what the contact shadows see
   useEffect(() => contactShadows.invalidate(), [palette, tier]);
 
   return (
     <>
-      <Environment resolution={128} frames={1} environmentIntensity={ENV_INTENSITY}>
+      <Environment
+        // rebaked per theme: the lightformers carry the theme's light colours
+        key={theme}
+        resolution={128}
+        frames={1}
+        environmentIntensity={dark ? DARK_RIG.env : ENV_INTENSITY}
+      >
         {/* broad white softbox overhead: lifts every top face */}
         <Lightformer
           form="rect"
@@ -51,7 +76,7 @@ export function SceneLights({ layout }: { layout: SiteLayout }) {
         <Lightformer
           form="rect"
           intensity={1.1}
-          color={palette.skyFill}
+          color={palette.hemiSky}
           position={[-10, 4, -10]}
           rotation={[0, Math.PI / 4, 0]}
           scale={[20, 6, 1]}
@@ -73,11 +98,13 @@ export function SceneLights({ layout }: { layout: SiteLayout }) {
           scale={[30, 30, 1]}
         />
       </Environment>
-      <hemisphereLight args={[palette.skyFill, palette.groundFill, HEMI_INTENSITY]} />
+      <hemisphereLight
+        args={[palette.hemiSky, palette.hemiGround, dark ? DARK_RIG.hemi : HEMI_INTENSITY]}
+      />
       {/* key light from the north-west, high: soft shadows fall towards the dock wall and the camera sees lit faces */}
       <directionalLight
         position={[-30, 78, -42]}
-        intensity={KEY_INTENSITY}
+        intensity={dark ? DARK_RIG.key : KEY_INTENSITY}
         color={palette.keyLight}
         castShadow={shadows}
         shadow-mapSize={[size, size]}
@@ -92,11 +119,33 @@ export function SceneLights({ layout }: { layout: SiteLayout }) {
         shadow-radius={KEY_SHADOW_RADIUS}
         shadow-blurSamples={KEY_SHADOW_SAMPLES}
       />
-      <directionalLight
-        position={[40, 18, 34]}
-        intensity={FILL_INTENSITY}
-        color={palette.skyFill}
-      />
+      {dark ? (
+        // rim: back-right of the hero view, so edges of conveyors, pallets and walls catch a cool highlight
+        <directionalLight
+          position={[-60, 22, 8]}
+          intensity={DARK_RIG.rim}
+          color={palette.rimLight}
+        />
+      ) : (
+        <directionalLight
+          position={[40, 18, 34]}
+          intensity={FILL_INTENSITY}
+          color={palette.hemiSky}
+        />
+      )}
+      {dark && (
+        // the radial glow behind the shed: the void stays navy at the edges, never black
+        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.05, 0]}>
+          <planeGeometry args={[VOID_GLOW_SIZE, VOID_GLOW_SIZE]} />
+          <meshBasicMaterial
+            map={radialTexture(1)}
+            color={glowColor}
+            transparent
+            depthWrite={false}
+            fog={false}
+          />
+        </mesh>
+      )}
       {shadows && (
         // catches the shed's shadow on the void so the dollhouse sits on something
         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.03, 0]} receiveShadow>
@@ -110,8 +159,8 @@ export function SceneLights({ layout }: { layout: SiteLayout }) {
         width={width}
         depth={depth}
         far={3.5}
-        color={palette.shade}
-        opacity={tier === 'low' ? 0.85 : 0.75}
+        color={palette.contactShade}
+        opacity={CONTACT_OPACITY[theme]}
         blur={2.4}
         resolution={cs.resolution}
         maxHz={cs.maxHz}

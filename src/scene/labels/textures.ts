@@ -58,6 +58,29 @@ export function plateTexture(text: string, style: PlateStyle, w = 256, h = 96): 
   return finish(key, c);
 }
 
+/** White radial falloff with `alpha` in the centre, for floor glows and soft decals; tinted by the material colour. */
+export function radialTexture(alpha: number, size = 256): CanvasTexture {
+  const key = `radial|${alpha}|${size}`;
+  const hit = cache.get(key);
+  if (hit) return hit;
+  const { c, g } = canvas(size, size);
+  if (g) {
+    const r = size / 2;
+    const grad = g.createRadialGradient(r, r, 0, r, r, r);
+    for (const [at, share] of [
+      [0, 1],
+      [0.55, 0.85],
+      [0.85, 0.28],
+      [1, 0],
+    ] as const) {
+      grad.addColorStop(at, `rgba(255, 255, 255, ${alpha * share})`);
+    }
+    g.fillStyle = grad;
+    g.fillRect(0, 0, size, size);
+  }
+  return finish(key, c);
+}
+
 /** Vertical stripes of `colors`, one stripe `stripeWidth` metres wide, repeated over `length` metres. */
 export function stripeTexture(
   colors: readonly string[],

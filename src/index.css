@@ -5,7 +5,8 @@
 
 /*
  * Colours are defined only here (tokens) and mirrored in scene/materials.ts.
- * Values: docs/06-visual-language.md section 1 (binding; it wins over CLAUDE.md where they differ).
+ * Values: docs/06-visual-language.md section 1 with the section 7 overrides, section 8 for dark (binding; it wins
+ * over CLAUDE.md where they differ).
  */
 :root {
   /* Brand (docs/06 §1). `--brand` is the placeholder Unilever blue until the official kit arrives. */
@@ -18,12 +19,12 @@
   /* Ink (text) */
   --ink-900: #0f172a;
   --ink-600: #475569;
-  --ink-400: #94a3b8;
+  --ink-400: #5f6e85;
 
   /* Status: colour + tinted background (docs/06 §1). Neutral/idle/offline/info backgrounds complete the set. */
-  --ok: #22af5b;
+  --ok: #1fa653;
   --ok-bg: #e3f6ea;
-  --warn: #e8890c;
+  --warn: #d87c00;
   --warn-bg: #fff1df;
   --critical: #e5484d;
   --critical-bg: #fde8e8;
@@ -35,6 +36,12 @@
   --offline-bg: #f1f3f7;
   --info: var(--brand-500);
   --info-bg: var(--brand-50);
+  /* Status colour as text: the fills above stay docs/06 §1, these pass WCAG AA on a card and on their tint (§7.3). */
+  --ok-ink: #14753a;
+  --warn-ink: #a85b00;
+  --critical-ink: #c42b30;
+  --neutral-ink: #556377;
+  --info-ink: #1f5ad0;
 
   /* Semantic status tokens (CLAUDE.md names, read by the scene) */
   --status-ok: var(--ok);
@@ -45,21 +52,30 @@
   --status-offline: var(--offline);
   --status-info: var(--info);
 
-  /* Cards (docs/06 §3): white at 92 % over a 12 px backdrop blur, hairline border, two-layer soft shadow */
-  --card-alpha: 92%;
+  /* Cards (docs/06 U3): white at 96 %, almost no border, one soft wide shadow */
+  --card-alpha: 96%;
   --card-blur: 12px;
-  --card-border: rgba(15, 23, 42, 0.06);
-  --shadow-card: 0 1px 2px rgba(15, 23, 42, 0.06), 0 8px 24px rgba(44, 111, 237, 0.1);
-  --shadow-card-hover: 0 1px 2px rgba(15, 23, 42, 0.06), 0 12px 32px rgba(44, 111, 237, 0.16);
+  --card-border: rgba(31, 64, 160, 0.05);
+  --shadow-card: 0 1px 2px rgba(31, 64, 160, 0.06), 0 10px 30px rgba(31, 64, 160, 0.12);
+  --shadow-card-hover: 0 1px 2px rgba(31, 64, 160, 0.06), 0 14px 36px rgba(31, 64, 160, 0.18);
   /* Small lift for the active segment of a segmented control, and the top bar's soft drop. */
   --shadow-raised: 0 1px 2px rgba(15, 23, 42, 0.08), 0 1px 1px rgba(15, 23, 42, 0.04);
-  --shadow-topbar: 0 4px 16px rgba(44, 111, 237, 0.06);
+  /* Top bar (docs/06 U4): tinted page, no drop */
+  --topbar-bg: #eef1f9;
+  --topbar-blur: 0px;
+  --shadow-topbar: none;
+  /* Icon tile (docs/06 U1): solid blue gradient, white glyph, 1 px top highlight; the same in both themes */
+  --tile-from: #3b7bf6;
+  --tile-to: #2a5fe0;
+  --tile-highlight: rgba(255, 255, 255, 0.35);
+  /* Current tracker step (docs/06 U7) */
+  --step-halo: rgba(44, 111, 237, 0.15);
   /* Text / icons on a solid status or brand fill; modal scrim. */
   --on-solid: #ffffff;
   --scrim: rgba(15, 23, 42, 0.36);
-  --radius-card: 16px;
+  --radius-card: 14px;
   --radius-tile: 12px;
-  --hairline: rgba(15, 23, 42, 0.07);
+  --hairline: rgba(15, 23, 42, 0.06);
   --track: #e7edf8;
   --row-hover: #f3f7ff;
   --row-selected: var(--brand-50);
@@ -71,11 +87,11 @@
 
   /* Scene palette (docs/06 §1) */
   --scene-void: #e6ecfa;
-  --scene-floor: #eef2fc;
+  --scene-floor: #e8ecf8;
   --scene-floor-line: #d4def7;
   --scene-apron: #dce4f8;
   --scene-walkline: #f2c94c;
-  --scene-wall: #f7f9fe;
+  --scene-wall: #f3f6fe;
   --scene-wall-accent: #3d6ae4;
   --carton: #e9c6a2;
   --carton-tape: #d9ae80;
@@ -83,7 +99,34 @@
   --pallet-yellow: #f5c542;
   --pallet-orange: #f59e5b;
   --metal: #c9d2e3;
-  --belt: #2e3445;
+  --belt: #3a4a73;
+
+  /* Scene deltas (docs/06 §7) */
+  --scene-zone: #d7e2fa;
+  --scene-zone-line: #f2c94c;
+  --scene-aisle: #c9d7f7;
+  --scene-aisle-line: #f2c94c;
+  --scene-wall-rib: #dce4f8;
+  --scene-wall-top: #f7f9fe;
+  --scene-eave-top: #6ea7f9;
+  --conveyor-frame: #2c6fed;
+  --conveyor-top: #5193f3;
+  --belt-stripe: #4a5c8a;
+  --belt-tick: #64769f;
+  --sack: #f7f9fe;
+  --selection-pill: #2c5bd8;
+  --scene-pill-bg: #ffffff;
+  --scene-pill-fg: #0f172a;
+  --scene-pill-border: #0f172a;
+  --scene-hemi-sky: #c4dafc;
+  --scene-hemi-ground: #9fb4f0;
+  --scene-key-light: #fff6ec;
+  --scene-rim-light: #c4dafc;
+  --scene-work-light: #ffe3b0;
+  --scene-ao: #8ea6ec;
+  --scene-contact-shade: #7f98e6;
+  --scene-vignette: #c7d3f5;
+  --scene-void-glow: #e6ecfa;
 
   /* shadcn/ui semantic tokens */
   --radius: 0.75rem;
@@ -93,7 +136,7 @@
   --card-foreground: var(--ink-900);
   --popover: #ffffff;
   --popover-foreground: var(--ink-900);
-  --primary: var(--brand-500);
+  --primary: var(--tile-to);
   --primary-foreground: var(--brand-foreground);
   --secondary: #eef2fb;
   --secondary-foreground: var(--ink-900);
@@ -107,62 +150,103 @@
   --ring: var(--brand-500);
 }
 
-/* Dark "control room" theme: deep navy void, floor #141C2F, cards #121A2B at 90 % (docs/06 §1). */
+/*
+ * Dark "night shift" theme (docs/06 §8). The translucent fills of §8.4 are stored composited over the card (#16203e),
+ * so the scene can read every token as a plain hex colour and the contrast test sees what is on screen.
+ */
 .dark {
   --brand-500: #4c86f5;
   --brand-400: #6fa0f7;
   --brand-50: #172a4f;
 
-  --ink-900: #e8edf8;
-  --ink-600: #a4b0c8;
-  --ink-400: #6c7a96;
+  --ink-900: #e8edff;
+  --ink-600: #a3b0d6;
+  --ink-400: #98a5ca;
 
-  --ok: #34c56f;
-  --ok-bg: #11301f;
-  --warn: #f2a33a;
-  --warn-bg: #3a2810;
-  --critical: #f0676b;
-  --critical-bg: #3b1619;
-  --neutral: #8e9bb3;
-  --neutral-bg: #1d2740;
-  --idle: #4a5670;
-  --idle-bg: #19223a;
-  --offline: #6c7a96;
-  --offline-bg: #1a2238;
+  --ok: #3ddc84;
+  --ok-bg: #1c3a48;
+  --warn: #ffb547;
+  --warn-bg: #37353f;
+  --critical: #ff6b6b;
+  --critical-bg: #3b2c45;
+  --neutral: #a3b0d6;
+  --neutral-bg: #1f2a49;
+  --idle: #4a5a8a;
+  --idle-bg: #1a2545;
+  --offline: #6f7da6;
+  --offline-bg: #1a2545;
+  --info: #7ea2ff;
+  --info-bg: #27355d;
+  --ok-ink: #3ddc84;
+  --warn-ink: #ffb547;
+  --critical-ink: #ff6b6b;
+  --neutral-ink: #a3b0d6;
+  --info-ink: #7ea2ff;
 
-  --card-alpha: 90%;
-  --card-border: rgba(255, 255, 255, 0.07);
-  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.35), 0 8px 24px rgba(0, 0, 0, 0.35);
-  --shadow-card-hover: 0 1px 2px rgba(0, 0, 0, 0.35), 0 12px 32px rgba(0, 0, 0, 0.45);
+  --card-alpha: 86%;
+  --card-blur: 14px;
+  --card-border: rgba(140, 165, 255, 0.14);
+  --shadow-card: 0 10px 30px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  --shadow-card-hover: 0 14px 36px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.04);
   --shadow-raised: 0 1px 2px rgba(0, 0, 0, 0.4);
-  --shadow-topbar: 0 4px 16px rgba(0, 0, 0, 0.3);
+  --topbar-bg: rgba(14, 23, 48, 0.72);
+  --topbar-blur: 14px;
+  --shadow-topbar: none;
+  --step-halo: rgba(126, 162, 255, 0.2);
   --scrim: rgba(3, 7, 18, 0.6);
-  --hairline: rgba(255, 255, 255, 0.07);
-  --track: #233050;
-  --row-hover: #18233d;
+  --hairline: rgba(140, 165, 255, 0.14);
+  --track: #2a3863;
+  --row-hover: #202d51;
+  --row-selected: #27355d;
 
-  --scene-void: #0b1222;
-  --scene-floor: #141c2f;
-  --scene-floor-line: #223052;
-  --scene-apron: #111a2e;
-  --scene-walkline: #d9b23f;
-  --scene-wall: #1a2338;
-  --scene-wall-accent: #4c79ee;
-  --carton: #b99673;
-  --carton-tape: #a8825c;
-  --pallet-blue: #3a6fda;
-  --pallet-yellow: #d8ae3c;
-  --pallet-orange: #d98a52;
-  --metal: #59647c;
-  --belt: #2a2f3d;
+  --scene-void: #0e1730;
+  --scene-floor: #1e2e58;
+  --scene-floor-line: #3a5596;
+  --scene-apron: #17244a;
+  --scene-walkline: #e8b93c;
+  --scene-wall: #2a3b68;
+  --scene-wall-accent: #3e73ff;
+  --carton: #c99d72;
+  --carton-tape: #b0845c;
+  --pallet-blue: #4a7ff5;
+  --pallet-yellow: #e8b93c;
+  --pallet-orange: #e98a4f;
+  --metal: #8a9bc4;
+  --belt: #2b3863;
 
-  --background: #0b1222;
-  --card: #121a2b;
-  --popover: #121a2b;
-  --secondary: #1a2338;
-  --muted: #18213a;
-  --border: #243150;
-  --input: #2c3a5c;
+  --scene-zone: #25386a;
+  --scene-zone-line: #3a5596;
+  --scene-aisle: #1a2850;
+  --scene-aisle-line: #aa8e42;
+  --scene-wall-rib: #344777;
+  --scene-wall-top: #3b5190;
+  --scene-eave-top: #6e95ff;
+  --conveyor-frame: #4c7dff;
+  --conveyor-top: #6e95ff;
+  --belt-stripe: #3a4a7e;
+  --belt-tick: #5266a6;
+  --sack: #d9e1f2;
+  --selection-pill: #3468f0;
+  --scene-pill-bg: #1c2a55;
+  --scene-pill-fg: #e8edff;
+  --scene-pill-border: #8ca5ff;
+  --scene-hemi-sky: #6f86c9;
+  --scene-hemi-ground: #1a2650;
+  --scene-key-light: #b9c8ff;
+  --scene-rim-light: #7ea2ff;
+  --scene-work-light: #ffe3b0;
+  --scene-ao: #0a1330;
+  --scene-contact-shade: #0f1a3a;
+  --scene-vignette: #0e1730;
+  --scene-void-glow: #16244a;
+
+  --background: #0e1730;
+  --card: #16203e;
+  --popover: #16203e;
+  --secondary: #1f2a49;
+  --muted: #1f2a49;
+  --border: #2a3863;
+  --input: #34447a;
 }
 
 @theme inline {
@@ -218,6 +302,12 @@
   --color-offline-bg: var(--offline-bg);
   --color-info: var(--info);
   --color-info-bg: var(--info-bg);
+  --color-ok-ink: var(--ok-ink);
+  --color-warn-ink: var(--warn-ink);
+  --color-critical-ink: var(--critical-ink);
+  --color-neutral-ink: var(--neutral-ink);
+  --color-info-ink: var(--info-ink);
+  --color-topbar: var(--topbar-bg);
   --color-hairline: var(--hairline);
   --color-track: var(--track);
   --color-row-hover: var(--row-hover);
@@ -248,7 +338,7 @@
   --shadow-topbar: var(--shadow-topbar);
 }
 
-/* Floating card surface (docs/06 §3): 16 px radius, hairline border, two-layer soft shadow, 12 px backdrop blur. */
+/* Floating card surface (docs/06 U3, §8.4): the token values differ per theme. */
 @utility card-surface {
   background-color: color-mix(in srgb, var(--card) var(--card-alpha), transparent);
   -webkit-backdrop-filter: blur(var(--card-blur)) saturate(1.4);
@@ -257,6 +347,13 @@
   border-radius: var(--radius-card);
   box-shadow: var(--shadow-card);
   color: var(--card-foreground);
+}
+
+/* Solid icon tile (docs/06 U1): blue gradient with a 1 px top highlight, in both themes. */
+@utility tile-solid {
+  background-image: linear-gradient(180deg, var(--tile-from), var(--tile-to));
+  box-shadow: inset 0 1px 0 var(--tile-highlight);
+  color: var(--on-solid);
 }
 
 /* Soft transition for hover / press / open (150-200 ms ease-out). */

@@ -11,8 +11,9 @@ import {
   type PaletteTokens,
 } from './materials';
 
-// docs/06 section 1 is binding: the fallback constants in materials.ts must equal the table exactly. The table is
-// parsed from the document itself, so editing either side without the other fails here.
+// docs/06 is binding: the fallback constants in materials.ts must equal section 1 exactly, except the values section 7
+// overrides and section 8 for dark. Everything is parsed from the document itself, so editing either side without the
+// other fails here.
 
 /** docs/06 token -> palette keys, in the order the row lists its values. */
 const KEYS: Record<string, (keyof PaletteTokens)[]> = {
@@ -42,6 +43,18 @@ const KEYS: Record<string, (keyof PaletteTokens)[]> = {
 };
 
 const section1 = doc.slice(doc.indexOf('## 1.'), doc.indexOf('## 2.'));
+const section7 = doc.slice(doc.indexOf('## 7.'), doc.indexOf('## 8.'));
+const section8 = doc.slice(doc.indexOf('## 8.'));
+
+/** Light tokens whose section 1 value section 7 overrides (D3, D4, D5 and the AA table of 7.3). */
+const SECTION7_OVERRIDES: Partial<Record<keyof PaletteTokens, string>> = {
+  floor: '#E8ECF8',
+  wall: '#F3F6FE',
+  belt: '#3A4A73',
+  statusOk: '#1FA653',
+  statusWarn: '#D87C00',
+  ink400: '#5F6E85',
+};
 
 /** [token names, hex values] for every `| \`--token\` | ... |` row of the section 1 table. */
 function tableRows(): [string[], string[]][] {
@@ -73,17 +86,44 @@ describe('materials.ts mirrors docs/06 section 1', () => {
   });
 
   it('light fallbacks equal the docs/06 values exactly', () => {
-    for (const [key, hex] of expected()) expect(LIGHT_TOKENS[key], key).toBe(hex);
+    for (const [key, hex] of expected())
+      expect(LIGHT_TOKENS[key], key).toBe(SECTION7_OVERRIDES[key] ?? hex);
   });
 
-  it('dark fallbacks equal the docs/06 dark values (void, floor, card)', () => {
-    const m = section1.match(
-      /void `(#[0-9A-F]{6})`, floor `(#[0-9A-F]{6})`, cards `(#[0-9A-F]{6})`/i,
-    );
-    expect(m).not.toBeNull();
-    expect(DARK_TOKENS.void).toBe(m?.[1]?.toUpperCase());
-    expect(DARK_TOKENS.floor).toBe(m?.[2]?.toUpperCase());
-    expect(DARK_TOKENS.card).toBe(m?.[3]?.toUpperCase());
+  it('every section 7 override is written in section 7 and differs from section 1', () => {
+    const base = expected();
+    for (const [key, hex] of Object.entries(SECTION7_OVERRIDES) as [
+      keyof PaletteTokens,
+      string,
+    ][]) {
+      expect(section7, key).toContain(hex);
+      expect(base.get(key), key).not.toBe(hex);
+    }
+  });
+
+  it('dark fallbacks equal the docs/06 section 8 values', () => {
+    /** The first hex colour in the section 8 table row that names `label`. */
+    const row = (label: string) => {
+      const line = section8.split('\n').find((l) => l.startsWith(`| ${label}`));
+      expect(line, label).toBeDefined();
+      return line?.match(/#[0-9A-F]{6}/i)?.[0]?.toUpperCase();
+    };
+    expect(DARK_TOKENS.void).toBe(row('Void / background'));
+    expect(DARK_TOKENS.apron).toBe(row('Apron / outside'));
+    expect(DARK_TOKENS.floor).toBe(row('Shed floor'));
+    expect(DARK_TOKENS.zone).toBe(row('Bay plates / staging zones'));
+    expect(DARK_TOKENS.aisle).toBe(row('Forklift aisle'));
+    expect(DARK_TOKENS.wall).toBe(row('Walls / cutaway tops'));
+    expect(DARK_TOKENS.wallAccent).toBe(row('Dock band / frames'));
+    expect(DARK_TOKENS.conveyor).toBe(row('Conveyor frame'));
+    expect(DARK_TOKENS.belt).toBe(row('Belt'));
+    expect(DARK_TOKENS.carton).toBe(row('Cartons'));
+    expect(DARK_TOKENS.sack).toBe(row('Sacks'));
+    expect(DARK_TOKENS.palletBlue).toBe(row('Plastic pallets'));
+    expect(DARK_TOKENS.metal).toBe(row('Steel'));
+    // the card is rgba(22,32,62,.86): the token carries its opaque colour, the 86 % is --card-alpha
+    expect(section8).toContain('rgba(22,32,62,.86)');
+    expect(DARK_TOKENS.card).toBe('#16203E');
   });
 
   it('reads every docs/06 token name from CSS (except --card, which is not a plain hex)', () => {
@@ -105,7 +145,8 @@ describe('materials.ts mirrors docs/06 section 1', () => {
       return 0.2126 * ((c >> 16) & 255) + 0.7152 * ((c >> 8) & 255) + 0.0722 * (c & 255);
     };
     const scene = (Object.keys(LIGHT_PALETTE) as PaletteKey[]).filter(
-      (k) => !k.startsWith('ink') && k !== 'shade',
+      // ink and pill text are DOM colours, the shadow tints never draw as a surface
+      (k) => !k.startsWith('ink') && !k.startsWith('pill') && k !== 'shade',
     );
     for (const k of scene) {
       expect(LIGHT_PALETTE[k], k).not.toBe('#000000');

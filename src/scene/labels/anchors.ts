@@ -20,7 +20,7 @@ export function bayPillAnchor(layout: SiteLayout, bayId: string): P | null {
   return [s.X, s.Y, s.Z];
 }
 
-/** Selection pill: 2.5 m above the middle of the bay's work zone (the belt mouth). */
+/** Selection pill: above the selection brackets, over the bay's work zone (the belt mouth). */
 export function selectionPillAnchor(layout: SiteLayout, bayId: string): P | null {
   const bay = layout.bays.find((b) => b.id === bayId);
   if (!bay) return null;
@@ -28,7 +28,7 @@ export function selectionPillAnchor(layout: SiteLayout, bayId: string): P | null
   const s = bayToSite(
     bay.face,
     bay.door,
-    { x: 0, y: (wz.y[0] + wz.y[1]) / 2, z: 2.5 },
+    { x: 0, y: (wz.y[0] + wz.y[1]) / 2, z: 3.4 },
     layout.floorLevel,
   );
   return [s.X, s.Y, s.Z];

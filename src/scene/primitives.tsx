@@ -24,7 +24,7 @@ import {
   type Detail,
 } from './geometry';
 import type { BoxItem, CylItem, MarkItem } from './items';
-import { finishOf, type PaletteKey } from './materials';
+import { emissiveOf, finishOf, type PaletteKey } from './materials';
 import { useSceneEnv } from './sceneEnv';
 import { plateTexture } from './labels/textures';
 
@@ -73,7 +73,7 @@ interface BoxGroupProps extends InstancesProps {
 }
 
 function BoxGroup({ items, smoothness, flat, mapping, cast, receive, transform }: BoxGroupProps) {
-  const { palette, shadows } = useSceneEnv();
+  const { palette, shadows, theme } = useSceneEnv();
   const ref = useRef<InstancedMesh>(null);
   const geometry = useInstanceGeometry(unitBox(flat ? 0 : smoothness), items.length);
 
@@ -93,13 +93,19 @@ function BoxGroup({ items, smoothness, flat, mapping, cast, receive, transform }
       mesh.setMatrixAt(i, _m);
       mesh.setColorAt(i, _c.set(palette[it.tone]).multiplyScalar(it.shade ?? 1));
       const f = finishOf(it.tone);
-      finish.setXYZ(i, f.roughness, f.metalness, flat ? 0 : (it.round ?? ROUND));
+      finish.setXYZW(
+        i,
+        f.roughness,
+        f.metalness,
+        flat ? 0 : (it.round ?? ROUND),
+        emissiveOf(it.tone, theme),
+      );
     });
     mesh.instanceMatrix.needsUpdate = true;
     if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
     finish.needsUpdate = true;
     mesh.computeBoundingSphere();
-  }, [items, palette, mapping, transform, geometry, flat]);
+  }, [items, palette, theme, mapping, transform, geometry, flat]);
 
   return (
     <instancedMesh
@@ -178,7 +184,7 @@ export function CylInstances({
   receive = true,
   transform,
 }: CylInstancesProps) {
-  const { palette, shadows, quality } = useSceneEnv();
+  const { palette, shadows, quality, theme } = useSceneEnv();
   const ref = useRef<InstancedMesh>(null);
   const geometry = useInstanceGeometry(unitCylinder(quality.cylinderSegments), items.length);
 
@@ -197,13 +203,13 @@ export function CylInstances({
       mesh.setMatrixAt(i, _m);
       mesh.setColorAt(i, _c.set(palette[it.tone]).multiplyScalar(it.shade ?? 1));
       const f = finishOf(it.tone);
-      finish.setXYZ(i, f.roughness, f.metalness, 0);
+      finish.setXYZW(i, f.roughness, f.metalness, 0, emissiveOf(it.tone, theme));
     });
     mesh.instanceMatrix.needsUpdate = true;
     if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
     finish.needsUpdate = true;
     mesh.computeBoundingSphere();
-  }, [items, palette, mapping, transform, geometry]);
+  }, [items, palette, theme, mapping, transform, geometry]);
 
   if (items.length === 0) return null;
   return (

@@ -57,7 +57,7 @@ async function animationsDone(page: Page) {
   );
 }
 
-/** The 2D chrome stays inside the layout contract with the 3D view (SCENE_SAFE_AREA 160 / 384 / 88 / 24 px). */
+/** The 2D chrome stays inside the layout contract with the 3D view (SCENE_SAFE_AREA 120 / 384 / 88 / 24 px). */
 async function expectLayoutContract(page: Page) {
   // the inspector slides in (200 ms): measure the resting layout
   await animationsDone(page);

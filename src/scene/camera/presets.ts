@@ -7,7 +7,13 @@ import { CAMERA_FOV, type ViewFit } from './view';
 // a region of the face frame and an orbit direction; the distance is the smallest one at which every corner of the
 // region projects inside the safe rectangle, with a margin.
 
-export const SCENE_PRESETS = ['floorOverview', 'dockWall', 'stagingAisle', 'apron'] as const;
+export const SCENE_PRESETS = [
+  'floorOverview',
+  'plan',
+  'dockWall',
+  'stagingAisle',
+  'apron',
+] as const;
 export type ScenePreset = (typeof SCENE_PRESETS)[number];
 
 export { CAMERA_FOV };
@@ -124,17 +130,31 @@ export function alignTop(
 const dist3 = (a: Triple, b: Triple) => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
 
 /**
- * Default /live framing (docs/06 section 2, Task 08), face-frame metres: all bays across, from the top of the dock
- * wall band (`wall`, just outside the wall line, `wallHeight` up) to the forklift aisle behind staging (`back`, with
- * stacks up to `backHeight`), top-aligned so the dock wall sits at the top of the safe area.
+ * Default /live framing, the diagonal hero view (docs/06 D1), face-frame metres: from inside-north-east looking
+ * south-west, so the dock wall recedes along the diagonal with B07 nearest on the left and B01 furthest on the right.
+ * Fitted on the top of the eave (`wall`, `wallHeight` up) and the back of staging.
  */
 export const FLOOR_OVERVIEW = Object.freeze({
-  wall: -0.6,
-  wallHeight: 5,
+  // on the wall line, not outside it: bay-frame points with y < 0 sit at yard grade, 1.2 m below the eave
+  wall: 0,
+  wallHeight: 5.3,
   back: 17,
-  backHeight: 1.2,
-  // steeper than the bay presets: at 16:9 the 45 m wide face is width-bound, and 60 deg lets the 17 m of depth
-  // fill more of the height (staging then ends about 60 % down; only the first storage rows remain in view)
+  backHeight: 1.6,
+  elevation: 40,
+  azimuth: 35,
+  margin: 1.03,
+});
+
+/**
+ * The straight-on view (the former default, kept as preset `Plan`): all bays across, top-aligned so the dock wall sits
+ * at the top of the safe area. Steeper than the bay presets: at 16:9 the 45 m wide face is width-bound, and 60 deg
+ * lets the 17 m of depth fill more of the height.
+ */
+export const PLAN_VIEW = Object.freeze({
+  wall: 0,
+  wallHeight: 5.3,
+  back: 17,
+  backHeight: 1.6,
   elevation: 60,
   lean: 0,
   margin: 1.03,
@@ -199,8 +219,9 @@ export function presetPose(
   };
 
   switch (preset) {
-    case 'floorOverview': {
-      const o = FLOOR_OVERVIEW;
+    case 'floorOverview':
+    case 'plan': {
+      const o = preset === 'plan' ? PLAN_VIEW : FLOOR_OVERVIEW;
       // the dock wall band and the low stacks at the back of staging (a full-height box would let its tall back
       // corners, closest to the camera, set the distance)
       const points: Vec3[] = [x0, x1].flatMap((x) => [
@@ -209,11 +230,12 @@ export function presetPose(
         { x, y: o.back, z: 0 },
         { x, y: o.back, z: o.backHeight },
       ]);
+      const lean = 'azimuth' in o ? Math.sin(rad(o.azimuth)) : o.lean;
       return frame(
         points,
         { x: cx, y: (o.wall + o.back) / 2, z: 0.4 },
         o.elevation,
-        o.lean,
+        lean,
         o.margin,
         true,
       );

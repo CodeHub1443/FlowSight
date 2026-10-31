@@ -1,24 +1,32 @@
 import { PerformanceMonitor } from '@react-three/drei';
-import { Canvas } from '@react-three/fiber';
+import { Canvas, useThree } from '@react-three/fiber';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Color, SRGBColorSpace, type Scene, type WebGLRenderer } from 'three';
-import type { SiteConfig } from '@/domain';
+import type { BeltStatus, SiteConfig } from '@/domain';
 import { Bay, type BaySelection } from './bay/Bay';
 import { Shed } from './building/Shed';
 import { CameraRig } from './camera/CameraRig';
 import { CAMERA_FOV, NO_SAFE_AREA, type SafeArea } from './camera/view';
 import { bayPillAnchor, selectionPillAnchor } from './labels/anchors';
 import { PillLayer, PillProjector, SELECTION_KEY, type PillElements } from './labels/Pills';
-import { createMaterials, disposeMaterials, paletteFor, type SceneTheme } from './materials';
+import { EventPin } from './labels/EventPin';
+import {
+  createMaterials,
+  disposeMaterials,
+  hexAlpha,
+  paletteFor,
+  type SceneTheme,
+} from './materials';
 import { AUTO_START_TIER, autoStartTier, QUALITY, stepTier, type QualityTier } from './quality';
 import { SceneLights } from './SceneLights';
 import { ScenePost } from './ScenePost';
 import { SceneEnvContext, type SceneEnv } from './sceneEnv';
 import {
+  DARK_TONE_MAPPING,
   SCENE_TONE_MAPPING,
   THREE_TONE_MAPPING,
-  UNLIT_GAIN,
+  unlitColor,
   type SceneToneMapping,
 } from './toneMapping';
 import { ExteriorContext } from './site/ExteriorContext';
@@ -30,6 +38,14 @@ import { applySoftShadows } from './softShadows';
 applySoftShadows();
 
 export type SceneSelection = BaySelection;
+
+/**
+ * Distance fog into the void (docs/06 section 7.3: D7 and section 8.3 moved out, because the hero camera stands 75-105 m
+ * from the bays and the specified 60-140 m washed the near props out). The apron and the far floor still fade.
+ */
+const FOG = { light: [85, 170], dark: [75, 150] } as const;
+/** Light-theme vignette (docs/06 D7): clear up to the 0.35 offset, tinted towards the corners. */
+const VIGNETTE_ALPHA = 0.7;
 
 export interface SceneRootProps {
   siteConfig: SiteConfig;
@@ -46,10 +62,27 @@ export interface SceneRootProps {
   selectedBayId?: string | null;
   /** Static shutter state per bay (default: open). */
   doorOpen?: (bayId: string) => boolean;
+  /** Belt status per bay id (default NO_TRUCK): work lights and status colours of the dark theme. */
+  bayStatus?: Readonly<Record<string, BeltStatus>>;
+  /** Event pins (docs/06 D9): three.js world positions of the pin bases. Bound to live events in step 9. */
+  pins?: readonly { id: string; at: readonly [number, number, number] }[];
   /** Tone mapping (read once when the canvas is created). Default SCENE_TONE_MAPPING; the dev preview A/B tests it. */
   toneMapping?: SceneToneMapping;
   /** Dev hook: receives the renderer once the canvas is created (stats, screenshots). */
   onReady?: (gl: WebGLRenderer, scene: Scene) => void;
+}
+
+function applyToneMapping(gl: WebGLRenderer, mapping: SceneToneMapping): void {
+  gl.toneMapping = THREE_TONE_MAPPING[mapping];
+}
+
+/** Keeps the renderer's own curve in step with the theme on the tier without post (the composer owns it otherwise). */
+function RendererToneMapping({ mapping, active }: { mapping: SceneToneMapping; active: boolean }) {
+  const gl = useThree((s) => s.gl);
+  useEffect(() => {
+    if (active) applyToneMapping(gl, mapping);
+  }, [gl, mapping, active]);
+  return null;
 }
 
 /** The 3D shed interior (roofless cutaway "dollhouse"), fully built from `siteConfig`. Fills its parent. */
@@ -62,12 +95,15 @@ export function SceneRoot({
   onSelect,
   selectedBayId = null,
   doorOpen,
-  toneMapping = SCENE_TONE_MAPPING,
+  bayStatus,
+  pins,
+  toneMapping: lightToneMapping = SCENE_TONE_MAPPING,
   onReady,
 }: SceneRootProps) {
+  const toneMapping = theme === 'dark' ? DARK_TONE_MAPPING : lightToneMapping;
   const layout = useMemo(() => buildSiteLayout(siteConfig), [siteConfig]);
   const palette = paletteFor(theme);
-  const materials = useMemo(() => createMaterials(palette), [palette]);
+  const materials = useMemo(() => createMaterials(palette, theme), [palette, theme]);
   useEffect(() => () => disposeMaterials(materials), [materials]);
 
   const [autoTier, setAutoTier] = useState<QualityTier>(AUTO_START_TIER);
@@ -106,17 +142,15 @@ export function SceneRoot({
   // Fog is tone-mapped on every tier, the clear colour only by the post chain (High/Med). Both are pre-scaled where
   // tone mapping applies so they come out at --scene-void.
   const hasPost = settings.post !== null;
-  const fogColor = useMemo(
-    () => new Color(palette.void).multiplyScalar(UNLIT_GAIN),
-    [palette.void],
-  );
+  const fogColor = useMemo(() => unlitColor(palette.void, theme), [palette.void, theme]);
   const voidColor = useMemo(
-    () => new Color(palette.void).multiplyScalar(hasPost ? UNLIT_GAIN : 1),
-    [palette.void, hasPost],
+    () => (hasPost ? unlitColor(palette.void, theme) : new Color(palette.void)),
+    [palette.void, theme, hasPost],
   );
 
   const env = useMemo<SceneEnv>(
     () => ({
+      theme,
       palette,
       materials,
       tier,
@@ -124,7 +158,7 @@ export function SceneRoot({
       shadows: settings.shadowMapSize !== null,
       toneMapping,
     }),
-    [palette, materials, tier, settings, toneMapping],
+    [theme, palette, materials, tier, settings, toneMapping],
   );
 
   return (
@@ -139,7 +173,7 @@ export function SceneRoot({
         style={{ width: '100%', height: '100%', display: 'block' }}
         onCreated={({ gl, scene }) => {
           // exposure 1, sRGB output; under post-processing the ToneMapping effect applies the same curve
-          gl.toneMapping = THREE_TONE_MAPPING[toneMapping];
+          applyToneMapping(gl, toneMapping);
           gl.toneMappingExposure = 1;
           gl.outputColorSpace = SRGBColorSpace;
           // automatic mode: a software rasteriser starts (and stays unless it inclines) at Low
@@ -154,7 +188,8 @@ export function SceneRoot({
       >
         <SceneEnvContext.Provider value={env}>
           <primitive attach="background" object={voidColor} />
-          <fog attach="fog" args={[fogColor, 170, 520]} />
+          <RendererToneMapping mapping={toneMapping} active={!hasPost} />
+          <fog attach="fog" args={[fogColor, FOG[theme][0], FOG[theme][1]]} />
           {quality === undefined && (
             <PerformanceMonitor
               onDecline={() => setAutoTier((t) => stepTier(t, -1))}
@@ -190,17 +225,35 @@ export function SceneRoot({
                   bay={bay}
                   selected={selectedBayId === bay.id}
                   doorOpen={doorOpen ? doorOpen(bay.id) : true}
+                  status={bayStatus?.[bay.id] ?? 'NO_TRUCK'}
                   onSelect={onSelect}
                 />
               </group>
             );
           })}
+          {pins?.map((pin) => (
+            <EventPin key={pin.id} at={pin.at} />
+          ))}
           <PillProjector anchors={anchors} elements={pillElements} />
           <ScenePost />
         </SceneEnvContext.Provider>
       </Canvas>
+      {theme === 'light' && (
+        <div
+          aria-hidden
+          data-testid="scene-vignette"
+          style={{
+            position: 'absolute',
+            inset: 0,
+            pointerEvents: 'none',
+            background: `radial-gradient(ellipse at center, transparent 35%, ${hexAlpha(palette.vignette, VIGNETTE_ALPHA)} 100%)`,
+          }}
+        />
+      )}
       <PillLayer
         palette={palette}
+        theme={theme}
+        selectedBayId={selectedBayId}
         bays={pillBays}
         showBayPills={labels}
         selection={selection}

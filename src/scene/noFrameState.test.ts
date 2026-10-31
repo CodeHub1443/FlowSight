@@ -48,9 +48,10 @@ describe('no React state per frame', () => {
   //    something invalidated it (BACKLOG: no frames=1 once anything can move).
   //  - Pills.tsx (PillProjector): projects the pill anchors and writes CSS transforms through refs (docs/06
   //    section 4: labels move with the camera without any React render).
-  it('limits useFrame to the camera rig, motion, on-demand contact shadows and the pill projector', () => {
+  //  - EventPin.tsx: the 1.2 s bob of an event pin (docs/06 D9), ref-driven.
+  it('limits useFrame to the camera rig, motion, on-demand contact shadows, pills and event pins', () => {
     expect(withFrame.map(([p]) => base(p)).sort()).toEqual(
-      ['Appear.tsx', 'CameraRig.tsx', 'ContactShadowLayer.tsx', 'Pills.tsx'].sort(),
+      ['Appear.tsx', 'CameraRig.tsx', 'ContactShadowLayer.tsx', 'EventPin.tsx', 'Pills.tsx'].sort(),
     );
   });
 

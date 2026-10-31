@@ -23,6 +23,7 @@ vi.mock('@react-three/postprocessing', () => ({
 
 function envFor(tier: QualityTier): SceneEnv {
   return {
+    theme: 'light',
     palette: LIGHT_PALETTE,
     materials: createMaterials(LIGHT_PALETTE),
     tier,

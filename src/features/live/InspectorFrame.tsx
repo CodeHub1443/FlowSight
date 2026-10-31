@@ -51,14 +51,16 @@ export function InspectorFrame({
       <header className="flex shrink-0 items-start gap-[12px] px-[16px] pt-[16px] pb-[12px]">
         <IconTile icon={icon} tone={iconTone} />
         <div className="min-w-0 flex-1">
-          <p className="text-info truncate text-[12px] leading-4 font-medium">{typeLabel}</p>
+          <p className="text-info-ink truncate text-[11px] leading-4 font-semibold tracking-[0.06em] uppercase">
+            {typeLabel}
+          </p>
           <h2
             className={cn(
-              'text-ink-900 text-[17px] font-semibold',
+              'text-ink-900 text-[20px] font-bold',
               // 28 px line box: Bangla vowel signs stay inside the clipped single line in either UI language
               titleOneLine
                 ? 'truncate leading-[28px] whitespace-nowrap'
-                : 'bn-leading line-clamp-2 leading-6 break-words',
+                : 'bn-leading line-clamp-2 leading-[26px] break-words',
             )}
             data-testid="inspector-title"
           >
@@ -69,7 +71,7 @@ export function InspectorFrame({
         <div className="flex shrink-0 items-center gap-[4px]">
           <button
             type="button"
-            className={cn(iconButton, actions.pinned && 'bg-row-selected text-info')}
+            className={cn(iconButton, actions.pinned && 'bg-row-selected text-info-ink')}
             aria-pressed={actions.pinned}
             aria-label={actions.pinned ? t('inspector.unpin') : t('inspector.pin')}
             onClick={actions.onPin}

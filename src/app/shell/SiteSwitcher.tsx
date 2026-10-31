@@ -26,10 +26,10 @@ export function SiteSwitcher() {
       <DropdownMenuTrigger asChild>
         <Button
           variant="outline"
-          className="h-10 min-w-0 gap-2.5 rounded-[12px] ps-1.5 pe-2.5"
+          className="bg-card h-10 min-w-0 gap-2.5 rounded-[12px] border-transparent ps-1.5 pe-2.5"
           data-testid="site-switcher"
         >
-          <span className="bg-brand-500 grid h-7 shrink-0 place-items-center rounded-[8px] px-1.5 text-[11px] font-semibold text-on-solid">
+          <span className="tile-solid grid h-[28px] min-w-[28px] shrink-0 place-items-center rounded-[8px] px-1.5 text-[11px] font-bold">
             {DEFAULT_SITE.id.split('-')[0]?.toUpperCase()}
           </span>
           <span className="flex min-w-0 flex-col items-start leading-tight">

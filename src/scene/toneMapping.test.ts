@@ -1,7 +1,13 @@
 // @vitest-environment node
-import { NeutralToneMapping } from 'three';
+import { Color, LinearToneMapping, NeutralToneMapping } from 'three';
 import { describe, expect, it } from 'vitest';
-import { POST_TONE_MODE, SCENE_TONE_MAPPING, THREE_TONE_MAPPING } from './toneMapping';
+import {
+  DARK_TONE_MAPPING,
+  POST_TONE_MODE,
+  SCENE_TONE_MAPPING,
+  THREE_TONE_MAPPING,
+  unlitColor,
+} from './toneMapping';
 
 // `postprocessing` is a dependency of @react-three/postprocessing, not of this app, so its enum is read from the
 // installed build's source text.
@@ -28,5 +34,12 @@ describe('scene tone mapping', () => {
     expect(POST_TONE_MODE.aces).toBe(runtimeMode('ACES_FILMIC'));
     expect(POST_TONE_MODE.agx).toBe(runtimeMode('AGX'));
     expect(POST_TONE_MODE.neutral).toBe(runtimeMode('NEUTRAL'));
+    expect(POST_TONE_MODE.linear).toBe(runtimeMode('LINEAR'));
+  });
+
+  it('renders the dark theme without a curve, so its unlit colours stay at their token', () => {
+    expect(THREE_TONE_MAPPING[DARK_TONE_MAPPING]).toBe(LinearToneMapping);
+    expect(unlitColor('#0E1730', 'dark').getHexString()).toBe(new Color('#0E1730').getHexString());
+    expect(unlitColor('#E6ECFA', 'light').r).toBeGreaterThan(new Color('#E6ECFA').r);
   });
 });

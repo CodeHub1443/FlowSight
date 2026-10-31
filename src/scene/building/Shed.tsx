@@ -1,12 +1,12 @@
 import { useMemo } from 'react';
-import type { BoxItem, CylItem } from '../items';
-import { BoxInstances, CylInstances } from '../primitives';
+import type { BoxItem } from '../items';
+import { BoxInstances } from '../primitives';
 import { useSceneEnv } from '../sceneEnv';
 import { WALL_THICKNESS, type SiteLayout } from '../site/layout';
 
 // The shed in the site frame (X east, Y up, Z south). Items use mapping "three": at = [X, Y, Z], size = [x, y, z].
 
-/** Slab, pale floor, rounded columns and the cutaway walls with a rounded accent cap. No roof (docs/04 section 0). */
+/** Slab, pale floor, rounded columns and the cutaway walls with a lighter top. No roof (docs/04 section 0). */
 export function Shed({ layout }: { layout: SiteLayout }) {
   const { materials, shadows } = useSceneEnv();
   const { width, depth } = layout.footprint;
@@ -41,28 +41,16 @@ export function Shed({ layout }: { layout: SiteLayout }) {
         tone: 'wall',
         round: 0.05,
       });
+      // lighter top face: reads as 3D in both themes (docs/06 section 8.1)
+      out.push({
+        at: [X, fl + h + 0.002, Z],
+        size: alongX ? [len - 0.1, 0.004, t - 0.04] : [t - 0.04, 0.004, len - 0.1],
+        tone: 'wallTop',
+        detail: 'flat',
+      });
     }
     return out;
   }, [layout, width, depth, fl, t, h]);
-
-  // a rounded accent rail on every cutaway wall top (docs/06 section 1: --scene-wall-accent "cap line")
-  const caps = useMemo(
-    () =>
-      layout.cutawayFaces.map((f): CylItem => {
-        const alongX = f === 'N' || f === 'S';
-        const sign = f === 'S' || f === 'E' ? 1 : -1;
-        return {
-          at: alongX
-            ? [0, fl + h, sign * (depth / 2 - t / 2)]
-            : [sign * (width / 2 - t / 2), fl + h, 0],
-          radius: t / 2 + 0.03,
-          length: alongX ? width : depth,
-          axis: alongX ? 'x' : 'y',
-          tone: 'wallAccent',
-        };
-      }),
-    [layout.cutawayFaces, width, depth, fl, t, h],
-  );
 
   return (
     <group>
@@ -75,7 +63,6 @@ export function Shed({ layout }: { layout: SiteLayout }) {
         <planeGeometry args={[width - 0.02, depth - 0.02]} />
       </mesh>
       <BoxInstances items={boxes} mapping="three" cast />
-      <CylInstances items={caps} mapping="three" />
     </group>
   );
 }

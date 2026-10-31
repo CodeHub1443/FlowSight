@@ -2,19 +2,26 @@ import { useEffect, useMemo } from 'react';
 import { MeshStandardMaterial } from 'three';
 import { bayToThree } from '../frame';
 import { UNIT_PLANE } from '../geometry';
-import type { BoxItem, CylItem } from '../items';
+import type { BoxItem } from '../items';
 import { stripeTexture } from '../labels/textures';
-import { BoxInstances, CylInstances } from '../primitives';
+import { BoxInstances } from '../primitives';
 import { WALL_THICKNESS, type FaceLayout, type SiteLayout } from '../site/layout';
 import { BAND_HEIGHT } from './bandHeight';
 
 export { BAND_HEIGHT } from './bandHeight';
 
+/** Spacing of the vertical panel ribs (docs/06 D5). */
+const RIB_PITCH = 1.2;
+/** Eave above the band: height and overhang beyond the wall on each side. */
+const EAVE_H = 0.42;
+const EAVE_OVERHANG = 0.14;
+
 /**
- * Dock wall of one face, in the face frame (origin at the face midpoint on the footprint edge, floor level):
- * rounded white piers between the door openings, a band above them with the --scene-wall-accent stripe on the shed
- * side (the bay number pills sit on it, docs/06 section 2) and a rounded accent cap. The yard side of the band
- * carries the facade stripes, which are physical paint from config (the one allowed exception to "tokens only").
+ * Dock wall of one face, in the face frame (origin at the face midpoint on the footprint edge, floor level): pale
+ * piers between the door openings and a band above them (the bay number pills sit on it, docs/06 section 2), both
+ * with vertical panel ribs on the shed side, then a saturated blue eave with a lighter top face (docs/06 D5). The
+ * yard side of the band carries the facade stripes, which are physical paint from config (the one allowed exception
+ * to "tokens only").
  */
 export function DockWall({ layout, face }: { layout: SiteLayout; face: FaceLayout }) {
   const t = WALL_THICKNESS;
@@ -46,29 +53,33 @@ export function DockWall({ layout, face }: { layout: SiteLayout; face: FaceLayou
         tone: 'wall',
         round: 0.05,
       },
-      // accent stripe on the shed side of the band
       {
-        at: [0, t + 0.02, doorH + BAND_HEIGHT * 0.58],
-        size: [face.length - 0.2, 0.05, BAND_HEIGHT * 0.56],
+        at: [0, t / 2, top + EAVE_H / 2],
+        size: [face.length + 0.1, t + 2 * EAVE_OVERHANG, EAVE_H],
         tone: 'wallAccent',
-        detail: 'lo',
+        round: 0.14,
+        detail: 'hi',
+      },
+      {
+        at: [0, t / 2, top + EAVE_H + 0.003],
+        size: [face.length - 0.1, t + 2 * EAVE_OVERHANG - 0.12, 0.006],
+        tone: 'eaveTop',
+        detail: 'flat',
       },
     );
+    // panel ribs on the shed side: down to the floor between the doors, band height over them
+    for (let x = -face.length / 2 + RIB_PITCH / 2; x < face.length / 2; x += RIB_PITCH) {
+      const overDoor = xs.some((d) => Math.abs(x - d) < half + 0.2);
+      const z0 = overDoor ? doorH + 0.2 : 0;
+      out.push({
+        at: [x, t + 0.008, (z0 + top) / 2],
+        size: [0.06, 0.016, top - z0],
+        tone: 'wallRib',
+        detail: 'flat',
+      });
+    }
     return out;
-  }, [face, half, t, doorH]);
-
-  const cap = useMemo<CylItem[]>(
-    () => [
-      {
-        at: [0, t / 2, top + 0.02],
-        radius: t / 2 + 0.03,
-        length: face.length,
-        axis: 'x',
-        tone: 'wallAccent',
-      },
-    ],
-    [face.length, t, top],
-  );
+  }, [face, half, t, doorH, top]);
 
   const stripe = useMemo(() => {
     const tex = stripeTexture(layout.facade.colors, layout.facade.stripeWidth, face.length);
@@ -79,7 +90,6 @@ export function DockWall({ layout, face }: { layout: SiteLayout; face: FaceLayou
   return (
     <group>
       <BoxInstances items={items} cast />
-      <CylInstances items={cap} />
       {/* facade paint on the yard face of the band (a plane faces three +Z = bay -y, the yard) */}
       <mesh
         geometry={UNIT_PLANE}

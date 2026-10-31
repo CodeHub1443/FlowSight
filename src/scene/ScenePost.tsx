@@ -13,8 +13,9 @@ import { POST_TONE_MODE } from './toneMapping';
 // effect; on Low the renderer itself tone-maps with the same curve, so every tier looks the same.
 
 /** World-space AO radius in metres: about one pallet, so crevices and floor contacts darken, not whole bays. */
-export const AO_RADIUS = 2.2;
-export const AO_INTENSITY = 6;
+export const AO_RADIUS = 1.8;
+/** Periwinkle AO (docs/06 D2) reads softer than a grey one, so it can be strong without looking dirty. */
+export const AO_INTENSITY = 3.5;
 
 export function ScenePost() {
   const { quality, palette, toneMapping } = useSceneEnv();
@@ -28,7 +29,7 @@ export function ScenePost() {
         aoRadius={AO_RADIUS}
         distanceFalloff={1}
         intensity={AO_INTENSITY}
-        color={palette.shade}
+        color={palette.aoColor}
       />
       <SMAA />
       {/* runtime enum value: the library's typings and runtime disagree (see toneMapping.ts) */}

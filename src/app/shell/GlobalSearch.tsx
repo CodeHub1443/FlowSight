@@ -114,7 +114,7 @@ export function GlobalSearch() {
             e.currentTarget.blur();
           }
         }}
-        className="soft-transition bg-muted border-card-border text-ink-900 placeholder:text-ink-400 focus-visible:bg-card focus-visible:border-ring focus-visible:ring-ring/30 h-10 w-full rounded-full border ps-10 pe-10 text-[13px] outline-none focus-visible:ring-[3px] [&::-webkit-search-cancel-button]:hidden"
+        className="soft-transition bg-card border-card-border text-ink-900 placeholder:text-ink-400 focus-visible:bg-card focus-visible:border-ring focus-visible:ring-ring/30 h-10 w-full rounded-full border ps-10 pe-10 text-[13px] outline-none focus-visible:ring-[3px] [&::-webkit-search-cancel-button]:hidden"
       />
       <kbd
         className="text-ink-400 border-card-border bg-card pointer-events-none absolute end-3 top-1/2 hidden -translate-y-1/2 rounded-[6px] border px-1.5 text-[11px] leading-4 md:block"

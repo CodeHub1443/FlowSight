@@ -47,8 +47,8 @@ function stepLabel(
 }
 
 /**
- * Stepper as in the reference: done steps are filled brand circles, the current step is filled with a soft halo,
- * pending steps are hollow; a line joins them and turns blue up to the current step. Time below each label.
+ * Stepper (docs/06 U7): 40 px circles; done = solid blue with a white icon, current = blue ring with a soft halo,
+ * pending = grey ring; a line joins them and turns blue up to the current step. Time below each label.
  * Always mounted (all pending when there is no visit), so selecting a bay without a truck never changes its height.
  */
 function Stepper({ visit, waiting, fmt }: { visit: BayVisit | null; waiting: boolean; fmt: Fmt }) {
@@ -72,24 +72,27 @@ function Stepper({ visit, waiting, fmt }: { visit: BayVisit | null; waiting: boo
               <span
                 aria-hidden
                 className={cn(
-                  'soft-transition absolute top-[13px] right-[calc(50%+18px)] left-[calc(-50%+18px)] h-[2px] rounded-full',
+                  'soft-transition absolute top-[19px] right-[calc(50%+24px)] left-[calc(-50%+24px)] h-[2px] rounded-full',
                   step.state === 'pending' ? 'bg-track' : 'bg-info',
                 )}
               />
             )}
             <span
               className={cn(
-                'soft-transition relative z-10 grid size-[28px] place-items-center rounded-full',
+                'soft-transition relative z-10 grid size-[40px] place-items-center rounded-full',
                 step.state === 'pending' && 'bg-card text-ink-400 border-track border-2',
-                step.state === 'done' && 'bg-info text-on-solid',
-                step.state === 'current' && 'bg-info ring-info/20 text-on-solid ring-4',
+                step.state === 'done' && 'tile-solid',
+                step.state === 'current' && 'bg-card text-info-ink border-info border-2',
               )}
+              style={
+                step.state === 'current' ? { boxShadow: '0 0 0 6px var(--step-halo)' } : undefined
+              }
             >
-              <Icon className="size-3.5" strokeWidth={2} aria-hidden />
+              <Icon className="size-[18px]" strokeWidth={2} aria-hidden />
             </span>
             <span
               className={cn(
-                'mt-1.5 w-full truncate text-[12px] leading-4 font-medium',
+                'mt-1 w-full truncate text-[12px] leading-4 font-medium',
                 step.state === 'pending' ? 'text-ink-400' : 'text-ink-900',
               )}
             >
@@ -124,33 +127,36 @@ function Subject({ active, fmt }: { active: ActiveVisit | null; fmt: Fmt }) {
   const plate = formatPlate(visit.plate);
   return (
     <div
-      className="bg-muted flex min-w-0 flex-col justify-center gap-1 rounded-[12px] px-3 py-2.5"
+      className="bg-muted flex min-w-0 items-center gap-2.5 rounded-[12px] px-2.5 py-2"
       data-testid="tracker-subject"
     >
-      <div className="flex min-w-0 items-center gap-2">
-        <span className="text-ink-900 min-w-0 flex-1 truncate text-[14px] leading-5 font-semibold">
-          {plate.primary}
-        </span>
-        <PhasePill active={active} />
+      <IconTile icon={Truck} size="sm" />
+      <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+        <div className="flex min-w-0 items-center gap-2">
+          <span className="text-ink-900 min-w-0 flex-1 truncate text-[14px] leading-5 font-semibold">
+            {plate.primary}
+          </span>
+          <PhasePill active={active} />
+        </div>
+        <p className="text-ink-400 truncate text-[12px] leading-4">
+          {[plate.secondary, bayLabel(bay, fmt.lang)].filter(Boolean).join(' · ')} ·{' '}
+          <span data-testid="tracker-info">
+            {waiting
+              ? waiting.slot === null
+                ? t('queue.noSlot')
+                : t('queue.slot', { n: fmt.num(waiting.slot) })
+              : visit.agency
+                ? visit.agency[fmt.lang] || visit.agency.en
+                : t('tracker.noAgency')}
+          </span>{' '}
+          ·{' '}
+          <span className="text-ink-600">
+            {visit.etaMin === null
+              ? t('tracker.etaUnknown')
+              : t('tracker.etaLeft', { n: fmt.num(visit.etaMin) })}
+          </span>
+        </p>
       </div>
-      <p className="text-ink-400 truncate text-[12px] leading-4">
-        {[plate.secondary, bayLabel(bay, fmt.lang)].filter(Boolean).join(' · ')} ·{' '}
-        <span data-testid="tracker-info">
-          {waiting
-            ? waiting.slot === null
-              ? t('queue.noSlot')
-              : t('queue.slot', { n: fmt.num(waiting.slot) })
-            : visit.agency
-              ? visit.agency[fmt.lang] || visit.agency.en
-              : t('tracker.noAgency')}
-        </span>{' '}
-        ·{' '}
-        <span className="text-ink-600">
-          {visit.etaMin === null
-            ? t('tracker.etaUnknown')
-            : t('tracker.etaLeft', { n: fmt.num(visit.etaMin) })}
-        </span>
-      </p>
     </div>
   );
 }
@@ -265,7 +271,7 @@ export function VisitTracker() {
         className={cn(
           'shrink-0 ps-[16px] pe-[12px]',
           // collapsed: 11 + 32 px tile + 11 + the 1 px borders = 56 px
-          expanded ? 'pt-[12px] pb-[6px]' : 'cursor-pointer py-[11px]',
+          expanded ? 'pt-[8px] pb-[4px]' : 'cursor-pointer py-[11px]',
         )}
         onClick={expanded ? undefined : () => setExpanded(true)}
       >
@@ -278,7 +284,7 @@ export function VisitTracker() {
       </div>
       <div
         hidden={!expanded}
-        className="animate-in fade-in-0 slide-in-from-bottom-1 grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)_248px] items-center gap-[20px] ps-[16px] pe-[16px] pb-[12px] duration-200"
+        className="animate-in fade-in-0 slide-in-from-bottom-1 grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)_248px] items-center gap-[20px] ps-[16px] pe-[16px] pt-[2px] pb-[8px] duration-200"
       >
         <Stepper visit={active?.visit ?? null} waiting={active?.waiting != null} fmt={fmt} />
         <Subject active={active} fmt={fmt} />

@@ -18,9 +18,10 @@ export interface StagingResult {
   marks: MarkItem[];
 }
 
-export const PALLET: readonly [number, number] = [1.2, 1.0];
-export const PALLET_H = 0.15;
-const DECK = 0.045;
+// docs/06 D6: chunky toy proportions, slightly oversized on purpose (a real pallet is 1.2 x 1.0 m).
+export const PALLET: readonly [number, number] = [1.5, 1.25];
+export const PALLET_H = 0.2;
+const DECK = 0.07;
 
 type Rot = (dx: number, dy: number) => [number, number];
 
@@ -48,19 +49,19 @@ export function pallet(
     { at: [...at(0, 0), z + PALLET_H - DECK / 2], size: [pw, pd, DECK], yaw, tone, detail: 'lo' },
   ];
   const footH = PALLET_H - DECK - 0.02;
-  for (const fx of [-0.5, 0, 0.5]) {
+  for (const fx of [-0.62, 0, 0.62]) {
     out.push({
       at: [...at(fx, 0), z + 0.01],
-      size: [0.14, pd, 0.02],
+      size: [0.18, pd, 0.02],
       yaw,
       tone,
       shade: 0.82,
       detail: 'flat',
     });
-    for (const fy of [-0.42, 0, 0.42]) {
+    for (const fy of [-0.52, 0, 0.52]) {
       out.push({
         at: [...at(fx, fy), z + 0.02 + footH / 2],
-        size: [0.15, 0.15, footH],
+        size: [0.2, 0.2, footH],
         yaw,
         tone,
         shade: 0.9,
@@ -70,10 +71,10 @@ export function pallet(
     }
   }
   if (topVisible) {
-    for (let i = 0; i < 6; i++) {
+    for (let i = 0; i < 5; i++) {
       out.push({
-        at: [...at(-0.475 + i * 0.19, 0), z + PALLET_H + 0.001],
-        size: [0.07, pd - 0.16, 0.004],
+        at: [...at(-0.56 + i * 0.28, 0), z + PALLET_H + 0.001],
+        size: [0.11, pd - 0.22, 0.004],
         yaw,
         tone,
         shade: 0.7,
@@ -105,13 +106,15 @@ export function carton(
   ];
 }
 
-/** Static staging content for one bay: pallets, crate stacks, cartons and sacks (docs/04 section 3). */
+/**
+ * Static staging content for one bay (docs/04 section 3, docs/06 D6): a receiving pallet at the belt mouth plus two to
+ * four more big stacks, so 3-5 per bay with plenty of open floor between them, and two crate stacks by the conveyor.
+ */
 export function buildStaging(input: StagingInput): StagingResult {
   const r = rng(input.seed);
   const boxes: BoxItem[] = [];
   const marks: MarkItem[] = [];
   const half = Math.min(-input.x[0], input.x[1]);
-  const cols = [-2.3, -1.0, 1.0, 2.3].filter((c) => Math.abs(c) <= half - 0.62);
   const palletTones: PaletteKey[] = [
     'palletBlue',
     'palletBlue',
@@ -122,50 +125,46 @@ export function buildStaging(input: StagingInput): StagingResult {
   const pick = <T>(a: readonly T[]): T => a[Math.floor(r() * a.length)] as T;
 
   const place = (x: number, y: number) => {
-    const yaw = (r() - 0.5) * 0.12;
+    const yaw = (r() - 0.5) * 0.1;
     const kind = r();
-    if (kind < 0.22) return; // empty slot
     const baseTone = pick(palletTones);
     const at = rotator(x, y, yaw);
     let z = 0;
-    let top = 0;
-    if (kind < 0.5) {
+    if (kind < 0.25) {
       // stack of empty plastic pallets
-      const n = 2 + Math.floor(r() * 3);
+      const n = 3 + Math.floor(r() * 3);
       for (let i = 0; i < n; i++) {
         boxes.push(
           ...pallet(x, y, z, i === n - 1 ? baseTone : pick(palletTones), yaw, i === n - 1),
         );
         z += PALLET_H;
       }
-      top = z;
-    } else if (kind < 0.8) {
+    } else if (kind < 0.75) {
       // pallet of cartons
       boxes.push(...pallet(x, y, 0, baseTone, yaw, false));
       z = PALLET_H;
-      const layers = 2 + Math.floor(r() * 3);
+      const layers = 2 + Math.floor(r() * 2);
       for (let l = 0; l < layers; l++) {
-        for (const dx of [-0.29, 0.29]) {
-          for (const dy of [-0.24, 0.24]) {
+        for (const dx of [-0.36, 0.36]) {
+          for (const dy of [-0.3, 0.3]) {
             boxes.push(
-              ...carton([...at(dx, dy), z + 0.14], [0.56, 0.46, 0.28], yaw, 0.94 + r() * 0.1),
+              ...carton([...at(dx, dy), z + 0.18], [0.7, 0.58, 0.36], yaw, 0.94 + r() * 0.1),
             );
           }
         }
-        z += 0.28;
+        z += 0.36;
       }
-      top = z;
     } else {
       // pallet of white sacks with a coloured band: soft pillows, not boxes
       boxes.push(...pallet(x, y, 0, baseTone, yaw, false));
       z = PALLET_H;
-      const layers = 3 + Math.floor(r() * 3);
+      const layers = 3 + Math.floor(r() * 2);
       for (let l = 0; l < layers; l++) {
-        for (const dx of [-0.29, 0.29]) {
+        for (const dx of [-0.36, 0.36]) {
           const p = at(dx, 0);
           boxes.push({
-            at: [...p, z + 0.08],
-            size: [0.56, 0.9, 0.16],
+            at: [...p, z + 0.11],
+            size: [0.7, 1.16, 0.22],
             yaw,
             tone: 'sack',
             shade: 0.97 + r() * 0.05,
@@ -173,51 +172,55 @@ export function buildStaging(input: StagingInput): StagingResult {
             detail: 'lo',
           });
           boxes.push({
-            at: [...p, z + 0.08],
-            size: [0.5, 0.12, 0.165],
+            at: [...p, z + 0.11],
+            size: [0.62, 0.16, 0.225],
             yaw,
             tone: 'sackBand',
             round: 0.35,
             detail: 'lo',
           });
         }
-        z += 0.16;
+        z += 0.22;
       }
-      top = z;
     }
     if (r() < 0.3) {
       marks.push({
-        at: [x, y + PALLET[1] / 2 + 0.006, Math.min(PALLET_H - DECK / 2, top / 2)],
-        size: [0.3, 0.09],
+        at: [x, y + PALLET[1] / 2 + 0.006, PALLET_H - DECK / 2],
+        size: [0.36, 0.1],
         text: r() < 0.5 ? 'FG' : 'DC',
       });
     }
   };
 
-  const rows = Math.max(0, Math.floor((input.y[1] - input.y[0] - 0.3) / 1.35));
-  for (let row = 0; row < rows; row++) {
-    const y = input.y[0] + 1.0 + row * 1.35;
-    for (const x of cols) {
-      // keep the corridor in front of the belt mouth clear except for the receiving pallet
-      if (Math.abs(x) < input.beltHalf + 0.6 && row > 0) continue;
-      place(x, y);
-    }
+  // receiving pallet at the belt mouth, always there
+  place(0, input.beltEnd + PALLET[1]);
+  // two to four more from the side slots and the back slot, in a seed-stable order
+  const side = half - PALLET[0] / 2 - 0.3;
+  const slots: [number, number][] = [
+    [-side, input.y[0] + 1.5],
+    [side, input.y[0] + 1.5],
+    [-side, input.y[0] + 4.4],
+    [side, input.y[0] + 4.6],
+    [0, input.y[1] - 1.5],
+  ];
+  const extra = 2 + Math.floor(r() * 3);
+  for (let i = 0; i < extra; i++) {
+    const [slot] = slots.splice(Math.floor(r() * slots.length), 1);
+    if (slot) place(slot[0], slot[1]);
   }
-  // receiving pallet at the belt mouth
-  place(0, input.beltEnd + 1.0);
 
   // blue crate stacks beside the conveyor (as in the overhead frames): open crates with a darker inner rim
   for (const [cx, cy] of [
     [-(input.beltHalf + 0.95), 3.4],
     [input.beltHalf + 0.95, 5.2],
   ] as const) {
-    const n = 3 + Math.floor(r() * 3);
+    const n = 3 + Math.floor(r() * 2);
     for (let i = 0; i < n; i++) {
       const yaw = (r() - 0.5) * 0.2;
       const shade = 0.92 + r() * 0.14;
       boxes.push({
-        at: [cx, cy, 0.15 + i * 0.3],
-        size: [0.62, 0.42, 0.28],
+        at: [cx, cy, 0.18 + i * 0.36],
+        size: [0.78, 0.54, 0.34],
         yaw,
         tone: 'crate',
         shade,
@@ -225,8 +228,8 @@ export function buildStaging(input: StagingInput): StagingResult {
       });
       if (i === n - 1) {
         boxes.push({
-          at: [cx, cy, 0.29 + i * 0.3 + 0.002],
-          size: [0.52, 0.32, 0.004],
+          at: [cx, cy, 0.35 + i * 0.36 + 0.002],
+          size: [0.64, 0.4, 0.004],
           yaw,
           tone: 'crate',
           shade: shade * 0.62,

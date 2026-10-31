@@ -36,6 +36,12 @@ function variant(name: string | null): SiteConfig {
   };
 }
 
+/** `?pins=1`: event pins (docs/06 D9) on the dock floor, until step 9 binds them to live events. */
+const PREVIEW_PINS = [
+  { id: 'a', at: [-6.5, 1.2, 20] },
+  { id: 'b', at: [6.5, 1.2, 24] },
+] as const;
+
 const QUALITIES: readonly (QualityTier | 'auto')[] = ['auto', 'high', 'med', 'low'];
 
 function param<T extends string>(name: string, allowed: readonly T[], fallback: T): T {
@@ -85,6 +91,9 @@ export function ScenePreview() {
         selectedBayId={selected}
         onSelect={(s) => setSelected(s.bayId)}
         doorOpen={(id) => id !== 'B06'}
+        pins={
+          new URLSearchParams(window.location.search).get('pins') === '1' ? PREVIEW_PINS : undefined
+        }
         onReady={(gl, scene) => {
           window.__sceneGl = gl;
           window.__sceneScene = scene;

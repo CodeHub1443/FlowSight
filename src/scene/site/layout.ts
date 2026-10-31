@@ -1,4 +1,4 @@
-import type { SiteConfig } from '@/domain';
+import type { SiteConfig } from '../../domain/types';
 import {
   bayToSite,
   faceYaw,

@@ -20,13 +20,13 @@ import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeom
 // its corner-sphere direction (the geometry's normal): position = corner * (size / 2 - r) + normal * r, with r a
 // per-instance fraction of the instance's smallest side. Radii are therefore true metres on any instance size.
 //
-// Each instance also carries its finish (roughness, metalness, rounding) in `instanceFinish`, so steel guides,
-// matte paint and plastic pallets share one draw call per geometry.
+// Each instance also carries its finish (roughness, metalness, rounding, emissive) in `instanceFinish`, so steel
+// guides, matte paint, plastic pallets and glowing status strips share one draw call per geometry.
 
 export type Detail = 'hi' | 'lo' | 'flat';
 
-/** Rounding as a fraction of the smallest side (docs/06 section 2: 3 to 8 %). */
-export const ROUND = 0.08;
+/** Rounding as a fraction of the smallest side (docs/06 D6: 10 to 15 %, overriding section 2). */
+export const ROUND = 0.13;
 
 /** Plane facing +Z, 1 x 1. */
 export const UNIT_PLANE = new PlaneGeometry(1, 1);
@@ -76,7 +76,7 @@ export function instancedGeometry(base: BufferGeometry, count: number): BufferGe
   const g = new BufferGeometry();
   for (const [name, attr] of Object.entries(base.attributes)) g.setAttribute(name, attr);
   if (base.index) g.setIndex(base.index);
-  g.setAttribute('instanceFinish', new InstancedBufferAttribute(new Float32Array(count * 3), 3));
+  g.setAttribute('instanceFinish', new InstancedBufferAttribute(new Float32Array(count * 4), 4));
   return g;
 }
 
@@ -92,8 +92,8 @@ export function disposeInstancedGeometry(g: BufferGeometry, base: BufferGeometry
 
 const ROUNDED_HEAD = /* glsl */ `
 attribute vec3 rbCorner;
-attribute vec3 instanceFinish;
-varying vec2 vFinish;
+attribute vec4 instanceFinish;
+varying vec3 vFinish;
 `;
 
 // Instance scale from the matrix columns; radius = rounding fraction x smallest side.
@@ -114,16 +114,24 @@ vec3 objectNormal = normal * rbScale;
 
 const ROUNDED_POSITION = /* glsl */ `
 vec3 transformed = ( rbCorner * ( 0.5 * rbScale - rbR ) + normal * rbR ) / rbScale;
-vFinish = instanceFinish.xy;
+vFinish = instanceFinish.xyw;
 `;
 
 const FINISH_HEAD = /* glsl */ `
-attribute vec3 instanceFinish;
-varying vec2 vFinish;
+attribute vec4 instanceFinish;
+varying vec3 vFinish;
 `;
 
 const FRAGMENT_HEAD = /* glsl */ `
-varying vec2 vFinish;
+varying vec3 vFinish;
+`;
+
+// The instance colour glows by its own emissive share (status strips, dock band in the dark theme).
+const FRAGMENT_EMISSIVE = /* glsl */ `
+#include <emissivemap_fragment>
+#ifdef USE_COLOR
+	totalEmissiveRadiance += vColor.rgb * vFinish.z;
+#endif
 `;
 
 function patchStandard(shader: WebGLProgramParametersWithUniforms, rounded: boolean): void {
@@ -138,13 +146,14 @@ function patchStandard(shader: WebGLProgramParametersWithUniforms, rounded: bool
   } else {
     shader.vertexShader = shader.vertexShader.replace(
       '#include <begin_vertex>',
-      '#include <begin_vertex>\nvFinish = instanceFinish.xy;',
+      '#include <begin_vertex>\nvFinish = instanceFinish.xyw;',
     );
   }
   shader.fragmentShader = shader.fragmentShader
     .replace('#include <common>', `#include <common>\n${FRAGMENT_HEAD}`)
     .replace('#include <roughnessmap_fragment>', 'float roughnessFactor = vFinish.x;')
-    .replace('#include <metalnessmap_fragment>', 'float metalnessFactor = vFinish.y;');
+    .replace('#include <metalnessmap_fragment>', 'float metalnessFactor = vFinish.y;')
+    .replace('#include <emissivemap_fragment>', FRAGMENT_EMISSIVE);
 }
 
 function standard(rounded: boolean): MeshStandardMaterial {

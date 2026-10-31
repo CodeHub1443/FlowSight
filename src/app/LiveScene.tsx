@@ -1,5 +1,15 @@
-import { Component, lazy, Suspense, useEffect, useRef, useState, type ReactNode } from 'react';
+import {
+  Component,
+  lazy,
+  Suspense,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react';
 import { useTranslation } from 'react-i18next';
+import type { BeltStatus } from '@/domain';
 import { DEFAULT_SITE } from '@/features/live';
 import { SceneSlotPlaceholder } from '@/features/live/SceneSlot';
 import type { WebGLRenderer } from 'three';
@@ -8,7 +18,8 @@ import type { QualityTier, SceneSelection } from '@/scene';
 import { useSceneCamera } from '@/scene/camera/cameraController';
 import { SCENE_SAFE_AREA } from '@/scene/camera/view';
 import { AUTO_START_TIER, autoStartTier } from '@/scene/quality';
-import { alertStore, liveStore, uiStore, useUiStore } from '@/stores';
+import { alertStore, liveStore, uiStore, useLiveStore, useUiStore } from '@/stores';
+import { MapControls } from './MapControls';
 import { bayOfSelection, flyTargetFor, type SceneTargetContext } from './sceneTarget';
 import { hasWebGL } from './webgl';
 
@@ -92,6 +103,22 @@ export function LiveScene() {
   const [autoStart, setAutoStart] = useState<QualityTier>(AUTO_START_TIER);
   const lowTier = (quality ?? autoStart) === 'low';
   const ref = useRef<HTMLDivElement>(null);
+  // one string, so the scene re-renders when a belt status changes and not on every store flush
+  const statusKey = useLiveStore((s) =>
+    Object.values(s.bays)
+      .map((b) => `${b.bay}:${b.belt.status}`)
+      .join(),
+  );
+  const bayStatus = useMemo(
+    () =>
+      Object.fromEntries(
+        statusKey
+          .split(',')
+          .filter(Boolean)
+          .map((e) => e.split(':') as [string, BeltStatus]),
+      ),
+    [statusKey],
+  );
 
   useEffect(() => {
     const root = document.documentElement;
@@ -125,6 +152,7 @@ export function LiveScene() {
             safeArea={SCENE_SAFE_AREA}
             labels={labels}
             selectedBayId={selectedBayId}
+            bayStatus={bayStatus}
             onSelect={selectBay}
             onReady={(gl) => {
               setAutoStart(startTierOf(gl));
@@ -133,6 +161,7 @@ export function LiveScene() {
           />
         </Suspense>
       </SceneBoundary>
+      <MapControls />
     </div>
   );
 }

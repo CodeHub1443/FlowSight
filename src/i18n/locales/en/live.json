@@ -276,5 +276,13 @@
     "waiting": "Waiting",
     "slot": "Apron slot {{n}}",
     "noSlot": "No apron slot"
+  },
+  "map": {
+    "label": "Map controls",
+    "zoomIn": "Zoom in",
+    "zoomOut": "Zoom out",
+    "rotateLeft": "Rotate left",
+    "rotateRight": "Rotate right",
+    "home": "Back to overview"
   }
 }

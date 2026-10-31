@@ -22,6 +22,8 @@ export interface QualitySettings {
   smoothness: { hi: number; lo: number };
   /** Radial segments for cylinders. */
   cylinderSegments: number;
+  /** Dark-theme work lights (docs/06 section 8.3): a floor pool on every tier, plus real spot lights on `spot`. */
+  workLights: 'spot' | 'decal';
 }
 
 export const QUALITY: Record<QualityTier, QualitySettings> = {
@@ -33,6 +35,7 @@ export const QUALITY: Record<QualityTier, QualitySettings> = {
     post: { ao: 'medium', halfRes: false },
     smoothness: { hi: 4, lo: 2 },
     cylinderSegments: 28,
+    workLights: 'spot',
   },
   med: {
     dpr: [1, 1.5],
@@ -41,6 +44,8 @@ export const QUALITY: Record<QualityTier, QualitySettings> = {
     post: { ao: 'performance', halfRes: true },
     smoothness: { hi: 2, lo: 1 },
     cylinderSegments: 18,
+    // seven spot lights cost about 15 % of the frame on Intel UHD (52 -> 45 fps, p95 24 -> 42 ms): High only
+    workLights: 'decal',
   },
   low: {
     dpr: [1, 1],
@@ -49,6 +54,7 @@ export const QUALITY: Record<QualityTier, QualitySettings> = {
     post: null,
     smoothness: { hi: 1, lo: 1 },
     cylinderSegments: 12,
+    workLights: 'decal',
   },
 };
 

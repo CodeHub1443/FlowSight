@@ -1,6 +1,7 @@
 {
   "preset": {
     "floorOverview": "Floor overview",
+    "plan": "Plan",
     "dockWall": "Dock wall",
     "stagingAisle": "Staging & aisle",
     "apron": "Apron"
@@ -11,6 +12,11 @@
     "light": "Light",
     "dark": "Dark",
     "quality": "Quality",
-    "q": { "auto": "Auto", "high": "High", "med": "Medium", "low": "Low" }
+    "q": {
+      "auto": "Auto",
+      "high": "High",
+      "med": "Medium",
+      "low": "Low"
+    }
   }
 }

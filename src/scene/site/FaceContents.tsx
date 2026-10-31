@@ -4,6 +4,8 @@ import { DockWall } from '../building/DockWall';
 import type { BoxItem } from '../items';
 import { Appear } from '../Appear';
 import { BoxInstances, Bx } from '../primitives';
+import { useSceneEnv } from '../sceneEnv';
+import { roundedPlate } from '../shapes';
 import { hashString } from './random';
 import type { FaceLayout, SiteLayout } from './layout';
 
@@ -38,6 +40,7 @@ function dashes(
 
 /** Everything attached to one dock face, in the face frame: dock wall, apron, painted lines, storage. */
 export function FaceContents({ layout, face }: { layout: SiteLayout; face: FaceLayout }) {
+  const { materials, shadows, theme } = useSceneEnv();
   const yardZ = -layout.floorLevel;
 
   const apronPaint = useMemo(() => {
@@ -66,22 +69,37 @@ export function FaceContents({ layout, face }: { layout: SiteLayout; face: FaceL
     return out;
   }, [face, yardZ]);
 
-  const aisle = useMemo(() => {
+  const aisleBox = useMemo(() => {
     const first = face.bays[0];
     const last = face.bays[face.bays.length - 1];
-    if (!first || !last) return [];
+    if (!first || !last) return null;
     const x0 = first.localX - first.pitch / 2;
     const x1 = last.localX + last.pitch / 2;
     const [a0, a1] = first.zones.aisle;
-    if (a1 - a0 < 0.5) return [];
+    return a1 - a0 < 0.5 ? null : { x0, x1, a0, a1 };
+  }, [face]);
+
+  // thin outline (docs/06 D3), dashed in the dark theme (section 8.1), with a white dashed centre line
+  const aisle = useMemo(() => {
+    if (!aisleBox) return [];
+    const { x0, x1, a0, a1 } = aisleBox;
     const len = x1 - x0;
     const mid = (x0 + x1) / 2;
-    const out: BoxItem[] = [strip(mid, a0, len, LINE, PAINT_Z), strip(mid, a1, len, LINE, PAINT_Z)];
+    const out: BoxItem[] = [];
+    for (const y of [a0, a1]) {
+      if (theme === 'dark') {
+        for (let x = x0; x + 1 < x1; x += 1.8) {
+          out.push(strip(x + 0.5, y, 1, LINE * 0.7, PAINT_Z, 'aisleLine'));
+        }
+      } else {
+        out.push(strip(mid, y, len, LINE * 0.7, PAINT_Z, 'aisleLine'));
+      }
+    }
     for (let x = x0 + 0.8; x + 1.2 < x1; x += 2.4) {
       out.push(strip(x + 0.6, (a0 + a1) / 2, 1.2, LINE * 0.8, PAINT_Z, 'paintWhite'));
     }
     return out;
-  }, [face]);
+  }, [aisleBox, theme]);
 
   const storage = useMemo(
     () =>
@@ -108,6 +126,14 @@ export function FaceContents({ layout, face }: { layout: SiteLayout; face: FaceL
         cast={false}
       />
       <BoxInstances items={apronPaint} />
+      {aisleBox && (
+        <mesh
+          geometry={roundedPlate(aisleBox.x1 - aisleBox.x0, aisleBox.a1 - aisleBox.a0, 0.5)}
+          material={materials.aisle}
+          position={[(aisleBox.x0 + aisleBox.x1) / 2, 0.004, -(aisleBox.a0 + aisleBox.a1) / 2]}
+          receiveShadow={shadows}
+        />
+      )}
       <BoxInstances items={aisle} />
       <Appear>
         <BoxInstances items={storage} cast />

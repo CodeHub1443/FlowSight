@@ -2,9 +2,10 @@ import { useFrame, useThree } from '@react-three/fiber';
 import { BriefcaseConveyorBelt, DoorOpen } from 'lucide-react';
 import { memo, useMemo, useRef, type CSSProperties, type RefObject } from 'react';
 import { Vector3 } from 'three';
-import { hexAlpha, type ScenePalette } from '../materials';
+import { hexAlpha, LIGHT_TOKENS, type ScenePalette, type SceneTheme } from '../materials';
 
-// In-scene pill labels (docs/06 section 2): white, 999 px radius, soft two-layer shadow, small icon. They are plain
+// In-scene pill labels (docs/06 section 2, D8, section 8.4): 999 px radius, soft two-layer shadow, small icon; a filled
+// dark-blue pill marks the selected object. They are plain
 // DOM elements in one layer over the canvas (crisp text, Bangla shaping, CSS transitions), rendered once with stable
 // keys; only their text and visibility change (docs/06 section 4: no remounts). One useFrame (<PillProjector/>)
 // projects every anchor and writes `transform` through refs, so moving the camera never re-renders React.
@@ -26,17 +27,17 @@ export type PillElements = Map<string, HTMLElement>;
 
 export const SELECTION_KEY = '__selection';
 
-function styles(p: ScenePalette) {
+function styles(p: ScenePalette, dark: boolean) {
   const pill: CSSProperties = {
     display: 'inline-flex',
     alignItems: 'center',
     gap: 6,
     padding: '3px 10px 3px 3px',
     borderRadius: 999,
-    background: p.card,
-    color: p.ink900,
-    border: `1px solid ${hexAlpha(p.ink900, 0.06)}`,
-    boxShadow: `0 1px 2px ${hexAlpha(p.ink900, 0.06)}, 0 8px 24px ${hexAlpha(p.brand, 0.1)}`,
+    background: p.pillBg,
+    color: p.pillFg,
+    border: `1px solid ${hexAlpha(p.pillBorder, dark ? 0.25 : 0.06)}`,
+    boxShadow: `0 1px 2px ${hexAlpha(p.contactShade, 0.3)}, 0 8px 24px ${hexAlpha(p.contactShade, 0.3)}`,
     font: `500 12px/18px ${FONT}`,
     fontVariantNumeric: 'tabular-nums',
     whiteSpace: 'nowrap',
@@ -51,7 +52,21 @@ function styles(p: ScenePalette) {
     background: p.brandTint,
     color: p.brand,
   };
-  return { pill, tile, sub: { color: p.ink600 } satisfies CSSProperties };
+  const onFill = LIGHT_TOKENS.card;
+  const filled: CSSProperties = {
+    ...pill,
+    background: p.selectionPill,
+    color: onFill,
+    border: `1px solid ${hexAlpha(onFill, 0.16)}`,
+  };
+  const filledTile: CSSProperties = { ...tile, background: hexAlpha(onFill, 0.18), color: onFill };
+  return {
+    pill,
+    tile,
+    filled,
+    filledTile,
+    filledSub: { color: hexAlpha(onFill, 0.82), fontWeight: 500 } satisfies CSSProperties,
+  };
 }
 
 export interface BayPillData {
@@ -60,6 +75,9 @@ export interface BayPillData {
 
 interface PillLayerProps {
   palette: ScenePalette;
+  theme: SceneTheme;
+  /** The bay whose number pill is filled (docs/06 section 8.4). */
+  selectedBayId: string | null;
   bays: readonly BayPillData[];
   showBayPills: boolean;
   /** Text of the selected (or last selected, while it fades out) bay. */
@@ -71,13 +89,15 @@ interface PillLayerProps {
 /** The DOM layer with every pill; positioned by <PillProjector/>. Never takes pointer events. */
 export const PillLayer = memo(function PillLayer({
   palette,
+  theme,
+  selectedBayId,
   bays,
   showBayPills,
   selection,
   selectionVisible,
   elements,
 }: PillLayerProps) {
-  const s = useMemo(() => styles(palette), [palette]);
+  const s = useMemo(() => styles(palette, theme === 'dark'), [palette, theme]);
   const register = (key: string) => (el: HTMLElement | null) => {
     if (el) elements.current.set(key, el);
     else elements.current.delete(key);
@@ -91,13 +111,13 @@ export const PillLayer = memo(function PillLayer({
         <div key={b.id} ref={register(b.id)} style={WRAP} data-testid="scene-bay-pill">
           <div
             style={{
-              ...s.pill,
+              ...(selectedBayId === b.id ? s.filled : s.pill),
               fontWeight: 600,
               opacity: showBayPills ? 1 : 0,
-              transition: 'opacity 200ms ease-out',
+              transition: 'opacity 200ms ease-out, background-color 200ms ease-out',
             }}
           >
-            <span style={s.tile}>
+            <span style={selectedBayId === b.id ? s.filledTile : s.tile}>
               <DoorOpen size={12} strokeWidth={1.75} aria-hidden />
             </span>
             {b.id}
@@ -107,17 +127,17 @@ export const PillLayer = memo(function PillLayer({
       <div ref={register(SELECTION_KEY)} style={WRAP} data-testid="scene-selection-pill">
         <div
           style={{
-            ...s.pill,
+            ...s.filled,
             opacity: selectionVisible ? 1 : 0,
             transform: selectionVisible ? 'translateY(0) scale(1)' : 'translateY(4px) scale(0.96)',
             transition: 'opacity 200ms ease-out, transform 200ms ease-out',
           }}
         >
-          <span style={s.tile}>
+          <span style={s.filledTile}>
             <BriefcaseConveyorBelt size={12} strokeWidth={1.75} aria-hidden />
           </span>
           <span style={{ fontWeight: 600 }}>{selection?.title ?? ''}</span>
-          <span style={s.sub}>{selection?.sub ?? ''}</span>
+          <span style={s.filledSub}>{selection?.sub ?? ''}</span>
         </div>
       </div>
     </div>

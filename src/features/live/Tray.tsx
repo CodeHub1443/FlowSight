@@ -38,7 +38,7 @@ const TABS: readonly TrayTab[] = ['bays', 'trucks', 'alerts', 'captains'];
 // fixed width, so a changing pill or number never moves the title column; FLIP animates rows that move.
 
 /**
- * One 56 px tray row (docs/06 §3): status dot, title + sub-line, then a fixed-width right column (pill over mini
+ * One 48 px tray row (docs/06 U6): status dot, bold id + sub-line, then a fixed-width right column (pill over mini
  * progress / value). Hover and selected backgrounds are `--row-hover` / `--brand-50`, 12 px radius.
  */
 function Row({
@@ -70,7 +70,7 @@ function Row({
         aria-current={selected ? 'true' : undefined}
         onClick={onClick}
         className={cn(
-          'soft-transition focus-visible:ring-ring/50 grid h-[56px] w-full grid-cols-[8px_minmax(0,1fr)_8.5rem_14px] items-center gap-x-[10px] rounded-[12px] px-[10px] text-left focus-visible:ring-[3px] focus-visible:outline-none',
+          'soft-transition focus-visible:ring-ring/50 grid h-[48px] w-full grid-cols-[8px_minmax(0,1fr)_8.5rem_14px] items-center gap-x-[10px] rounded-[12px] px-[10px] text-left focus-visible:ring-[3px] focus-visible:outline-none',
           selected ? 'bg-row-selected' : 'hover:bg-row-hover',
         )}
       >
@@ -79,12 +79,12 @@ function Row({
           className={cn('soft-transition size-[8px] rounded-full', TONE_DOT[tone])}
         />
         <span className="min-w-0">
-          <span className="text-ink-900 flex min-w-0 items-center gap-1.5 text-[14px] leading-5 font-medium">
+          <span className="text-ink-900 flex min-w-0 items-center gap-1.5 text-[13px] leading-[18px] font-bold">
             {title}
           </span>
-          <span className="text-ink-400 block truncate text-[12px] leading-4">{sub}</span>
+          <span className="text-ink-400 block truncate text-[12px] leading-[14px]">{sub}</span>
         </span>
-        <span className="flex min-w-0 flex-col items-end gap-1">
+        <span className="flex min-w-0 flex-col items-end gap-0.5">
           {pill}
           {meta}
         </span>
@@ -168,7 +168,7 @@ const BayRow = memo(function BayRow({
               value={progress}
               tone={tone}
               label={t('tray.progress')}
-              className="w-12"
+              className="h-[4px] w-[36px]"
             />
             <Num value={Math.round(progress)} format={fmt.pctInt} minCh={4} className="text-end" />
           </Meta>
@@ -257,7 +257,7 @@ const TruckRow = memo(function TruckRow({
                 value={progress}
                 tone={tone}
                 label={t('tray.progress')}
-                className="w-10"
+                className="h-[4px] w-[36px]"
               />
             )}
             <span>
@@ -470,7 +470,7 @@ export function Tray() {
         <div
           role="tablist"
           aria-label={t('tray.label')}
-          className="bg-muted flex min-w-0 items-center gap-0.5 rounded-[10px] p-0.5"
+          className="bg-muted flex min-w-0 items-center gap-0.5 rounded-full p-[3px]"
         >
           {TABS.map((id) => (
             <button
@@ -482,14 +482,14 @@ export function Tray() {
               aria-controls="tray-panel"
               onClick={() => setTab(id)}
               className={cn(
-                'soft-transition focus-visible:ring-ring/50 flex h-7 items-center gap-1 rounded-[8px] px-2.5 text-[12.5px] leading-4 font-medium whitespace-nowrap focus-visible:ring-[3px] focus-visible:outline-none',
+                'soft-transition focus-visible:ring-ring/50 flex h-7 items-center gap-1 rounded-full px-2.5 text-[12.5px] leading-4 font-medium whitespace-nowrap focus-visible:ring-[3px] focus-visible:outline-none',
                 tab === id
                   ? 'bg-card text-ink-900 shadow-raised'
                   : 'text-ink-600 hover:text-ink-900',
               )}
             >
               {t(`tray.tabs.${id}`)}
-              <span className={cn('tabular-nums', tab === id ? 'text-info' : 'text-ink-400')}>
+              <span className={cn('tabular-nums', tab === id ? 'text-info-ink' : 'text-ink-400')}>
                 {counts[id]}
               </span>
             </button>

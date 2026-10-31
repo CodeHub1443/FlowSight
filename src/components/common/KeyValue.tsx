@@ -23,7 +23,7 @@ export function KeyValue({
       )}
     >
       <dt className="text-ink-600 shrink-0">{label}</dt>
-      <dd className="text-ink-900 min-w-0 text-right font-medium tabular-nums">{children}</dd>
+      <dd className="text-ink-900 min-w-0 text-right font-semibold tabular-nums">{children}</dd>
     </div>
   );
 }

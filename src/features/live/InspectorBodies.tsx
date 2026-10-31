@@ -264,7 +264,7 @@ export function BayBody({
         <KeyValue label={t('inspector.bay.damage')}>{fmt.num(today.damage)}</KeyValue>
         <KeyValue label={t('inspector.bay.fallOff')}>{fmt.num(today.fallOff)}</KeyValue>
         <KeyValue label={t('inspector.bay.cameras')}>
-          <span className={camsOk < cams.length ? 'text-critical' : undefined}>
+          <span className={camsOk < cams.length ? 'text-critical-ink' : undefined}>
             {t('inspector.bay.camsOk', { ok: fmt.num(camsOk), total: fmt.num(cams.length) })}
           </span>
         </KeyValue>
