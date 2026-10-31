@@ -45,14 +45,17 @@ const RING_WIDTH = 0.1;
 const RING_RADIUS = 0.6;
 /** Yellow outline of the bay plate (docs/06 D3). */
 const PLATE_LINE = 0.07;
+/** Blue outline of the selected bay's plate. */
+const SELECTED_LINE = 0.16;
 /** Height of the selection bracket box above the floor. */
 const BRACKET_HEIGHT = 3;
 
 /**
  * One bay (bay frame, origin at the door centre on the dock floor): door furniture, telescopic conveyor,
  * cabinets, zone plate and staging. The whole group is one selectable object: onSelect is a plain callback prop (no
- * store writes). Hover feedback toggles a ring through a ref, never React state; the selection marker (corner brackets
- * and floor glow, docs/06 D8) fades in over 200 ms (the selection pill is in the SceneRoot pill layer).
+ * store writes). Hover feedback toggles a lighter ring through a ref, never React state, and is independent of
+ * selection: the selection marker (corner brackets, floor glow and blue outline, docs/06 D8) follows `selected` alone
+ * and fades in over 200 ms (the selection pill is in the SceneRoot pill layer).
  */
 export function Bay({ face, bay, selected, doorOpen, status, onSelect }: BayProps) {
   const { palette, materials, shadows, theme } = useSceneEnv();
@@ -147,6 +150,8 @@ export function Bay({ face, bay, selected, doorOpen, status, onSelect }: BayProp
         depth={ringD}
         height={BRACKET_HEIGHT}
         center={ringAt[2]}
+        outline={roundedRing(plateW, plateD, 0.5, SELECTED_LINE)}
+        outlineAt={[(plateX[0] + plateX[1]) / 2, 0.025, plateAt]}
       />
       {dark && <WorkLight status={status} y={(wz.y[0] + wz.y[1]) / 2} />}
 
@@ -158,7 +163,9 @@ export function Bay({ face, bay, selected, doorOpen, status, onSelect }: BayProp
         position={[(plateX[0] + plateX[1]) / 2, 0.006, plateAt]}
         receiveShadow={shadows}
       />
+      {/* the painted guide line gives way to the blue selection outline, so yellow never marks the selected bay */}
       <mesh
+        visible={!selected}
         geometry={roundedRing(plateW, plateD, 0.5, PLATE_LINE)}
         material={materials.zoneLine}
         position={[(plateX[0] + plateX[1]) / 2, 0.008, plateAt]}

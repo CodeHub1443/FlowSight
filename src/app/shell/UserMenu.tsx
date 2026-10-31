@@ -26,7 +26,7 @@ export function UserMenu() {
           className="h-10 gap-2 rounded-full ps-1 pe-2.5"
           data-testid="user-menu"
         >
-          <span className="bg-brand-50 text-brand-500 grid size-8 place-items-center rounded-full">
+          <span className="bg-brand-50 text-ui-blue grid size-8 place-items-center rounded-full">
             <UserRound className="size-4" aria-hidden />
           </span>
           <span

@@ -15,6 +15,12 @@
   --brand-50: #eaf2ff;
   --brand: var(--brand-500);
   --brand-foreground: #ffffff;
+  /*
+   * UI accent (docs/06 §7.4): buttons, tabs, progress, tiles, the current step. --brand-* stays the 3D palette, which the
+   * scene reads, so the UI blue can move without recolouring a material.
+   */
+  --ui-blue: #2563eb;
+  --ui-blue-light: #3b82f6;
 
   /* Ink (text) */
   --ink-900: #0f172a;
@@ -34,14 +40,14 @@
   --idle-bg: #f2f5f9;
   --offline: #94a3b8;
   --offline-bg: #f1f3f7;
-  --info: var(--brand-500);
+  --info: var(--ui-blue);
   --info-bg: var(--brand-50);
   /* Status colour as text: the fills above stay docs/06 §1, these pass WCAG AA on a card and on their tint (§7.3). */
   --ok-ink: #14753a;
   --warn-ink: #a85b00;
   --critical-ink: #c42b30;
   --neutral-ink: #556377;
-  --info-ink: #1f5ad0;
+  --info-ink: #2360e6;
 
   /* Semantic status tokens (CLAUDE.md names, read by the scene) */
   --status-ok: var(--ok);
@@ -50,7 +56,7 @@
   --status-neutral: var(--neutral);
   --status-idle: var(--idle);
   --status-offline: var(--offline);
-  --status-info: var(--info);
+  --status-info: var(--brand-500);
 
   /* Cards (docs/06 U3): white at 96 %, almost no border, one soft wide shadow */
   --card-alpha: 96%;
@@ -60,25 +66,54 @@
   --shadow-card-hover: 0 1px 2px rgba(31, 64, 160, 0.06), 0 14px 36px rgba(31, 64, 160, 0.18);
   /* Small lift for the active segment of a segmented control, and the top bar's soft drop. */
   --shadow-raised: 0 1px 2px rgba(15, 23, 42, 0.08), 0 1px 1px rgba(15, 23, 42, 0.04);
-  /* Top bar (docs/06 U4): tinted page, no drop */
-  --topbar-bg: #eef1f9;
+  /* Top bar (docs/06 U4, §7.4): tinted page, no drop */
+  --topbar-bg: #f0f4fa;
   --topbar-blur: 0px;
   --shadow-topbar: none;
-  /* Icon tile (docs/06 U1): solid blue gradient, white glyph, 1 px top highlight; the same in both themes */
-  --tile-from: #3b7bf6;
-  --tile-to: #2a5fe0;
+  /* Solid blue fill (done tracker step, site badge, primary button): 1 px top highlight; the same in both themes */
+  --tile-from: #3b82f6;
+  --tile-to: #2563eb;
   --tile-highlight: rgba(255, 255, 255, 0.35);
+  /* Pale icon tile (docs/06 §7.4); sampled from the reference: #eff4ff at the centre, #e4ecf9 at the edge */
+  --tile-pale-from: #f2f7ff;
+  --tile-pale-to: #e4edfd;
+  --tile-pale-edge: rgba(37, 99, 235, 0.07);
+  /* 3D icon colour ramps (docs/06 §7.4): 100 lit top face, 300/500 lit side, 700/900 shaded side */
+  --i3-white: #ffffff;
+  --i3-white-shade: #e1e9f8;
+  --i3-white-deep: #b9c9e8;
+  --i3-info-100: #dbe8ff;
+  --i3-info-300: #7db0fb;
+  --i3-info-500: #2f74f2;
+  --i3-info-700: #1f55d2;
+  --i3-info-900: #173fa3;
+  --i3-warn-100: #ffedc7;
+  --i3-warn-300: #fcc666;
+  --i3-warn-500: #f09a12;
+  --i3-warn-700: #c26c00;
+  --i3-warn-900: #8f5209;
+  --i3-critical-100: #ffe0e0;
+  --i3-critical-300: #fb9a9a;
+  --i3-critical-500: #ec4b4f;
+  --i3-critical-700: #c42b30;
+  --i3-critical-900: #8f1d23;
+  --i3-neutral-100: #eaeef4;
+  --i3-neutral-300: #b6c1d1;
+  --i3-neutral-500: #7c8ba1;
+  --i3-neutral-700: #556377;
+  --i3-neutral-900: #3c4759;
   /* Current tracker step (docs/06 U7) */
-  --step-halo: rgba(44, 111, 237, 0.15);
+  --step-halo: rgba(37, 99, 235, 0.15);
   /* Text / icons on a solid status or brand fill; modal scrim. */
   --on-solid: #ffffff;
   --scrim: rgba(15, 23, 42, 0.36);
   --radius-card: 14px;
   --radius-tile: 12px;
   --hairline: rgba(15, 23, 42, 0.06);
-  --track: #e7edf8;
+  --track: #e2e8f2;
+  --segment-track: #e8ecf7;
   --row-hover: #f3f7ff;
-  --row-selected: var(--brand-50);
+  --row-selected: #e8f0ff;
 
   /* Motion (docs/06 §3) */
   --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
@@ -130,7 +165,7 @@
 
   /* shadcn/ui semantic tokens */
   --radius: 0.75rem;
-  --background: #f3f6fd;
+  --background: #f4f7fc;
   --foreground: var(--ink-900);
   --card: #ffffff;
   --card-foreground: var(--ink-900);
@@ -147,7 +182,7 @@
   --destructive: var(--critical);
   --border: #e3e8f3;
   --input: #dbe2ef;
-  --ring: var(--brand-500);
+  --ring: var(--ui-blue);
 }
 
 /*
@@ -158,6 +193,8 @@
   --brand-500: #4c86f5;
   --brand-400: #6fa0f7;
   --brand-50: #172a4f;
+  --ui-blue: #4c86f5;
+  --ui-blue-light: #6fa0f7;
 
   --ink-900: #e8edff;
   --ink-600: #a3b0d6;
@@ -182,6 +219,7 @@
   --critical-ink: #ff6b6b;
   --neutral-ink: #a3b0d6;
   --info-ink: #7ea2ff;
+  --status-info: var(--info);
 
   --card-alpha: 86%;
   --card-blur: 14px;
@@ -193,9 +231,24 @@
   --topbar-blur: 14px;
   --shadow-topbar: none;
   --step-halo: rgba(126, 162, 255, 0.2);
+  /* Translucent blue tile; the shaded ramp stops lift so each object keeps 3:1 on its dark tile (docs/06 §7.4) */
+  --tile-pale-from: rgba(76, 134, 245, 0.24);
+  --tile-pale-to: rgba(76, 134, 245, 0.14);
+  --tile-pale-edge: rgba(140, 165, 255, 0.18);
+  --i3-info-500: #4c8efa;
+  --i3-info-700: #3b82f6;
+  --i3-info-900: #2a5fd0;
+  --i3-critical-500: #f25c60;
+  --i3-critical-700: #e5484d;
+  --i3-critical-900: #b4282e;
+  --i3-neutral-300: #c5cfdf;
+  --i3-neutral-500: #9aa8bf;
+  --i3-neutral-700: #8795ae;
+  --i3-neutral-900: #5f6d86;
   --scrim: rgba(3, 7, 18, 0.6);
   --hairline: rgba(140, 165, 255, 0.14);
   --track: #2a3863;
+  --segment-track: #1f2a49;
   --row-hover: #202d51;
   --row-selected: #27355d;
 
@@ -285,6 +338,7 @@
   --color-brand-500: var(--brand-500);
   --color-brand-400: var(--brand-400);
   --color-brand-50: var(--brand-50);
+  --color-ui-blue: var(--ui-blue);
   --color-ink-900: var(--ink-900);
   --color-ink-600: var(--ink-600);
   --color-ink-400: var(--ink-400);
@@ -310,6 +364,7 @@
   --color-topbar: var(--topbar-bg);
   --color-hairline: var(--hairline);
   --color-track: var(--track);
+  --color-segment-track: var(--segment-track);
   --color-row-hover: var(--row-hover);
   --color-row-selected: var(--row-selected);
   --color-card-border: var(--card-border);
@@ -349,11 +404,27 @@
   color: var(--card-foreground);
 }
 
-/* Solid icon tile (docs/06 U1): blue gradient with a 1 px top highlight, in both themes. */
+/* Solid blue fill with a 1 px top highlight, in both themes: done tracker steps, the site badge. */
 @utility tile-solid {
   background-image: linear-gradient(180deg, var(--tile-from), var(--tile-to));
   box-shadow: inset 0 1px 0 var(--tile-highlight);
   color: var(--on-solid);
+}
+
+/* Pale icon tile holding a 3D object (docs/06 §7.4, replaces U1). */
+@utility tile-pale {
+  background-image: linear-gradient(160deg, var(--tile-pale-from), var(--tile-pale-to));
+  box-shadow: inset 0 0 0 1px var(--tile-pale-edge);
+  color: var(--info-ink);
+}
+
+/*
+ * A scrolling card body fades out over its last pixels instead of cutting a row in half; pair it with bottom padding
+ * of at least the fade, so the last row is fully visible once scrolled to the end.
+ */
+@utility scroll-fade {
+  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 14px), transparent);
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 14px), transparent);
 }
 
 /* Soft transition for hover / press / open (150-200 ms ease-out). */
@@ -383,6 +454,37 @@
       animation-duration: 0ms !important;
     }
   }
+}
+
+/* 3D icon ramp per tone: the drawings only name --i3-100 ... --i3-900. */
+.i3,
+.i3[data-tone='info'] {
+  --i3-100: var(--i3-info-100);
+  --i3-300: var(--i3-info-300);
+  --i3-500: var(--i3-info-500);
+  --i3-700: var(--i3-info-700);
+  --i3-900: var(--i3-info-900);
+}
+.i3[data-tone='warn'] {
+  --i3-100: var(--i3-warn-100);
+  --i3-300: var(--i3-warn-300);
+  --i3-500: var(--i3-warn-500);
+  --i3-700: var(--i3-warn-700);
+  --i3-900: var(--i3-warn-900);
+}
+.i3[data-tone='critical'] {
+  --i3-100: var(--i3-critical-100);
+  --i3-300: var(--i3-critical-300);
+  --i3-500: var(--i3-critical-500);
+  --i3-700: var(--i3-critical-700);
+  --i3-900: var(--i3-critical-900);
+}
+.i3[data-tone='neutral'] {
+  --i3-100: var(--i3-neutral-100);
+  --i3-300: var(--i3-neutral-300);
+  --i3-500: var(--i3-neutral-500);
+  --i3-700: var(--i3-neutral-700);
+  --i3-900: var(--i3-neutral-900);
 }
 
 /*

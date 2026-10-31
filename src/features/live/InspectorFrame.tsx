@@ -1,8 +1,14 @@
-import { ExternalLink, Pin, PinOff, X, type LucideIcon } from 'lucide-react';
+import { ExternalLink, Pin, PinOff, X } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { Link } from 'react-router';
 import { useTranslation } from 'react-i18next';
-import { FloatingCard, IconTile, ThinProgress, type Tone } from '@/components/common';
+import {
+  FloatingCard,
+  IconTile,
+  ThinProgress,
+  type TileIcon,
+  type Tone,
+} from '@/components/common';
 import { cn } from '@/lib/utils';
 
 export interface FrameActions {
@@ -32,7 +38,7 @@ export function InspectorFrame({
   children,
 }: {
   testId: string;
-  icon: LucideIcon;
+  icon: TileIcon;
   iconTone?: Tone;
   typeLabel: ReactNode;
   title: ReactNode;
@@ -99,7 +105,7 @@ export function InspectorFrame({
         <div className="flex shrink-0 flex-wrap items-center gap-2 px-[16px] pb-[8px]">{pill}</div>
       )}
       <div
-        className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-[16px] pb-[12px]"
+        className="scroll-fade min-h-0 flex-1 overflow-y-auto overscroll-contain px-[16px] pb-[16px]"
         data-testid={testId}
       >
         {children}

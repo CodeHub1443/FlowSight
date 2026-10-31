@@ -85,7 +85,7 @@ Sampled values are 5×5 averages from the key frame.
 ### 7.2 2D deltas
 | # | Reference | Ours | Required change |
 |---|---|---|---|
-| U1 | KPI icon tile is a **solid saturated blue rounded square (`#2F64E9`) with a white 3D-ish glyph** | Pale `--brand-50` tile with blue line icon | Tile 48 px, radius 12, fill gradient `#3B7BF6 → #2A5FE0`, white icon 22 px with a 1 px top highlight. |
+| U1 | **Replaced by §7.4 (Task 10).** Was: a solid blue tile with a white glyph, a misreading of the key frame | | See §7.4. |
 | U2 | Values **bold** (~26 px, weight 700), labels 13 px weight 500 `--ink-600`, unit/subline 12 px | 24 px semibold values, lighter labels | Allow weight 700 for KPI values and card titles; values 26 px; label 13/500. (Overrides §3 "400/500/600 only".) |
 | U3 | Cards: radius 14, **almost no border**, shadow soft and wide `0 10px 30px rgba(31,64,160,.12)`, pure white fill | Hairline border + two-layer shadow, blur | Radius 14; border `rgba(31,64,160,.05)`; shadow `0 1px 2px rgba(31,64,160,.06), 0 10px 30px rgba(31,64,160,.12)`; fill white 96 %. |
 | U4 | Page/top bar tint `#E9EAF0`-ish with white search pill (full radius) and site chip with a **blue square badge** | White top bar | Top bar transparent over a `#EEF1F9` page tint; search full-pill white; site chip with 28 px blue badge (`WH`-style code `DHK`). |
@@ -109,6 +109,25 @@ The values above and in §8 stay as written except for these, each forced by a m
 | Dark light intensities (§8.3) | key 0.8, hemisphere 0.55, rim 0.6 | key and hemisphere × 1.35 π, rim × π | three.js lights divide by π; calibrated so the floor renders near `#1E2E58` |
 | Work-light pools (§8.3) | a spot per bay, decal on Low only | floor pool on every tier, spots on High only | seven spot lights took Med from 52 to 45 fps (p95 24 to 42 ms) on Intel UHD, and a warm lamp barely shows on a blue floor anyway |
 | Vignette (D7) | "in the post stack" | a CSS radial gradient over the canvas | the post `Vignette` effect can only darken, not tint towards `#C7D3F5`, and it would miss the Low tier |
+| Selection (D8) | brackets + glow 18 % | + a blue outline (16 cm, `--brand-500`) over the plate, whose yellow line hides while selected; glow 30 % | with the pointer away, 20 px corner ticks and an 18 % glow lost to the continuous yellow plate line, so the bay looked "yellow when selected" (Task 10). Hover adds its lighter `--brand-400` ring on top; yellow is only ever painted guide lines |
+| Storage (D6) | "2 low rows at the far edge" | blocks across the whole storage zone (docs/04 §3): 5 rows + 2.2 m cross aisle, 2 columns per bay, 1–2 levels, in the `storage*` colours: each prop colour 35 % towards the floor (dark sacks 60 %) | the two rows sat out of the hero frame, so the zone read as empty; the user asked for the density back (Task 10). Fading keeps D6's "no giant foreground cartons" intent |
+
+### 7.4 UI palette and 3D icons (Task 10) — replaces U1
+**UI blue is separate from the 3D blue.** The scene reads `--brand-*`, so those keep the §1 values; the UI uses `--ui-blue` instead.
+| Token | Value (light) | Use |
+|---|---|---|
+| `--ui-blue` / `--ui-blue-light` | `#2563EB` / `#3B82F6` | `--info` (bars, active states), `--ring`, current tracker step |
+| `--tile-from` → `--tile-to` | `#3B82F6` → `#2563EB` | solid fills: done tracker step, site badge, `--primary` |
+| `--info-ink` | `#2360E6` | blue text; `#2563EB` itself is below 4.5:1 on `--row-selected` |
+| `--row-selected` | `#E8F0FF` | selected tray row |
+| `--background` / `--topbar-bg` | `#F4F7FC` / `#F0F4FA` | page, top bar (the key frame samples `#EDF1F7`) |
+| `--track` / `--segment-track` | `#E2E8F2` / `#E8ECF7` | progress track (key frame `#DFE5ED`), segmented tabs (key frame `#E5E8F7`) |
+
+**Icon tile:** 48 px (32 px small), radius 12, pale gradient `--tile-pale-from` `#F2F7FF` → `--tile-pale-to` `#E4EDFD` (key frame `#EFF4FF` centre, `#E4ECF9` edge) with a 1 px inner edge. Status tones use their tint (`--critical-bg`, `--warn-bg`). Dark: the same tile, translucent blue (`rgba(76,134,245,.24)` → `.14`).
+
+**3D icons** (`src/components/common/icons3d/`): inline SVG, 40-unit grid, isometric, one light from the upper left (top face lightest, left mid, right darkest), a bevel highlight and a soft ground shadow. Drawn 38 px in the 48 px tile. Colour only from `--i3-*` ramps (100, 300, 500, 700, 900 for info, warn, critical, neutral, plus `--i3-white*`), so a tinted icon is the same drawing. In dark the shaded stops lift so the object keeps 3:1 on its tile. Set: Box (cases, staging), Truck (trucks, truck inspector, visit tracker), Conveyor (bays running, bay and belt inspectors), Stopwatch (turnaround), Bell (alerts, event inspector; takes the worst open severity), Shield (compliance). Concepts without an object (site, person, forklift) keep a lucide glyph on the same tile.
+
+**Current tracker step** (U7, as in the key frame): solid blue inside a 2 px gap, a 2 px blue ring and a 5 px halo.
 
 ## 8. Dark theme — "night shift" design (binding)
 Goal: a night-shift control room, **not** a black screen. Readability comes from **value layering** (each layer clearly lighter than
@@ -150,7 +169,7 @@ the meaningful colours** (status, brand, cartons). Nothing large is darker than 
 | Page behind cards | transparent over the scene; top bar `rgba(14,23,48,.72)` + blur |
 | Card | `rgba(22,32,62,.86)`, blur 14 px, border `rgba(140,165,255,.14)`, shadow `0 10px 30px rgba(0,0,0,.35)`, inner top highlight `inset 0 1px 0 rgba(255,255,255,.04)` |
 | Text | primary `#E8EDFF`, secondary `#A3B0D6`, tertiary `#6F7DA6` |
-| Icon tiles | same saturated blue gradient as light (`#3B7BF6 → #2A5FE0`) — they pop on navy |
+| Icon tiles | translucent blue tile with the same 3D icons (§7.4) |
 | Pills | ok `#3DDC84` on `rgba(61,220,132,.14)`; warn `#FFB547` on `rgba(255,181,71,.14)`; critical `#FF6B6B` on `rgba(255,107,107,.16)`; info `#7EA2FF` on `rgba(126,162,255,.16)` |
 | Rows hover/selected | `rgba(126,162,255,.10)` / `.16` |
 | Bay pills in 3D | `#1C2A55` fill, `#E8EDFF` text, border `rgba(140,165,255,.25)`; selected = `#3E73FF` fill |

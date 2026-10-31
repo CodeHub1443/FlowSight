@@ -1,18 +1,16 @@
-import {
-  Bell,
-  Boxes,
-  Building2,
-  Film,
-  Forklift,
-  HardHat,
-  ImageIcon,
-  Truck,
-  Warehouse,
-  Workflow,
-  type LucideIcon,
-} from 'lucide-react';
+import { Building2, Film, Forklift, HardHat, ImageIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { KeyValue, KeyValueList, MaybeValue, StatusPill } from '@/components/common';
+import {
+  Bell3d,
+  Box3d,
+  Conveyor3d,
+  KeyValue,
+  KeyValueList,
+  MaybeValue,
+  StatusPill,
+  Truck3d,
+  type TileIcon,
+} from '@/components/common';
 import { canViewCategory } from '@/stores/alertFilter';
 import { formatPlate } from '@/lib/format';
 import {
@@ -37,13 +35,13 @@ interface BodyProps {
   actions: FrameActions;
 }
 
-const KIND_ICON: Record<Selection['kind'], LucideIcon> = {
+const KIND_ICON: Record<Selection['kind'], TileIcon> = {
   site: Building2,
-  bay: Warehouse,
-  belt: Workflow,
-  staging: Boxes,
-  truck: Truck,
-  event: Bell,
+  bay: Conveyor3d,
+  belt: Conveyor3d,
+  staging: Box3d,
+  truck: Truck3d,
+  event: Bell3d,
   person: HardHat,
   forklift: Forklift,
 };

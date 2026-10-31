@@ -90,8 +90,19 @@ const PAIRS = [
   ['--primary-foreground', '--primary', TEXT],
   // bay pills in 3D (docs/06 section 8.4)
   ['--scene-pill-fg', '--scene-pill-bg', TEXT],
+  // the pin button and the tray count on a selected or tinted surface
+  ['--info-ink', '--row-selected', TEXT],
   // glyphs and bars are graphics: 3:1
   ['--on-solid', '--tile-from', GRAPHIC],
+  ['--ui-blue', '--card', GRAPHIC],
+  // 3D icons (docs/06 section 7.4): the object's shaded side against the tile it stands on
+  ['--i3-info-700', '--tile-pale-from', GRAPHIC],
+  ['--i3-info-700', '--tile-pale-to', GRAPHIC],
+  ['--i3-critical-700', '--critical-bg', GRAPHIC],
+  ['--i3-warn-700', '--warn-bg', GRAPHIC],
+  ['--i3-neutral-700', '--neutral-bg', GRAPHIC],
+  // lucide glyph on the pale tile
+  ['--info-ink', '--tile-pale-to', TEXT],
   ...STATUS.map((s) => [`--${s}`, '--card', GRAPHIC]),
 ];
 

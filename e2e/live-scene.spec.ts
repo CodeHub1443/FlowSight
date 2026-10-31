@@ -47,8 +47,12 @@ const layout = buildSiteLayout(
   SiteConfigSchema.parse(JSON.parse(fs.readFileSync(SITE_CONFIG, 'utf8'))),
 );
 
-/** Click the middle of a bay's staging plate as the default hero view shows it (no camera move). */
-async function clickBayInOverview(page: Page, bayId: string) {
+/** Page coordinates of a bay-frame point as the default hero view shows it (no camera move). */
+async function bayPointInOverview(
+  page: Page,
+  bayId: string,
+  at: { x: number; y: number; z: number },
+) {
   const box = await page.getByTestId('scene-slot').locator('canvas').boundingBox();
   const bay = layout.bays.find((b) => b.id === bayId);
   if (!box || !bay) throw new Error('no canvas or bay');
@@ -60,9 +64,70 @@ async function clickBayInOverview(page: Page, bayId: string) {
   camera.position.set(...pose.position);
   camera.lookAt(new Vector3(...pose.target));
   camera.updateMatrixWorld();
-  const s = bayToSite(bay.face, bay.door, { x: 0, y: 12.5, z: 0 }, layout.floorLevel);
+  const s = bayToSite(bay.face, bay.door, at, layout.floorLevel);
   const v = new Vector3(s.X, s.Y, s.Z).project(camera);
-  await page.mouse.click(box.x + ((v.x + 1) / 2) * box.width, box.y + ((1 - v.y) / 2) * box.height);
+  return {
+    x: box.x + ((v.x + 1) / 2) * box.width,
+    y: box.y + ((1 - v.y) / 2) * box.height,
+  };
+}
+
+/** Click the middle of a bay's staging plate as the default hero view shows it. */
+async function clickBayInOverview(page: Page, bayId: string) {
+  const p = await bayPointInOverview(page, bayId, { x: 0, y: 12.5, z: 0 });
+  await page.mouse.click(p.x, p.y);
+}
+
+/**
+ * Yellow (painted line) and saturated blue (selection) pixels in small windows around the given page points, all read
+ * from one screenshot: on SwiftShader each capture takes 10-20 s.
+ */
+async function paintAround(
+  page: Page,
+  windows: readonly { x: number; y: number; radius?: number }[],
+): Promise<{ yellow: number; blue: number }[]> {
+  const png = await page.screenshot();
+  return page.evaluate(
+    async ({ b64, windows }) => {
+      const img = new Image();
+      img.src = `data:image/png;base64,${b64}`;
+      await img.decode();
+      const c = document.createElement('canvas');
+      c.width = img.width;
+      c.height = img.height;
+      const g = c.getContext('2d');
+      if (!g) throw new Error('no 2d context');
+      g.drawImage(img, 0, 0);
+      return windows.map(({ x, y, radius = 3 }) => {
+        const size = 2 * radius + 1;
+        const d = g.getImageData(Math.round(x) - radius, Math.round(y) - radius, size, size).data;
+        let yellow = 0;
+        let blue = 0;
+        for (let i = 0; i < d.length; i += 4) {
+          const [r = 0, gn = 0, b = 0] = [d[i], d[i + 1], d[i + 2]];
+          if (r > 200 && gn > 160 && b < 140) yellow++;
+          if (b > 190 && b - r > 90) blue++;
+        }
+        return { yellow, blue };
+      });
+    },
+    { b64: png.toString('base64'), windows },
+  );
+}
+
+const sum = (list: readonly { yellow: number; blue: number }[], key: 'yellow' | 'blue') =>
+  list.reduce((n, w) => n + w[key], 0);
+
+/** Points on the two long side edges of a bay's plate (x = +-3), away from the shared aisle line. */
+async function plateEdgePoints(page: Page, bayId: string) {
+  const out = [];
+  for (const x of [-2.92, 2.92]) {
+    // staging is seeded per bay: at these depths no stack (a yellow pallet in B04) stands in front of the edge
+    for (const y of [9.5, 11.5, 14.5, 15]) {
+      out.push(await bayPointInOverview(page, bayId, { x, y, z: 0 }));
+    }
+  }
+  return out;
 }
 
 async function clickSceneCentre(page: Page) {
@@ -95,6 +160,48 @@ test('tray row flies the camera to the bay; clicking a bay in 3D opens the bay i
   await clickSceneCentre(page);
   await expect(page.getByTestId('inspector-bay')).toBeVisible();
   await expect(title).toHaveText('Bay 6');
+});
+
+test('a selected bay stays blue with the pointer away, and yellow never marks it', async ({
+  page,
+}) => {
+  await openLive(page, 1366, 768);
+  const selected = await plateEdgePoints(page, 'B04');
+  const other = await plateEdgePoints(page, 'B02');
+  const corner = await bayPointInOverview(page, 'B04', { x: 3.15, y: 16, z: 3 });
+  const count = selected.length;
+
+  // the check can see the paint: before selection B04's plate edge is the yellow guide line
+  const before = await paintAround(page, selected);
+  expect(sum(before, 'yellow'), 'B04 before selection').toBeGreaterThan(0);
+
+  await clickBayInOverview(page, 'B04');
+  await expect(page.getByTestId('inspector-bay')).toBeVisible();
+  await page.waitForTimeout(1000);
+  expect(sum(await paintAround(page, selected), 'blue'), 'selected, hovered').toBeGreaterThan(20);
+
+  // over the top bar: off the canvas, so the bay gets a pointer-leave
+  await page.mouse.move(683, 10);
+  await page.waitForTimeout(1000);
+  const away = await paintAround(page, [...selected, ...other, { ...corner, radius: 7 }]);
+  const onSelected = away.slice(0, count);
+  expect(sum(onSelected, 'blue'), 'pointer away: the blue outline').toBeGreaterThan(20);
+  expect(sum(onSelected, 'yellow'), 'pointer away: no yellow outline').toBe(0);
+  // the painted guide line stays on every other bay
+  expect(sum(away.slice(count, 2 * count), 'yellow'), 'B02 keeps its line').toBeGreaterThan(0);
+  expect(away.at(-1)?.blue ?? 0, 'pointer away: a bracket tick').toBeGreaterThan(0);
+  await expect(page.getByTestId('scene-selection-pill').locator('div').first()).toHaveCSS(
+    'opacity',
+    '1',
+  );
+
+  // a theme switch rebuilds the marker's materials: it must come back for the bay still selected
+  await page.getByRole('button', { name: 'Switch to dark theme' }).click();
+  await expect(page.locator('html')).toHaveClass(/dark/);
+  await page.waitForTimeout(FLY_SETTLE_MS);
+  expect(sum(await paintAround(page, selected), 'blue'), 'selected, dark theme').toBeGreaterThan(
+    20,
+  );
 });
 
 test('map controls move the camera, and home returns to the hero view', async ({ page }) => {

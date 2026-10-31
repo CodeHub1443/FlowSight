@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Caption, FloatingCard, IconTile, StatusPill } from '@/components/common';
+import { Caption, FloatingCard, IconTile, StatusPill, Truck3d } from '@/components/common';
 import type { BayVisit } from '@/domain';
 import { formatPlate } from '@/lib/format';
 import { cn } from '@/lib/utils';
@@ -47,8 +47,8 @@ function stepLabel(
 }
 
 /**
- * Stepper (docs/06 U7): 40 px circles; done = solid blue with a white icon, current = blue ring with a soft halo,
- * pending = grey ring; a line joins them and turns blue up to the current step. Time below each label.
+ * Stepper (docs/06 U7, as the reference): 40 px circles; done = solid blue with a white icon, current = solid blue inside
+ * a white gap, a blue ring and a soft halo, pending = grey ring; a line joins them and turns blue up to the current step. Time below each label.
  * Always mounted (all pending when there is no visit), so selecting a bay without a truck never changes its height.
  */
 function Stepper({ visit, waiting, fmt }: { visit: BayVisit | null; waiting: boolean; fmt: Fmt }) {
@@ -81,11 +81,15 @@ function Stepper({ visit, waiting, fmt }: { visit: BayVisit | null; waiting: boo
               className={cn(
                 'soft-transition relative z-10 grid size-[40px] place-items-center rounded-full',
                 step.state === 'pending' && 'bg-card text-ink-400 border-track border-2',
-                step.state === 'done' && 'tile-solid',
-                step.state === 'current' && 'bg-card text-info-ink border-info border-2',
+                (step.state === 'done' || step.state === 'current') && 'tile-solid',
               )}
               style={
-                step.state === 'current' ? { boxShadow: '0 0 0 6px var(--step-halo)' } : undefined
+                step.state === 'current'
+                  ? {
+                      boxShadow:
+                        '0 0 0 2px var(--card), 0 0 0 4px var(--ui-blue), 0 0 0 9px var(--step-halo)',
+                    }
+                  : undefined
               }
             >
               <Icon className="size-[18px]" strokeWidth={2} aria-hidden />
@@ -130,7 +134,7 @@ function Subject({ active, fmt }: { active: ActiveVisit | null; fmt: Fmt }) {
       className="bg-muted flex min-w-0 items-center gap-2.5 rounded-[12px] px-2.5 py-2"
       data-testid="tracker-subject"
     >
-      <IconTile icon={Truck} size="sm" />
+      <IconTile icon={Truck3d} size="sm" />
       <div className="flex min-w-0 flex-1 flex-col gap-0.5">
         <div className="flex min-w-0 items-center gap-2">
           <span className="text-ink-900 min-w-0 flex-1 truncate text-[14px] leading-5 font-semibold">
@@ -192,7 +196,7 @@ function Header({
   const now = useStreamNow();
   return (
     <div className="flex min-w-0 items-center gap-2.5">
-      <IconTile icon={Truck} size="sm" />
+      <IconTile icon={Truck3d} size="sm" />
       {expanded || !active ? (
         <span className="text-ink-900 min-w-0 truncate text-[14px] leading-5 font-semibold">
           {t('tracker.title')}

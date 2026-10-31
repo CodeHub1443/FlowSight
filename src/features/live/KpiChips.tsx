@@ -1,17 +1,21 @@
 import { memo, useState, type ReactNode } from 'react';
-import {
-  ArrowUp,
-  Bell,
-  ChevronsLeft,
-  Package,
-  ShieldCheck,
-  Timer,
-  Truck,
-  Workflow,
-  type LucideIcon,
-} from 'lucide-react';
+import { ArrowUp, ChevronsLeft } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { FloatingCard, IconTile, MaybeValue, Num, TONE_TEXT } from '@/components/common';
+import {
+  Bell3d,
+  Box3d,
+  Conveyor3d,
+  FloatingCard,
+  IconTile,
+  MaybeValue,
+  Num,
+  Shield3d,
+  Stopwatch3d,
+  TONE_TEXT,
+  Truck3d,
+  type Icon3d,
+  type Tone,
+} from '@/components/common';
 import type { SiteState } from '@/domain';
 import { cn } from '@/lib/utils';
 import { useSiteKpi } from '@/stores';
@@ -66,11 +70,13 @@ function Delta({
 /**
  * One KPI chip (docs/06 §3, U2). Chips share the row equally (`flex-1 basis-0`), so their width never depends on the
  * values inside: a number growing a digit cannot reflow the row. The delta sits on the label row, because beside a
- * 26 px value it overflows the narrower chips.
+ * 26 px value it overflows the narrower chips; where the chips are narrow (below 1700 px) it moves to the sub-line, so
+ * the label keeps its full width. One grid, so the move never remounts it.
  */
 function Chip({
   testId,
   icon,
+  iconTone,
   label,
   value,
   delta,
@@ -78,7 +84,8 @@ function Chip({
   className,
 }: {
   testId: string;
-  icon: LucideIcon;
+  icon: Icon3d;
+  iconTone?: Tone;
   label: string;
   value: ReactNode;
   delta?: ReactNode;
@@ -89,22 +96,31 @@ function Chip({
     <FloatingCard
       data-testid={testId}
       className={cn(
-        'flex max-w-[272px] min-w-0 flex-1 basis-0 items-center gap-[12px] py-[12px] ps-[12px] pe-[16px]',
+        'flex max-w-[272px] min-w-0 flex-1 basis-0 items-center gap-[10px] py-[12px] ps-[10px] pe-[10px] min-[1700px]:gap-[12px] min-[1700px]:ps-[12px] min-[1700px]:pe-[16px]',
         className,
       )}
     >
-      <IconTile icon={icon} />
-      <span className="flex min-w-0 flex-1 flex-col">
-        <span className="flex min-w-0 items-baseline justify-between gap-2">
-          <span className="text-ink-600 min-w-0 truncate text-[13px] leading-[18px] font-medium">
-            {label}
-          </span>
-          {delta}
+      <IconTile icon={icon} tone={iconTone} />
+      <span className="grid min-w-0 flex-1 grid-cols-[minmax(0,1fr)_auto] items-baseline">
+        <span
+          data-testid="kpi-label"
+          className="text-ink-600 col-span-2 row-start-1 min-w-0 truncate text-[13px] leading-[18px] font-medium min-[1700px]:col-span-1"
+        >
+          {label}
         </span>
-        <span className="text-ink-900 text-[26px] leading-[30px] font-bold whitespace-nowrap tabular-nums">
+        {delta && (
+          <span className="col-start-2 row-start-3 ms-1.5 min-[1700px]:row-start-1">{delta}</span>
+        )}
+        <span className="text-ink-900 col-span-2 row-start-2 text-[26px] leading-[30px] font-bold whitespace-nowrap tabular-nums">
           {value}
         </span>
-        <span className="text-ink-400 flex min-w-0 items-center gap-1.5 truncate text-[12px] leading-4 whitespace-nowrap">
+        <span
+          data-testid="kpi-sub"
+          className={cn(
+            'text-ink-400 row-start-3 flex min-w-0 items-center gap-1.5 truncate text-[12px] leading-4 whitespace-nowrap',
+            delta ? 'col-start-1 min-[1700px]:col-span-2' : 'col-span-2',
+          )}
+        >
           {sub}
         </span>
       </span>
@@ -119,12 +135,20 @@ const Chips = memo(function Chips({ kpi, fmt }: { kpi: Kpi | null; fmt: Fmt }) {
   const openTotal = kpi
     ? kpi.openAlerts.info + kpi.openAlerts.warn + kpi.openAlerts.critical
     : null;
+  // the bell takes the colour of the worst open alert
+  const alertTone: Tone = !kpi
+    ? 'info'
+    : kpi.openAlerts.critical > 0
+      ? 'critical'
+      : kpi.openAlerts.warn > 0
+        ? 'warn'
+        : 'info';
 
   return (
     <>
       <Chip
         testId="kpi-cases"
-        icon={Package}
+        icon={Box3d}
         label={t('kpi.cases')}
         value={
           <MaybeValue value={kpi?.casesOut} reason={noData}>
@@ -140,7 +164,7 @@ const Chips = memo(function Chips({ kpi, fmt }: { kpi: Kpi | null; fmt: Fmt }) {
       />
       <Chip
         testId="kpi-trucks"
-        icon={Truck}
+        icon={Truck3d}
         label={t('kpi.trucks')}
         value={
           <MaybeValue value={kpi?.trucksOnSite} reason={noData}>
@@ -160,7 +184,7 @@ const Chips = memo(function Chips({ kpi, fmt }: { kpi: Kpi | null; fmt: Fmt }) {
       />
       <Chip
         testId="kpi-bays"
-        icon={Workflow}
+        icon={Conveyor3d}
         label={t('kpi.bays')}
         value={
           <MaybeValue value={kpi?.baysRunning} reason={noData}>
@@ -174,7 +198,7 @@ const Chips = memo(function Chips({ kpi, fmt }: { kpi: Kpi | null; fmt: Fmt }) {
       />
       <Chip
         testId="kpi-tat"
-        icon={Timer}
+        icon={Stopwatch3d}
         label={t('kpi.tat')}
         className="hidden min-[1700px]:flex"
         value={
@@ -191,7 +215,7 @@ const Chips = memo(function Chips({ kpi, fmt }: { kpi: Kpi | null; fmt: Fmt }) {
       />
       <Chip
         testId="kpi-compliance"
-        icon={ShieldCheck}
+        icon={Shield3d}
         label={t('kpi.compliance')}
         className="hidden min-[2000px]:flex"
         value={
@@ -203,7 +227,8 @@ const Chips = memo(function Chips({ kpi, fmt }: { kpi: Kpi | null; fmt: Fmt }) {
       />
       <Chip
         testId="kpi-alerts"
-        icon={Bell}
+        icon={Bell3d}
+        iconTone={alertTone}
         label={t('kpi.alerts')}
         value={
           <MaybeValue value={openTotal} reason={noData}>
@@ -242,13 +267,13 @@ export function KpiChips() {
   const fmt = useFmt();
   const [open, setOpen] = useState(true);
   return (
-    <div className="flex items-center gap-[12px]" data-testid="kpi-chips">
+    <div className="flex items-stretch gap-[12px]" data-testid="kpi-chips">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
         aria-label={open ? t('kpi.collapse') : t('kpi.expand')}
-        className="card-surface soft-transition text-ink-400 hover:text-ink-900 focus-visible:ring-ring/50 pointer-events-auto grid size-9 shrink-0 place-items-center rounded-full focus-visible:ring-[3px] focus-visible:outline-none"
+        className="card-surface soft-transition text-ink-400 hover:text-ink-900 focus-visible:ring-ring/50 pointer-events-auto grid size-9 shrink-0 place-items-center self-center rounded-full focus-visible:ring-[3px] focus-visible:outline-none"
       >
         <ChevronsLeft
           className={cn('soft-transition size-4', !open && 'rotate-180')}

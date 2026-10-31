@@ -39,7 +39,7 @@ const TABS: readonly TrayTab[] = ['bays', 'trucks', 'alerts', 'captains'];
 
 /**
  * One 48 px tray row (docs/06 U6): status dot, bold id + sub-line, then a fixed-width right column (pill over mini
- * progress / value). Hover and selected backgrounds are `--row-hover` / `--brand-50`, 12 px radius.
+ * progress / value). Hover and selected backgrounds are `--row-hover` / `--row-selected`, 12 px radius.
  */
 function Row({
   selected,
@@ -463,14 +463,14 @@ export function Tray() {
       testId="tray"
       className="max-h-[46%] w-full shrink-0"
       headerClassName="ps-[12px] pe-[10px] pt-[12px] pb-[8px]"
-      bodyClassName="overflow-y-auto overscroll-contain px-[6px] pb-[6px]"
+      bodyClassName="scroll-fade overflow-y-auto overscroll-contain px-[6px] pb-[14px]"
       collapseLabel={t('panel.collapse')}
       expandLabel={t('panel.expand')}
       header={
         <div
           role="tablist"
           aria-label={t('tray.label')}
-          className="bg-muted flex min-w-0 items-center gap-0.5 rounded-full p-[3px]"
+          className="bg-segment-track flex min-w-0 items-center gap-0.5 rounded-full p-[3px]"
         >
           {TABS.map((id) => (
             <button

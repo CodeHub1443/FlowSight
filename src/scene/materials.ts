@@ -89,6 +89,11 @@ export interface DerivedColors {
   selection: string;
   /** Tint of cast shadows on the void: periwinkle or navy, never black. */
   shade: string;
+  /** Storage zone: the prop colours faded towards the floor (docs/06 D6, section 7.3). */
+  storagePallet: string;
+  storageCarton: string;
+  storageTape: string;
+  storageSack: string;
 }
 
 export type ScenePalette = PaletteTokens & DerivedColors;
@@ -237,6 +242,9 @@ export function hexAlpha(hex: string, alpha: number): string {
   return `rgba(${(c >> 16) & 255}, ${(c >> 8) & 255}, ${c & 255}, ${alpha})`;
 }
 
+/** Share of the floor colour in the storage props (docs/06 section 7.3). */
+const STORAGE_FADE = 0.35;
+
 export function derive(p: PaletteTokens, theme: SceneTheme): ScenePalette {
   const dark = theme === 'dark';
   return {
@@ -259,6 +267,11 @@ export function derive(p: PaletteTokens, theme: SceneTheme): ScenePalette {
     hover: p.brandLight,
     selection: p.statusInfo,
     shade: p.contactShade,
+    storagePallet: mixHex(p.palletBlue, p.floor, STORAGE_FADE),
+    storageCarton: mixHex(p.carton, p.floor, STORAGE_FADE),
+    storageTape: mixHex(p.cartonTape, p.floor, STORAGE_FADE),
+    // sacks are the palest prop: on the night floor they need more fade to stay behind the bays
+    storageSack: mixHex(p.sack, p.floor, dark ? 0.6 : STORAGE_FADE),
   };
 }
 

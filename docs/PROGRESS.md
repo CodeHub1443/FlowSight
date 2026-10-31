@@ -355,3 +355,48 @@ Dark Med with spot lights was 45 fps, p95 42.4 ms, so spots stayed on High only.
 
 ### Screenshots
 `docs/screens/vf-{light-en,dark-en,light-bn,dark-bn,selected}-{1920x1080,1366x768}.png` and `vf-compare.png`. Real GPU (Intel UHD), Med pinned, mock evening peak, 0 non-localhost requests. Checked by script at both sizes, EN and BN: no bay pill under a card; the KPI row ends 107 px into the canvas (inset 120).
+
+## Task 10: UI refinement (icons, palette, panels) + two scene regressions
+
+Baseline `bf3db9c`, clean. Only the look changed: no data, contract, store, route, camera, lighting or layout-position change. Uncommitted, per the brief.
+
+### A1. Selection (root cause)
+Selection and hover state were already independent: nothing in the code tied the marker to the pointer. The problem was what each one drew. The hover ring was the only continuous blue outline; the selection was 20 px corner ticks and an 18 % glow, under the bay's continuous yellow plate line. With the pointer away, the bay therefore looked yellow. Fix: the selected bay gets a 16 cm blue outline over its plate, its yellow plate line hides while selected, the glow goes to 30 %. Hover still adds its lighter ring on top.
+Second bug found on the way: a theme switch rebuilt the marker's materials at opacity 0 while `FadeIn` had settled, so the selected bay lost its marker until reselected. `FadeIn` now restarts when the materials change.
+
+### A2. Storage
+Blocks across the storage zone (y 20..70): 5 rows + 2.2 m cross aisle, 2 columns per bay, 1-2 levels, instanced, `lo` / `flat` detail, no pointer handlers. Faded through four derived tones (35 % towards the floor; dark sacks 60 %). 87 instances (23 pallets) -> 1407 instances (819 rounded). A unit test checks no pallet stands in a building column.
+
+### Frame rate (Med pinned, 1920x1080, /live, average fps, pointer parked off the scene)
+| GPU | Theme | Before (3 x 8 s) | After (3 x 8 s) |
+|---|---|---|---|
+| RTX 3050 Laptop (the user's GPU) | Light | 413.7, 394.3, 419.1 | 380.4, 383.8, 379.8 |
+| RTX 3050 Laptop | Dark | 380.4, 382.6, 384.2 | 355.5, 358.2, 355.8 |
+| Intel UHD | Light | 59.9, 56.6, 56.6 | 72.3, 55.7, 60.0 |
+| Intel UHD | Dark | 65.9, 42.2, 52.7 | 52.5, 66.7, 43.8; then 5 x 12 s: 53.5, 66.5, 54.8, 55.3, 54.6 |
+
+The 48 fps limit holds on both GPUs on the mean. Intel dark dips below 48 in single 8 s runs both before (42.2) and after (43.8), and is noisy. **Earlier tasks' "real GPU" numbers were all Intel UHD:** headless Chromium takes the integrated adapter on this hybrid laptop, and the app's `powerPreference: 'high-performance'` did not change that in this setup. `--force_high_performance_gpu` selects the 3050. Which GPU a normal Chrome window uses was not tested.
+CPU rendering (SwiftShader, the e2e environment), A/B on the same build, quiet machine: frames about 0.44 s with two rows, about 1.1 s with full storage; a full 1920 screenshot 15 s -> 17.5 s.
+
+### B. Icons
+`src/components/common/icons3d/`: Box, Truck, Conveyor, Stopwatch, Bell, Shield. Inline SVG, tokens only, tinted variants are the same drawing. Used in the KPI chips, inspector headers (bay, belt, staging, truck, event) and visit tracker. Site, person and forklift keep lucide glyphs on the same tile. Tray rows have no icons and were left as they are. The bell takes the worst open severity, so with the mock's usual critical alerts it is usually red. Replaces U1: see docs/06 §7.4.
+
+### C. Palette
+`--brand-*` stays the 3D palette (the scene reads it), so the UI got its own `--ui-blue` / `--ui-blue-light`. Tokens in docs/06 §7.4. `--info-ink` is `#2360E6` because `#2563EB` falls below 4.5:1 on the selected row. `contrast.test.mjs` covers the new pairs. Selection pill (`--selection-pill`) and 3D materials unchanged.
+
+### D. Panels
+KPI chips: narrower padding below 1700 px and the delta moves to the sub-line there, so "Cases today" and "6 docked · 0 waiting" fit; equal chip heights. Scrolling inspector and tray bodies fade at the bottom instead of cutting a row. Current tracker step: solid blue, gap, ring and halo, as in the key frame. Tray tabs on the darker segment track. Top bar height unchanged (changing it resizes the canvas, so it would move the frozen framing).
+
+### Not matching the reference / open
+- Top bar is 56 px; the key frame's is taller at the same scale. Frozen as above.
+- The plate still ellipsises in the truck inspector title and subtitle and in the tracker subject card, at both sizes. Not in this brief; the full plate is in the tray.
+- The reference scene is outdoors with a truck; ours is the shed interior by design, so the glow reads weaker on the plate than around the reference truck.
+- A thin yellow aisle line remains just beyond the selected plate's far edge: it is a painted guide line along the whole aisle, as the brief allows.
+- Software rendering is about 2.5x slower per frame with full storage (above). The Low tier was not given a cheaper storage variant.
+
+### Commands and results (final tree)
+`pnpm typecheck` pass · `pnpm lint` pass · `pnpm format:check` pass · `pnpm test` 52 files, 963 tests pass · `pnpm i18n:check` ok · `pnpm contract:check` ok (7 json blocks, 0 unmapped) · `pnpm build` pass.
+`E2E_PORT=4173 pnpm exec playwright test e2e/live-scene.spec.ts e2e/live-visual.spec.ts`: first run 4 failed / 4 passed (28 min), 3 by timeout under CPU load from other programs on the machine plus the new test's 12 clipped screenshots per state. Second run, quieter machine, no timing change to existing tests: 7 passed, new A1 test failed (9.1 min) because two sample points fell on a real yellow pallet in B04. Sample points moved off it; A1 test alone: 1 passed. The other 7 were not re-run after that test-only edit. Other e2e specs were not run (not in the brief). The e2e rewrote 11 tracked older screenshots; all restored from HEAD.
+
+### Screenshots
+`docs/screens/t10-{light-en,dark-en,light-bn,selected-bay-light,selected-bay-away,overview-light-en}-{1920x1080,1366x768}.png` and `t10-compare.png`. RTX 3050, Med pinned, mock evening peak, 0 non-localhost requests. `selected-bay-light` has the pointer on the bay, `selected-bay-away` off it.

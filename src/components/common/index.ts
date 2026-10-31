@@ -1,7 +1,8 @@
 export { Caption } from './Caption';
 export { CollapsiblePanel } from './CollapsiblePanel';
 export { FloatingCard } from './FloatingCard';
-export { IconTile } from './IconTile';
+export { IconTile, type TileIcon } from './IconTile';
+export { Bell3d, Box3d, Conveyor3d, Shield3d, Stopwatch3d, Truck3d, type Icon3d } from './icons3d';
 export { KeyValue, KeyValueList } from './KeyValue';
 export { MaybeValue } from './MaybeValue';
 export { Num } from './Num';

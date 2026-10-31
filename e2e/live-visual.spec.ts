@@ -81,6 +81,20 @@ async function expectLayoutContract(page: Page) {
   expect(tracker?.height ?? 999).toBeLessThanOrEqual(140);
 }
 
+/** Every KPI label and sub-line fits: nothing in the row is cut with an ellipsis. */
+async function expectNoKpiEllipsis(page: Page) {
+  const cut = await page.getByTestId('kpi-chips').evaluate((row) =>
+    Array.from(
+      row.querySelectorAll(
+        '[data-testid="kpi-label"], [data-testid="kpi-sub"], [data-testid="kpi-sub"] *',
+      ),
+    )
+      .filter((el) => el.scrollWidth > el.clientWidth + 1 && el.clientWidth > 0)
+      .map((el) => el.textContent),
+  );
+  expect(cut, 'KPI text cut with an ellipsis').toEqual([]);
+}
+
 /** Without a selection the tracker is the compact bar inside the bottom inset. */
 async function expectCollapsedTracker(page: Page) {
   await page.getByTestId('inspector-close').click();
@@ -107,6 +121,7 @@ for (const { width, height } of SIZES) {
       return;
     }
     await expectLayoutContract(page);
+    await expectNoKpiEllipsis(page);
     await shot(page, `vis-ui-after-${width}x${height}-en-light.png`);
     if (width === 1920) await composite(page);
 
@@ -122,6 +137,7 @@ for (const { width, height } of SIZES) {
     await expect(page.locator('html')).not.toHaveClass(/dark/);
     await shot(page, `vis-ui-after-${width}x${height}-bn-light.png`);
     await expectLayoutContract(page);
+    await expectNoKpiEllipsis(page);
     await expectCollapsedTracker(page);
   });
 }
