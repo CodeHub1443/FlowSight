@@ -58,8 +58,8 @@
   --status-offline: var(--offline);
   --status-info: var(--brand-500);
 
-  /* Cards (docs/06 U3): white at 96 %, almost no border, one soft wide shadow */
-  --card-alpha: 96%;
+  /* Cards (docs/06 U3, section 7.5): white at 98 %, almost no border, one soft wide shadow */
+  --card-alpha: 98%;
   --card-blur: 12px;
   --card-border: rgba(31, 64, 160, 0.05);
   --shadow-card: 0 1px 2px rgba(31, 64, 160, 0.06), 0 10px 30px rgba(31, 64, 160, 0.12);
@@ -67,7 +67,7 @@
   /* Small lift for the active segment of a segmented control, and the top bar's soft drop. */
   --shadow-raised: 0 1px 2px rgba(15, 23, 42, 0.08), 0 1px 1px rgba(15, 23, 42, 0.04);
   /* Top bar (docs/06 U4, §7.4): tinted page, no drop */
-  --topbar-bg: #f0f4fa;
+  --topbar-bg: #f2f6fc;
   --topbar-blur: 0px;
   --shadow-topbar: none;
   /* Solid blue fill (done tracker step, site badge, primary button): 1 px top highlight; the same in both themes */
@@ -121,11 +121,12 @@
   --dur-base: 200ms;
 
   /* Scene palette (docs/06 §1) */
-  --scene-void: #e6ecfa;
-  --scene-floor: #e8ecf8;
+  --scene-void: #f2f6fc;
+  --scene-floor: #f2f7ff;
   --scene-floor-line: #d4def7;
   --scene-apron: #dce4f8;
-  --scene-walkline: #f2c94c;
+  --scene-truck-yard: #ddf8ea;
+  --scene-walkline: #f3ca6c;
   --scene-wall: #f3f6fe;
   --scene-wall-accent: #3d6ae4;
   --carton: #e9c6a2;
@@ -133,14 +134,21 @@
   --pallet-blue: #3f7bf0;
   --pallet-yellow: #f5c542;
   --pallet-orange: #f59e5b;
+  --crate-new: #d8b27a;
+  --crate-new-deep: #c99a5f;
+  --crate-old: #8a5a33;
+  --crate-old-deep: #6e4526;
+  --tree-foliage: #57bb86;
+  --tree-foliage-deep: #45ab76;
+  --tree-trunk: #99756f;
   --metal: #c9d2e3;
   --belt: #3a4a73;
 
   /* Scene deltas (docs/06 §7) */
-  --scene-zone: #d7e2fa;
-  --scene-zone-line: #f2c94c;
-  --scene-aisle: #c9d7f7;
-  --scene-aisle-line: #f2c94c;
+  --scene-zone: #d6e4ff;
+  --scene-zone-line: #f3ca6c;
+  --scene-aisle: #b8cdff;
+  --scene-aisle-line: #f3ca6c;
   --scene-wall-rib: #dce4f8;
   --scene-wall-top: #f7f9fe;
   --scene-eave-top: #6ea7f9;
@@ -155,17 +163,17 @@
   --scene-pill-border: #0f172a;
   --scene-hemi-sky: #c4dafc;
   --scene-hemi-ground: #9fb4f0;
-  --scene-key-light: #fff6ec;
+  --scene-key-light: #fffcf6;
   --scene-rim-light: #c4dafc;
   --scene-work-light: #ffe3b0;
   --scene-ao: #8ea6ec;
   --scene-contact-shade: #7f98e6;
-  --scene-vignette: #c7d3f5;
-  --scene-void-glow: #e6ecfa;
+  --scene-vignette: #eaf0fa;
+  --scene-void-glow: #f2f6fc;
 
   /* shadcn/ui semantic tokens */
   --radius: 0.75rem;
-  --background: #f4f7fc;
+  --background: #f2f6fc;
   --foreground: var(--ink-900);
   --card: #ffffff;
   --card-foreground: var(--ink-900);
@@ -256,6 +264,7 @@
   --scene-floor: #1e2e58;
   --scene-floor-line: #3a5596;
   --scene-apron: #17244a;
+  --scene-truck-yard: #17244a;
   --scene-walkline: #e8b93c;
   --scene-wall: #2a3b68;
   --scene-wall-accent: #3e73ff;
@@ -264,6 +273,13 @@
   --pallet-blue: #4a7ff5;
   --pallet-yellow: #e8b93c;
   --pallet-orange: #e98a4f;
+  --crate-new: #4a7ff5;
+  --crate-new-deep: #4a7ff5;
+  --crate-old: #4a7ff5;
+  --crate-old-deep: #4a7ff5;
+  --tree-foliage: #3f8f6b;
+  --tree-foliage-deep: #357a5b;
+  --tree-trunk: #6b5650;
   --metal: #8a9bc4;
   --belt: #2b3863;
 
@@ -489,9 +505,9 @@
 
 /*
  * Low quality tier (LiveScene sets <html data-quality="low">): no backdrop blur, which costs about 20 % of the frame
- * on CPU rendering; the card falls back to 96 % opaque (docs/06 section 3).
+ * on CPU rendering. The light card already has its 98 % fill (docs/06 section 7.5), the dark one goes to 96 % opaque.
  */
-:root[data-quality='low'] {
+:root.dark[data-quality='low'] {
   --card-alpha: 96%;
 }
 :root[data-quality='low'] .card-surface {

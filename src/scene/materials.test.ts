@@ -2,7 +2,9 @@
 import { describe, expect, it } from 'vitest';
 import doc from '../../docs/06-visual-language.md?raw';
 import {
+  CRATE_TONES,
   CSS_TOKENS,
+  DARK_PALETTE,
   DARK_TOKENS,
   LIGHT_PALETTE,
   LIGHT_TOKENS,
@@ -46,9 +48,11 @@ const section1 = doc.slice(doc.indexOf('## 1.'), doc.indexOf('## 2.'));
 const section7 = doc.slice(doc.indexOf('## 7.'), doc.indexOf('## 8.'));
 const section8 = doc.slice(doc.indexOf('## 8.'));
 
-/** Light tokens whose section 1 value section 7 overrides (D3, D4, D5 and the AA table of 7.3). */
+/** Light tokens whose section 1 value section 7 overrides (D4, D5, the AA table of 7.3 and the floors of 7.5). */
 const SECTION7_OVERRIDES: Partial<Record<keyof PaletteTokens, string>> = {
-  floor: '#E8ECF8',
+  void: '#F2F6FC',
+  floor: '#F2F7FF',
+  walkline: '#F3CA6C',
   wall: '#F3F6FE',
   belt: '#3A4A73',
   statusOk: '#1FA653',
@@ -137,6 +141,19 @@ describe('materials.ts mirrors docs/06 section 1', () => {
           k,
         ).toBe(true);
     }
+  });
+
+  it('keeps the wood crates in their docs/06 section 7.5 bands, new lighter than old, and dark crates blue', () => {
+    const lum = (hex: string) => {
+      const c = parseInt(hex.slice(1), 16);
+      return 0.2126 * ((c >> 16) & 255) + 0.7152 * ((c >> 8) & 255) + 0.0722 * (c & 255);
+    };
+    expect(lum(LIGHT_PALETTE.crateNew)).toBeGreaterThan(lum(LIGHT_PALETTE.crateNewMid));
+    expect(lum(LIGHT_PALETTE.crateNewMid)).toBeGreaterThan(lum(LIGHT_PALETTE.crateNewDeep));
+    expect(lum(LIGHT_PALETTE.crateNewDeep)).toBeGreaterThan(lum(LIGHT_PALETTE.crateOld));
+    expect(lum(LIGHT_PALETTE.crateOld)).toBeGreaterThan(lum(LIGHT_PALETTE.crateOldDeep));
+    for (const k of CRATE_TONES) expect(DARK_PALETTE[k], k).toBe(DARK_TOKENS.palletBlue);
+    for (const k of CRATE_TONES) expect(LIGHT_PALETTE[k], k).not.toBe(LIGHT_TOKENS.palletBlue);
   });
 
   it('uses no pure black and keeps the belt the darkest light-theme colour (docs/06 section 2)', () => {

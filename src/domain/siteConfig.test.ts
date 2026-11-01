@@ -29,6 +29,14 @@ describe('SiteConfig', () => {
         apronDepth: 12,
         showRoof: false,
         showExteriorContext: false,
+        surround: {
+          clearance: 9,
+          roadWidth: 7,
+          cornerRadius: 12,
+          treeSpacing: 11,
+          treeSetback: 3,
+          treesInside: ['S', 'W'],
+        },
         columnGrid: 12,
       });
     }

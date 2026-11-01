@@ -113,11 +113,11 @@ docs/
 ## Style
 - Light theme default (matches reference), plus dark "control room" theme. Colours only via CSS variables/tokens
   defined in `src/index.css` and mirrored in `scene/materials.ts`.
-- Brand primary: Unilever blue. Placeholder `#1F36C7` until the official brand kit arrives; never hard-code it elsewhere.
+- Brand primary: Unilever blue. A placeholder token (`--brand-500`) until the official brand kit arrives; never hard-code it elsewhere.
 - **`docs/06-visual-language.md` is authoritative for every colour, radius, shadow, type and motion value; where it differs from this section, docs/06 wins.**
-- Semantic status tokens: `--status-ok` `#16A34A`, `--status-warn` `#F59E0B`, `--status-critical` `#DC2626`,
-  `--status-neutral` `#64748B`, `--status-idle` `#CBD5E1`, `--status-offline` `#94A3B8`, `--status-info` `#2563EB` (also selection).
-  Belt-state → token mapping is in `docs/04-scene-spec.md` §5. Scene palette tokens are in `docs/04` §1.
+- Semantic status tokens: `--status-ok`, `--status-warn`, `--status-critical`, `--status-neutral`, `--status-idle`, `--status-offline`,
+  `--status-info` (also selection). Values and the scene palette: `docs/06` (`src/index.css` carries them).
+  Belt-state → token mapping is in `docs/04-scene-spec.md` §5.
 - Site facade colours in `config/sites/*.json` are physical paint (site data), the one allowed exception to "tokens only".
 - Compact, dense, legible at 3 m on a video wall: min 14 px body on desktop, 18 px on `/wall`.
 

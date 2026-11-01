@@ -111,7 +111,7 @@ REST via react-query hooks in `data/api/queries.ts`; MSW handlers in mock mode r
   1. Live messages update stores; 3D components read stores via `useLiveStore.subscribe` refs, **not** React state.
   2. Actor movement is interpolated in `useFrame` between the last two frames (2 Hz in → 60 fps out).
   3. Cases on belts, pallets, crates, trees and fence posts use `InstancedMesh`.
-  4. `frameloop="demand"` when the tab is hidden; `PerformanceMonitor` auto-steps quality
+  4. `frameloop="demand"` when the tab is hidden; the tier governor (`src/scene/tierGovernor.ts`, driven by `AutoQuality.tsx`) auto-steps quality: warm-up, then 1 s fps windows with hold times and a retry backoff
      (`High`: soft shadows + contact shadows, 2× DPR; `Med`: contact shadows only, 1.5× DPR; `Low`: no shadows, 1× DPR). N8AO on High/Med (ADR-11).
   5. Labels via drei `Html` only for selected or hovered objects plus pins; otherwise use `Text` (SDF) or sprites.
   6. Charts: ECharts with `useDirtyRect`, data decimation for > 2k points.

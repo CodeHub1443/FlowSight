@@ -66,6 +66,18 @@ export const SiteViewSchema = z.object({
   showRoof: z.boolean(),
   showExteriorContext: z.boolean(),
   columnGrid: z.number().positive(),
+  /** Ring road with trees around the footprint and apron (docs/06 section 7.5). */
+  surround: z
+    .object({
+      clearance: NonNegSchema,
+      roadWidth: z.number().positive(),
+      cornerRadius: NonNegSchema,
+      treeSpacing: z.number().positive(),
+      treeSetback: NonNegSchema,
+      /** Sides whose trees stand between the road and the site; elsewhere they stand beyond the road. */
+      treesInside: z.array(faceSchema),
+    })
+    .optional(),
 });
 export type SiteView = z.infer<typeof SiteViewSchema>;
 

@@ -490,3 +490,77 @@ Real frames on the RTX (busy-wait in rAF): 200 ms frames for 3.5 s in warm-up: n
 
 ### Commands and results
 See the task's final report. Screenshots: `docs/screens/t12-{light,dark}-en-{1920x1080,1910x902}.png`, `t12-light-en-1366x768.png`, `t12-before-light-en-1910x902.png`. The dev badge is visible in the shots. The e2e run rewrote 36 tracked older screenshots; all restored from HEAD.
+
+## Task 13: light-theme colour polish, truck yard, ring road, housekeeping (uncommitted)
+
+### Done
+- **Floor:** sampled with `docs/reference/sample-colours.py`. Causes: warm key (per-channel floor gain R 1.21, G 1.16, B 1.17), too little light for Neutral's shoulder, floor tokens too close together, vignette. AO is not a cause (flat floors move ≤ 1 RGB unit with N8AO off), so AO settings are unchanged. Values in docs/06 §7.5.
+- **Crates:** wood tokens, new and old, mixed by index. No geometry change, no new draw from the seeded stream.
+- **Atmosphere and cards:** void = page = top bar = `#F2F6FC`, cards white at 98 %; `UNLIT_GAIN` recalibrated so fog and clear colour stay at the token.
+- **User additions in this session:** truck yard outside the doors very light green (`--scene-truck-yard` `#DDF8EA`; `--scene-apron` stays, slab and seals derive from it). Ring road with trees from config `view.surround`, new `src/scene/site/SurroundRoad.tsx`.
+- **Housekeeping:** unique `kpi-label-<key>` and `kpi-sub-<key>`; `startPeak` waits on the instant (`data-ts` on the debug readout); docs/02 rule 4, docs/04 §0 and §1, CLAUDE.md, docs/06 §7.5; BACKLOG ticked after checking the code for each item.
+
+### Colour table (1920x1080, RTX 3050, reference vs ours)
+| Region | Reference | Before High | ΔE | After High | ΔE | After Med | ΔE |
+|---|---|---|---|---|---|---|---|
+| ground | #EBEFF9 | #DFE2F3 | 5.7 | #EAF0F8 | 0.9 | #EAF0F8 | 0.9 |
+| aisle / road band | #B9CCF6 | #CCD6F3 | 8.2 | #BACCF7 | 0.7 | #BACCF7 | 1.0 |
+| zone plate | #D4E0F9 | #D6DBF3 | 2.7 | #D2DFF7 | 0.8 | #D2DEF7 | 0.7 |
+| lane dash | #EAF4FF | #F4F0EE | 8.5 | #F6F6F6 | 7.0 | #F6F6F6 | 6.7 |
+| yellow outline | #E9D2A4 | #ECC762 | 29.2 | #F3D185 | 16.3 | #F2D084 | 16.3 |
+| void / top area | #F2F6FC | #DAE2F6 | 10.1 | #EEF3FA | 1.3 | #EEF3FA | 1.3 |
+| top bar | #F3F7FD | #F0F4FA | 1.0 | #F2F6FC | 0.3 | #F2F6FC | 0.3 |
+| card | #F8FCFF | #FDFEFF | 1.8 | #FEFFFF | 2.4 | #FEFFFF | 2.4 |
+Dash and yellow stay apart on purpose: the frame's thin marks are softened by video compression, and the brief asks for crisp white and yellow. The card is whiter than the frame's because the brief asks for near-white. Low tier: ground 1.6, aisle 0.7, zone 1.9.
+
+### Frame rate (Med and High, interleaved builds, light, 6 s samples, 2 per round)
+| Build compared with HEAD | RTX Med | RTX High | Intel Med | Intel High |
+|---|---|---|---|---|
+| HEAD, first A/B (3 quiet rounds) | 358 | 143 | 58 | 21 |
+| Colours + PBR road and trees (same A/B) | 346 | 142 | 55 | 20 |
+| HEAD, second A/B (rounds 1-2; round 3 had outside load) | 329 | 132 | 52 | 20 (median; samples 17-34) |
+| Final tree: colours + unlit road, lighter crowns (same A/B) | 319 | 132 | 47 | 17 |
+Colours alone did not move fps: runs of that build before the road read RTX Med 354-362 and High 140-145, the HEAD range (their HEAD runs failed, see below, so this is against the later HEAD figures). The road and trees cost about 3 % on RTX Med, nothing on RTX High, and 5-10 % on Intel Med with heavy noise (41-51 fps). Intel High is 20.5 vs 20.0 in the first A/B and too noisy to read in the second (17 vs samples of 17-34). Draw calls 244 → 250, triangles 322,011 → 327,743 on Med; 349 → 355, 1,039,418 → 1,045,990 on High. This misses the brief's "must not drop"; removing `view.surround` from the config restores the old count. The first A/B's HEAD runs were empty because the archive left out `.env`; fixed and repeated.
+
+### Deviations and decisions
+- Light rig: `KEY_INTENSITY` 3.4 → 3.9 and the key colour changed; no light added, moved or removed, camera and exposure unchanged. Reported against the brief's "lighting rig" stop condition: read as allowed by its "light settings".
+- The brief froze geometry and docs/04 §0 excluded a road and trees; the user's later request overrides both. Camera, presets, safe area and pan limits are unchanged.
+- Ring road and trees are light theme only, because the dark look is frozen. Dark scene diff against baseline: 0 differing pixels (1920x1080 High, scene area).
+- Edited outside the brief's list, needed by the user's request: `config/sites/dhk-depot.json`. `scripts/contrast.test.mjs` is a test.
+- e2e `live-scene` yellow detector changed from `b < 140` to `r - b > 40`: the old threshold was fitted to the old lemon line.
+- Crate GLB (`/dev/assets`, not in the live scene) keeps `palletBlue`: `scripts/assets/` was out of scope. BACKLOG note added.
+
+### Commands and results
+See the task's final report. Screenshots: `docs/screens/t13-*`, including `t13-compare.png`, `t13-floor-compare.png`. Before, bay and Low/Med debug shots moved to `docs/screens/scratch/` (gitignored). The e2e runs rewrote 36 tracked older screenshots; all restored from HEAD.
+
+### Decision after review (Task 13d)
+The ring road and trees stay on. The user accepts their Intel UHD cost, including Med at 47 fps against the 48 fps limit (table above).
+
+**Not committed:** typecheck, lint, format:check, test (1091), i18n:check, contract:check and build pass, but full e2e failed twice (12 failed / 21 passed in 57 min; 16 failed / 17 passed in 1.1 h), against about 7 min for 21 tests in earlier tasks. Failures are mostly timeouts. `e2e/smoke.spec.ts` also fails its two /live tests on a clean export of HEAD (5.7 min), so those two are not caused by Task 13; the other failures were not compared with HEAD. Cause of the slowdown not established.
+
+## Task 13e: two e2e failures, root causes, Task 13 committed
+
+### Root causes
+1. **The slow, moving e2e failures, including `auto-quality` "a fast GPU climbs to High" and the Task 13d runs: Windows throttles the test browser while another browser is in front. Not an app defect.** Measured on this machine (i7-13620H, 6P + 4E) with one sample per 15 s through a full run: foreground IDE or terminal, all 16 logical CPUs busy and Chrome at 11-14 cores; foreground Firefox or Chrome, only CPUs 12-15 (the E-cores) busy and Chrome at 3.8 cores, switching within one sample of the focus change. SwiftShader needs those cores, so pages miss every timeout while the machine looks idle. Every failure of that run fell in the E-core window. Opting only the `chrome-headless-shell` processes out of power throttling (`SetProcessInformation`, `ProcessPowerThrottling`, execution speed) gave all 16 cores with Firefox still in front, and the 5 failed tests passed at normal durations.
+   - `med · pinned · - fps` under `?quality=auto` is that starvation, not parsing: `SceneRoot`, `AutoQuality`, `LiveScene` and `quality.ts` have no Task 13 diff. `pinned` is the probe's initial value, shown until `AutoQuality` runs its first frame, and `med` is `LiveScene`'s initial tier. Both stay on screen while the scene chunk is still loading.
+   - One earlier run was also hit by a real sleep (10:46, Start menu, then AC unplugged and hibernate until 11:46). The first stalls of that run came before the sleep, so sleep is not the general cause.
+2. **`live-flicker`: the spec sampled before the language switch had landed. Not an app defect.** After clicking বাং it awaited `fonts.ready` and a fixed 1 s. At 60x on SwiftShader (under 2 fps) the switch landed 0.9-3.3 s after the click (6 of 6 probes), with the tweening `Num` last to repaint, so the sampler could record the Latin-to-Bangla change as a size change (`kpi-label-cases` 132.3 -> 133.5: two digits at 7.78 vs 7.17 px). Within one language the delta and label boxes did not move across any digit change. Task 13's unique KPI testids let the spec measure labels properly for the first time, and that exposed the wrong wait. The test id `tray-bay-B02` not found in the original report is root cause 1.
+
+### Change
+`e2e/live-flicker.spec.ts`: wait until the cases delta shows Bangla digits, then `fonts.ready`, then the existing settle. The 30 s timeout on that wait rests on the 3.3 s measured here at under 2 fps. `LAYOUT`, sample length and assertions are unchanged, labels stay measured. No app code changed.
+
+### e2e runs
+| Run | Foreground | Result |
+|---|---|---|
+| Both specs, before the change | not sampled | 5 passed |
+| Full | browser, then sleep | 28 passed, 5 failed, 1.4 h; invalid (sleep) |
+| Full | IDE (AC, awake) | 32 passed, 1 failed (`live-flicker`, root cause 2), 18.2 min |
+| Both specs x3, after the change | not sampled | 14 passed, 1 failed (`software rasteriser`, once, root cause 1 signature); flicker 3 of 3 |
+| Full | not sampled | 26 passed, 5 failed: 1 from a leftover preview server of this task on port 4174, 4 starved; invalid |
+| Full | IDE, then Firefox | 28 passed, 5 failed, all in the E-core window, 38.1 min |
+| Re-run of those 5 (`--last-failed`) | Firefox, test browser opted out | 5 passed, 6.1 min |
+
+### Known and open
+- No full run was green in one pass after the change: the last one had 5 starved tests, which passed on the single re-run the brief allows. That re-run used the throttling opt-out, a temporary helper outside the repo. Nothing in the repo prevents the throttling yet.
+- To run e2e reliably on this machine: keep the IDE or terminal in front during the run. The E-core switch itself is measured; why Windows ties it to the foreground app was not investigated.
+- Live KPI delta: crossing 10 % adds a digit (7-8 px), which narrows the label column on the same row at 1700 px and up. Not hit by the peak scenario (0-3 %), so `live-flicker` does not cover it. Left as is: reserving width would change the accepted chip look.

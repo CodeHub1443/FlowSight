@@ -56,6 +56,12 @@ test('/live chrome keeps its size and rows at 60x mock speed, EN and BN', async 
   for (const lang of ['en', 'bn'] as const) {
     if (lang === 'bn') {
       await page.getByRole('button', { name: 'বাং' }).click();
+      // The switch itself changes the boxes (Latin and Bangla digits differ in width), so sampling starts after it has
+      // landed. At 60x on SwiftShader (under 2 fps) that took 0.9-3.3 s from the click, and the tweening Num is the last
+      // to repaint. fonts.ready only means something once the Bangla text is in the DOM and has requested its faces.
+      await expect(page.getByTestId('kpi-cases').getByTestId('kpi-delta')).toHaveText(/[০-৯]/, {
+        timeout: 30_000,
+      });
       await page.evaluate(() => document.fonts.ready);
       await page.waitForTimeout(1000);
     }

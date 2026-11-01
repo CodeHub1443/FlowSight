@@ -3,6 +3,7 @@ import {
   BufferAttribute,
   BufferGeometry,
   CylinderGeometry,
+  SphereGeometry,
   InstancedBufferAttribute,
   MeshDepthMaterial,
   MeshStandardMaterial,
@@ -65,6 +66,17 @@ export function unitCylinder(radialSegments: number): BufferGeometry {
   if (hit) return hit;
   const g = new CylinderGeometry(1, 1, 1, radialSegments);
   cylCache.set(radialSegments, g);
+  return g;
+}
+
+const sphereCache = new Map<number, BufferGeometry>();
+
+/** Unit sphere (radius 1), as round as the tier's cylinders. */
+export function unitSphere(segments: number): BufferGeometry {
+  const hit = sphereCache.get(segments);
+  if (hit) return hit;
+  const g = new SphereGeometry(1, segments, Math.max(6, Math.round(segments * 0.7)));
+  sphereCache.set(segments, g);
   return g;
 }
 

@@ -103,7 +103,7 @@ function Chip({
       <IconTile icon={icon} tone={iconTone} />
       <span className="grid min-w-0 flex-1 grid-cols-[minmax(0,1fr)_auto] items-baseline">
         <span
-          data-testid="kpi-label"
+          data-testid={testId.replace('kpi-', 'kpi-label-')}
           className="text-ink-600 col-span-2 row-start-1 min-w-0 truncate text-[13px] leading-[18px] font-medium min-[1700px]:col-span-1"
         >
           {label}
@@ -115,7 +115,7 @@ function Chip({
           {value}
         </span>
         <span
-          data-testid="kpi-sub"
+          data-testid={testId.replace('kpi-', 'kpi-sub-')}
           className={cn(
             'text-ink-400 row-start-3 flex min-w-0 items-center gap-1.5 truncate text-[12px] leading-4 whitespace-nowrap',
             delta ? 'col-start-1 min-[1700px]:col-span-2' : 'col-span-2',

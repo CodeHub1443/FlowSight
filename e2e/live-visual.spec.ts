@@ -86,7 +86,7 @@ async function expectNoKpiEllipsis(page: Page) {
   const cut = await page.getByTestId('kpi-chips').evaluate((row) =>
     Array.from(
       row.querySelectorAll(
-        '[data-testid="kpi-label"], [data-testid="kpi-sub"], [data-testid="kpi-sub"] *',
+        '[data-testid^="kpi-label-"], [data-testid^="kpi-sub-"], [data-testid^="kpi-sub-"] *',
       ),
     )
       .filter((el) => el.scrollWidth > el.clientWidth + 1 && el.clientWidth > 0)

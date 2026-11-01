@@ -12,13 +12,14 @@ the shed interior**:
 - The roof is never rendered in the default view; the N, E and W walls are cut to a low **cutaway height** (config `view.cutawayWallHeight`, 2 m)
   so the camera always sees the floor. The dock (S) wall is rendered full height only as a thin band above the doors so the doors read clearly.
 - Outside the dock wall only a **narrow apron strip** is rendered (config `view.apronDepth`, 12 m): truck rear halves at the doors,
-  a few waiting trucks, painted guide lines. No road, trees, neighbouring buildings or gate in the default view
-  (`view.showExteriorContext` = false; kept in config for later).
+  a few waiting trucks, painted guide lines. Around it a ring road with trees (`view.surround`, docs/06 section 7.5; user decision, Task 13). No neighbouring
+  buildings or gate in the default view (`view.showExteriorContext` = false; kept in config for later).
 - The reference video's style (soft palette, floating pins, pill labels, clickable everything) is applied **to the interior**.
 
 ## 1. Look and feel
-- **Camera:** perspective, FOV 30°. Default = `Floor overview`: positioned **north of the shed interior, high, looking south** at the
-  dock wall so all 7 belts, the crews, staging and the truck rears are in frame (≈ 55° elevation, slight east offset).
+- **Camera:** perspective, FOV 28°. Default = `Floor overview`: the **diagonal hero view of docs/06 D1**, from inside-north-east looking
+  south-west (40° elevation, 35° azimuth off the dock-wall normal), so the dock wall recedes along the diagonal with all 7 belts, the crews
+  and staging in frame, B07 nearest on the left and B01 furthest on the right. The former straight-on view is the preset `Plan`.
   OrbitControls with damping; polar 20°–80°; pan bounded to the shed footprint + apron; zoom 10–120 m.
 - **Palette, materials, lighting and geometry quality: `docs/06-visual-language.md` is binding** (pale periwinkle/white world, saturated brand blue, rounded geometry, AO). The real floor is green epoxy, but the twin follows the reference look by the user's decision.
 - **Lighting:** per docs/06 §2 (Lightformer environment, soft key light, AO on High/Med, PBR Neutral tone mapping).

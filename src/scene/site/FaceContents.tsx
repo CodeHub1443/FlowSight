@@ -124,7 +124,7 @@ export function FaceContents({ layout, face }: { layout: SiteLayout; face: FaceL
       <Bx
         at={[0, -face.apron.depth / 2, yardZ - 0.15]}
         size={[face.apron.length, face.apron.depth, 0.3]}
-        tone="apron"
+        tone="truckYard"
         round={0.1}
         cast={false}
       />

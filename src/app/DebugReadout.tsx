@@ -40,7 +40,8 @@ function Panel() {
         <dt>{t('debug.baysReceived')}</dt>
         <dd data-testid="debug-bays">{bayCount}</dd>
         <dt>{t('debug.lastTs')}</dt>
-        <dd data-testid="debug-last-ts">
+        {/* data-ts: the instant, so a test can tell a clock on the peak day from the same clock on another day */}
+        <dd data-testid="debug-last-ts" data-ts={lastTs ?? undefined}>
           {lastTs === null ? '-' : formatClock(lastTs, { seconds: true })}
         </dd>
         <dt>

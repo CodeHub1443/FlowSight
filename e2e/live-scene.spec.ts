@@ -105,7 +105,8 @@ async function paintAround(
         let blue = 0;
         for (let i = 0; i < d.length; i += 4) {
           const [r = 0, gn = 0, b = 0] = [d[i], d[i + 1], d[i + 2]];
-          if (r > 200 && gn > 160 && b < 140) yellow++;
+          // red well above blue: never true of the periwinkle floors or the blue outline, whatever the fog does to the line
+          if (r > 200 && gn > 160 && r - b > 40) yellow++;
           if (b > 190 && b - r > 90) blue++;
         }
         return { yellow, blue };

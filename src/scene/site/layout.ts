@@ -7,6 +7,7 @@ import {
   type Face,
   type SitePoint,
 } from './transforms';
+import { hashString, rng } from './random';
 
 // Pure, three.js-free site layout derived from a SiteConfig. Components only render what this returns, so the
 // builder is generic (any dock face(s), any bay count, no hard-coded site numbers) and unit-testable.
@@ -73,6 +74,25 @@ export type ContextItem =
   | { type: 'building'; center: { X: number; Z: number }; size: [number, number, number] }
   | { type: 'trees'; positions: { X: number; Z: number }[] };
 
+export interface SurroundTree {
+  X: number;
+  Z: number;
+  height: number;
+  /** Crown radius. */
+  crown: number;
+}
+
+/** The ring road: a rounded ring centred on `center`, outer size `width` x `depth`, `road` wide, and what stands by it. */
+export interface SurroundLayout {
+  center: { X: number; Z: number };
+  width: number;
+  depth: number;
+  road: number;
+  radius: number;
+  dashes: { X: number; Z: number; alongX: boolean; length: number }[];
+  trees: SurroundTree[];
+}
+
 export interface SiteLayout {
   id: string;
   floorLevel: number;
@@ -90,6 +110,8 @@ export interface SiteLayout {
   bounds: { minX: number; maxX: number; minZ: number; maxZ: number };
   /** Empty unless `view.showExteriorContext`. */
   context: ContextItem[];
+  /** Null unless `view.surround`. */
+  surround: SurroundLayout | null;
 }
 
 export const WALL_THICKNESS = 0.35;
@@ -154,6 +176,55 @@ function buildContext(config: SiteConfig, width: number, depth: number): Context
       })),
     };
   });
+}
+
+const DASH = 3;
+const DASH_GAP = 4;
+/** Share of the tree slots left empty, so the rows read as planted, not ruled. */
+const TREE_GAPS = 0.22;
+
+/**
+ * Ring road around `bounds` (footprint + apron), so nothing built stands on it. Trees stand beyond the road, or on its
+ * inner verge on the `treesInside` sides: the sides beyond the shed in the hero view, where a tree leans away from the
+ * floor on screen and would otherwise land behind the KPI row.
+ */
+function buildSurround(config: SiteConfig, bounds: SiteLayout['bounds']): SurroundLayout | null {
+  const s = config.view.surround;
+  if (!s) return null;
+  const grow = s.clearance + s.roadWidth;
+  const width = bounds.maxX - bounds.minX + 2 * grow;
+  const depth = bounds.maxZ - bounds.minZ + 2 * grow;
+  const center = { X: (bounds.minX + bounds.maxX) / 2, Z: (bounds.minZ + bounds.maxZ) / 2 };
+  const radius = Math.min(s.cornerRadius, width / 2, depth / 2);
+  const dashes: SurroundLayout['dashes'] = [];
+  const trees: SurroundTree[] = [];
+  const r = rng(hashString(`${config.id}-surround`));
+  // one straight per side: `along` runs over its length, `across` is fixed
+  for (const alongX of [true, false]) {
+    const len = (alongX ? width : depth) - 2 * radius;
+    const half = (alongX ? depth : width) / 2;
+    for (const sign of [-1, 1]) {
+      const side: Face = alongX ? (sign < 0 ? 'N' : 'S') : sign < 0 ? 'W' : 'E';
+      const inside = s.treesInside.includes(side);
+      const at = (along: number, across: number) =>
+        alongX
+          ? { X: center.X + along, Z: center.Z + sign * across }
+          : { X: center.X + sign * across, Z: center.Z + along };
+      for (let a = -len / 2; a + DASH <= len / 2; a += DASH + DASH_GAP) {
+        dashes.push({ ...at(a + DASH / 2, half - s.roadWidth / 2), alongX, length: DASH });
+      }
+      for (let a = -len / 2 + s.treeSpacing / 2; a < len / 2; a += s.treeSpacing) {
+        const jitter = (r() - 0.5) * s.treeSpacing * 0.4;
+        const setback = s.treeSetback + r() * 2;
+        const across = inside ? half - s.roadWidth - setback : half + setback;
+        const height = 4.6 + r() * 1.8;
+        const crown = 1.5 + r() * 0.6;
+        if (r() < TREE_GAPS) continue;
+        trees.push({ ...at(a + jitter, across), height, crown });
+      }
+    }
+  }
+  return { center, width, depth, road: s.roadWidth, radius, dashes, trees };
 }
 
 export function buildSiteLayout(config: SiteConfig): SiteLayout {
@@ -297,6 +368,7 @@ export function buildSiteLayout(config: SiteConfig): SiteLayout {
     if (f.face === 'W') minX = Math.min(minX, -width / 2 - a);
   }
 
+  const bounds = { minX, maxX, minZ, maxZ };
   return {
     id: config.id,
     floorLevel,
@@ -309,7 +381,8 @@ export function buildSiteLayout(config: SiteConfig): SiteLayout {
     bays: faces.flatMap((f) => f.bays),
     columns: [...colSet.values()],
     columnHeight: view.cutawayWallHeight * 1.5,
-    bounds: { minX, maxX, minZ, maxZ },
+    bounds,
     context: buildContext(config, width, depth),
+    surround: buildSurround(config, bounds),
   };
 }

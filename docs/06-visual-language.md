@@ -129,6 +129,39 @@ The values above and in §8 stay as written except for these, each forced by a m
 
 **Current tracker step** (U7, as in the key frame): solid blue inside a 2 px gap, a 2 px blue ring and a 5 px halo.
 
+### 7.5 Light-theme floor, atmosphere, cards and crates (Task 13) — overrides §1, D2, D3, D7, U3 and §7.4 where they conflict
+Sampled from the key frame with `docs/reference/sample-colours.py` (13 × 13 px medians) and solved against the Neutral curve, so these are **values on screen → tokens**, not the same number twice. Light theme only; §8 is untouched.
+
+**Why the floor read grey-lavender.** Four causes, in order of weight, measured at 1920×1080 High:
+1. The warm key `#FFF6EC` at 3.4 gave the floor per-channel gain R 1.21, G 1.16, B 1.17 (solved from token vs render). Red won, so every floor lost its green-over-red step: zone `#D7E2FA` rendered `#D4DBF3`, against the key frame's `#D4E0F9`.
+2. Too little light: Neutral's shoulder needs gain above ~1.3 for a blue channel near the frame's `#F9`; ours capped at `#F3`.
+3. Floor, zone and aisle tokens too close: they rendered `#DFE2F3` / `#D4DBF3` / `#CCD6F3`, against the frame's `#EBEFF9` / `#D4E0F9` / `#B9CCF6`.
+4. The vignette `#C7D3F5` at 70 % pulled the void to `#DAE2F6`.
+
+AO is **not** a cause: with N8AO off the flat floors move ≤ 1 RGB unit, so `AO_RADIUS` and `AO_INTENSITY` stay. Contact shadows only touch prop edges and stay too. Light positions, the rig, camera, tone-mapping curve and exposure do not change.
+
+| Token / value | Was | Now | Renders (High) | Key frame |
+|---|---|---|---|---|
+| `--scene-floor` | `#E8ECF8` | `#F2F7FF` | `#EAF0F8` | ground `#EBEFF9` |
+| `--scene-zone` | `#D7E2FA` | `#D6E4FF` | `#D2DFF7` | zone `#D4E0F9` |
+| `--scene-aisle` | `#C9D7F7` | `#B8CDFF` | `#BACCF7` | road `#B9CCF6` |
+| `--scene-walkline`, `--scene-zone-line`, `--scene-aisle-line` | `#F2C94C` | `#F3CA6C` | `#F3D185` | `#E9D2A4` (a softened video line; yellow kept on purpose) |
+| `--scene-truck-yard` (new; the apron strip outside the doors. `--scene-apron` itself stays: slab and seals derive from it) | `--scene-apron` | `#DDF8EA` | | green pad `#DDF8EA` |
+| `--scene-void`, `--scene-void-glow` | `#E6ECFA` | `#F2F6FC` | `#EEF3FA` with the vignette | top area `#F2F6FC` |
+| `--scene-vignette` | `#C7D3F5` | `#EAF0FA` | | left edge `#E6EBF8` |
+| `--background`, `--topbar-bg` | `#F4F7FC`, `#F0F4FA` | `#F2F6FC` | `#F2F6FC` | top bar `#F3F7FD` |
+| `--scene-key-light` | `#FFF6EC` | `#FFFCF6` | | still slightly warm (D2) |
+| `KEY_INTENSITY` | 3.4 | 3.9 | gain ~1.34 on all channels | |
+| `UNLIT_GAIN` | 1.5 | 2.2 | fog and clear colour at the void token | |
+| Work-zone plate (derived) | zone → `--status-idle` 40 % | zone → `--scene-aisle` 40 % | | the idle grey read lavender |
+| `--card-alpha` | 96 % | 98 % (Low tier: the same; dark unchanged) | `#FFFFFF` over the void | card `#F8FCFF` |
+
+**Surface order (enforced by `scripts/contrast.test.mjs`):** card (`--card` `#FFFFFF`, the §7 shadow unchanged) > page = top bar = void (one atmosphere, no seam) > ground > zone > aisle.
+
+**Ring road and trees (user request, Task 13; supersedes the "no road, trees" line of docs/04 section 0).** Config `view.surround`: a rounded ring around footprint + apron, in `--scene-aisle` (the frame's road; unlit at the rig's floor gain, because a flat, unshadowed road gains nothing from PBR shading and it would cost fps) with the white centre dashes of the aisle, outside the frozen pan limits. Trees stand beside it: on the inner verge on the sides beyond the shed in the hero view (`treesInside`: S, W), where they lean away from the floor on screen, and beyond the road elsewhere, so they never cover a bay in that view. `--tree-foliage` `#57BB86` / `--tree-foliage-deep` `#45AB76` (deeper than the frame's `#71C599`, because fog lifts them towards it), `--tree-trunk` `#99756F` (frame), with a soft blob shadow because they stand outside the key light's frustum. Light theme only, so the night look stays as §8. Parts of the ring fall outside the hero frame by design.
+
+**Wood crates.** `--crate-new` `#D8B27A` → `--crate-new-deep` `#C99A5F`, `--crate-old` `#8A5A33` → `--crate-old-deep` `#6E4526`, plus a derived midpoint of each band. `crateTone` (`src/scene/bay/stagingLayout.ts`) picks by bay seed, stack and level from a fixed shuffle (3 new : 2 old), and the existing ±7 % brightness jitter stays; both are deterministic and draw nothing new from the seeded stream, so no prop moves. Plastic pallets keep their colours. Dark: the four tokens equal `--pallet-blue`, so crates stay as §8.2. The crate GLB (`/dev/assets`, not in the live scene) still carries `palletBlue`; step 7 passes a wood tone per instance.
+
 ## 8. Dark theme — "night shift" design (binding)
 Goal: a night-shift control room, **not** a black screen. Readability comes from **value layering** (each layer clearly lighter than
 the one behind it), **cool rim light** to separate silhouettes, **warm work-light pools** over active bays, and **saturation kept on

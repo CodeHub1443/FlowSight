@@ -50,6 +50,53 @@ describe('buildSiteLayout: dhk-depot', () => {
     }
   });
 
+  it('rings the footprint and apron with a road, keeping clear of everything built', () => {
+    const s = buildSiteLayout(dhk).surround;
+    const view = dhk.view.surround;
+    if (!s || !view) throw new Error('no surround');
+    const { bounds } = buildSiteLayout(dhk);
+    const innerX = s.width / 2 - s.road;
+    const innerZ = s.depth / 2 - s.road;
+    expect(s.center.X - innerX).toBeCloseTo(bounds.minX - view.clearance, 6);
+    expect(s.center.X + innerX).toBeCloseTo(bounds.maxX + view.clearance, 6);
+    expect(s.center.Z - innerZ).toBeCloseTo(bounds.minZ - view.clearance, 6);
+    expect(s.center.Z + innerZ).toBeCloseTo(bounds.maxZ + view.clearance, 6);
+    expect(s.dashes.length).toBeGreaterThan(20);
+    // the frozen pan limits do not grow with the road
+    expect(bounds.maxZ).toBe(dhk.building.footprint.depthNS / 2 + dhk.view.apronDepth);
+  });
+
+  it('stands the trees beside the road: never on it, never on the site, deterministically', () => {
+    const { surround: s, bounds } = buildSiteLayout(dhk);
+    if (!s) throw new Error('no surround');
+    expect(s.trees.length).toBeGreaterThan(15);
+    const innerX = s.width / 2 - s.road;
+    const innerZ = s.depth / 2 - s.road;
+    let inside = 0;
+    for (const t of s.trees) {
+      const dx = Math.abs(t.X - s.center.X);
+      const dz = Math.abs(t.Z - s.center.Z);
+      const beyond = dx > s.width / 2 || dz > s.depth / 2;
+      if (beyond) continue;
+      inside++;
+      // on the inner verge: clear of the road and of the footprint + apron
+      expect(dx < innerX && dz < innerZ, `${t.X}, ${t.Z}`).toBe(true);
+      const onSite =
+        t.X > bounds.minX && t.X < bounds.maxX && t.Z > bounds.minZ && t.Z < bounds.maxZ;
+      expect(onSite, `${t.X}, ${t.Z}`).toBe(false);
+      // only on the configured sides (S and W): nothing between the near walls and the hero camera
+      expect(t.X < bounds.minX || t.Z > bounds.maxZ, `${t.X}, ${t.Z}`).toBe(true);
+    }
+    expect(inside).toBeGreaterThan(5);
+    expect(buildSiteLayout(dhk).surround).toEqual(s);
+  });
+
+  it('has no ring road unless configured', () => {
+    const { surround, ...view } = dhk.view;
+    expect(surround).toBeDefined();
+    expect(buildSiteLayout({ ...dhk, view }).surround).toBeNull();
+  });
+
   it('builds exterior context only when asked', () => {
     const withCtx = buildSiteLayout({ ...dhk, view: { ...dhk.view, showExteriorContext: true } });
     expect(withCtx.context.map((c) => c.type).sort()).toEqual([

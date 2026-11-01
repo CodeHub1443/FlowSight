@@ -14,9 +14,11 @@ import { unlitColor } from './toneMapping';
 
 /**
  * Light balance. The key light carries enough of the total that its soft shadows read (with more fill they vanish
- * on the pale floor); environment + hemisphere keep shadowed faces periwinkle, never grey-black.
+ * on the pale floor); environment + hemisphere keep shadowed faces periwinkle, never grey-black. The key frame's floors
+ * sit in Neutral's shoulder (blue #F6-#F9), hence a floor gain above 1: 3.9 with the near-neutral key colour gives an
+ * even R, G, B gain of ~1.34, where 3.4 with the old warm key gave 1.21, 1.16, 1.17: lavender (docs/06 section 7.5).
  */
-export const KEY_INTENSITY = 3.4;
+export const KEY_INTENSITY = 3.9;
 export const ENV_INTENSITY = 0.24;
 export const HEMI_INTENSITY = 0.32;
 /** Low, shadowless fill from the opposite side: lifts faces turned away from the key, hardly touches the floor. */

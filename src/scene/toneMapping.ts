@@ -29,9 +29,9 @@ export const DARK_TONE_MAPPING: SceneToneMapping = 'linear';
 
 /**
  * Unlit colours (background, fog) are scaled by this before tone mapping so they come out at their token value:
- * Neutral maps #E6ECFA x 1.5 to ~#E4EAF7 (x 1 would give ~#DAE0EE).
+ * Neutral maps the void #F2F6FC x 2.2 to ~#F2F6FB (x 1.5 gives ~#EEF2F8). `toneMapping.test.ts` runs the curve.
  */
-export const UNLIT_GAIN = 1.5;
+export const UNLIT_GAIN = 2.2;
 
 /** The colour to give an unlit surface (background, fog) so the theme's tone mapping renders it at `hex`. */
 export function unlitColor(hex: string, theme: 'light' | 'dark'): Color {

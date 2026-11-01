@@ -4,7 +4,8 @@ import config from '../../../config/sites/dhk-depot.json';
 import { SiteConfigSchema } from '@/domain/siteConfig';
 import { buildSiteLayout } from '../site/layout';
 import { hashString } from '../site/random';
-import { buildStaging, JACK, PALLET, PALLET_H } from './stagingLayout';
+import { CRATE_TONES } from '../materials';
+import { buildStaging, crateTone, JACK, PALLET, PALLET_H } from './stagingLayout';
 import { buildStorage, storageProps } from './storageLayout';
 
 // ADR-13: the GLB props and the procedural ones are two drawings of one layout. Nothing moves between the tiers, and
@@ -86,6 +87,44 @@ describe('buildStaging', () => {
       expect(y - jy >= input.beltEnd || Math.abs(x) - jx >= input.beltHalf).toBe(true);
     },
   );
+
+  it("builds every crate of wood, new and old mixed across the bays, the inner rim in its crate's tone", () => {
+    const crates = inputs.flatMap(({ input }) =>
+      buildStaging(input).boxes.filter((b) => CRATE_TONES.includes(b.tone)),
+    );
+    const bodies = crates.filter((b) => b.detail === 'lo');
+    expect(bodies.length).toBeGreaterThanOrEqual(6 * inputs.length);
+    const newWood = bodies.filter((b) => b.tone.startsWith('crateNew')).length / bodies.length;
+    expect(newWood).toBeGreaterThan(0.4);
+    expect(newWood).toBeLessThan(0.8);
+    // more than one tone in a band: the tint jitter
+    expect(new Set(bodies.map((b) => b.tone)).size).toBeGreaterThanOrEqual(4);
+    for (const rim of crates.filter((b) => b.detail === 'flat')) {
+      const body = bodies.find(
+        (b) => b.at[0] === rim.at[0] && b.at[1] === rim.at[1] && b.yaw === rim.yaw,
+      );
+      expect(body?.tone).toBe(rim.tone);
+    }
+  });
+
+  it('gives each bay a mix of new and old crates', () => {
+    for (const { input } of inputs) {
+      const tones = buildStaging(input).boxes.filter((b) => CRATE_TONES.includes(b.tone));
+      expect(
+        tones.some((b) => b.tone.startsWith('crateNew')),
+        String(input.seed),
+      ).toBe(true);
+      expect(
+        tones.some((b) => b.tone.startsWith('crateOld')),
+        String(input.seed),
+      ).toBe(true);
+    }
+  });
+
+  it('picks a crate tone by index alone', () => {
+    expect(crateTone(7, 1, 2)).toBe(crateTone(7, 1, 2));
+    expect(CRATE_TONES).toContain(crateTone(7, 1, 2));
+  });
 
   it('is deterministic per seed', () => {
     const first = inputs[0]?.input;

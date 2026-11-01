@@ -1,11 +1,24 @@
 import { useMemo } from 'react';
 import type { BoxItem } from '../items';
 import { BoxInstances } from '../primitives';
+import { useSceneEnv } from '../sceneEnv';
 import type { SiteLayout } from './layout';
+import { SurroundRoad } from './SurroundRoad';
 
-// Road, neighbouring building and trees. The builder yields no context items unless view.showExteriorContext
-// is true (docs/04 section 0), so for the depot this component renders nothing. Kept for later site views.
+// The ring road and trees (`view.surround`, light theme: docs/06 section 7.5), and the generic road, neighbouring
+// building and trees: the builder yields no context items unless view.showExteriorContext is true (docs/04 section 0),
+// so for the depot that part renders nothing. Kept for later site views.
 export function ExteriorContext({ layout }: { layout: SiteLayout }) {
+  const { theme } = useSceneEnv();
+  return (
+    <>
+      {layout.surround && theme === 'light' && <SurroundRoad surround={layout.surround} />}
+      <ContextItems layout={layout} />
+    </>
+  );
+}
+
+function ContextItems({ layout }: { layout: SiteLayout }) {
   const items = useMemo(
     () =>
       layout.context.flatMap((c): BoxItem[] => {

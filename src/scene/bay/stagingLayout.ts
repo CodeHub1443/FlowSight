@@ -34,6 +34,25 @@ const DECK = 0.07;
 /** Pallet jack extents (m): the model's 0.70 x 1.52 x 1.26 at the same 1.2 oversize as the pallets. */
 export const JACK: readonly [number, number, number] = [0.84, 1.82, 1.51];
 
+/** Crate timber in a fixed shuffle (docs/06 section 7.5): three new crates to two old, each band with its own tint. */
+const CRATE_WOOD: readonly PaletteKey[] = [
+  'crateNew',
+  'crateOldMid',
+  'crateNewDeep',
+  'crateNewMid',
+  'crateOld',
+  'crateNew',
+  'crateOldDeep',
+  'crateNewMid',
+  'crateNewDeep',
+  'crateOldMid',
+];
+
+/** Wood tone of a crate, by index only: never draws from the seeded stream, so nothing else moves. */
+export function crateTone(seed: number, stack: number, level: number): PaletteKey {
+  return CRATE_WOOD[(seed + stack * 3 + level) % CRATE_WOOD.length] as PaletteKey;
+}
+
 type Rot = (dx: number, dy: number) => [number, number];
 
 const rotator = (x: number, y: number, yaw: number): Rot => {
@@ -241,20 +260,22 @@ export function buildStaging(input: StagingInput): StagingResult {
     if (slot) place(slot[0], slot[1]);
   }
 
-  // blue crate stacks beside the conveyor (as in the overhead frames): open crates with a darker inner rim
-  for (const [cx, cy] of [
+  // crate stacks beside the conveyor (as in the overhead frames): open crates with a darker inner rim
+  const crateStacks = [
     [-(input.beltHalf + 0.95), 3.4],
     [input.beltHalf + 0.95, 5.2],
-  ] as const) {
+  ] as const;
+  for (const [stack, [cx, cy]] of crateStacks.entries()) {
     const n = 3 + Math.floor(r() * 2);
     for (let i = 0; i < n; i++) {
       const yaw = (r() - 0.5) * 0.2;
       const shade = 0.92 + r() * 0.14;
+      const tone = crateTone(input.seed, stack, i);
       boxes.push({
         at: [cx, cy, 0.18 + i * 0.36],
         size: [0.78, 0.54, 0.34],
         yaw,
-        tone: 'crate',
+        tone,
         shade,
         detail: 'lo',
       });
@@ -263,7 +284,7 @@ export function buildStaging(input: StagingInput): StagingResult {
           at: [cx, cy, 0.35 + i * 0.36 + 0.002],
           size: [0.64, 0.4, 0.004],
           yaw,
-          tone: 'crate',
+          tone,
           shade: shade * 0.62,
           detail: 'flat',
         });

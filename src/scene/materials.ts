@@ -14,6 +14,8 @@ export interface PaletteTokens {
   floor: string;
   floorLine: string;
   apron: string;
+  /** The truck yard outside the dock doors (docs/06 section 7.5). */
+  truckYard: string;
   walkline: string;
   wall: string;
   wallAccent: string;
@@ -25,6 +27,15 @@ export interface PaletteTokens {
   palletBlue: string;
   palletYellow: string;
   palletOrange: string;
+  // wood crates (docs/06 section 7.5): new and old timber, each a light and a deep end
+  crateNew: string;
+  crateNewDeep: string;
+  crateOld: string;
+  crateOldDeep: string;
+  // ring road trees (docs/06 section 7.5)
+  treeFoliage: string;
+  treeFoliageDeep: string;
+  treeTrunk: string;
   metal: string;
   belt: string;
   statusOk: string;
@@ -77,7 +88,9 @@ export interface DerivedColors {
   motor: string;
   motorGrille: string;
   sackBand: string;
-  crate: string;
+  road: string;
+  crateNewMid: string;
+  crateOldMid: string;
   shutter: string;
   seal: string;
   leveller: string;
@@ -99,6 +112,16 @@ export interface DerivedColors {
 export type ScenePalette = PaletteTokens & DerivedColors;
 export type PaletteKey = keyof ScenePalette;
 
+/** The wood crate tones (docs/06 section 7.5), light to dark. */
+export const CRATE_TONES: readonly PaletteKey[] = [
+  'crateNew',
+  'crateNewMid',
+  'crateNewDeep',
+  'crateOld',
+  'crateOldMid',
+  'crateOldDeep',
+];
+
 // CLAUDE.md values; info is --brand-500 (docs/06: brand blue for active states and selection), as in src/index.css
 const STATUS_EXTRA = {
   statusNeutral: '#64748B',
@@ -109,11 +132,12 @@ const STATUS_EXTRA = {
 
 /** docs/06 section 1 with the section 7 overrides, light theme (exact values). */
 export const LIGHT_TOKENS: PaletteTokens = {
-  void: '#E6ECFA',
-  floor: '#E8ECF8',
+  void: '#F2F6FC',
+  floor: '#F2F7FF',
   floorLine: '#D4DEF7',
   apron: '#DCE4F8',
-  walkline: '#F2C94C',
+  truckYard: '#DDF8EA',
+  walkline: '#F3CA6C',
   wall: '#F3F6FE',
   wallAccent: '#3D6AE4',
   brand: '#2C6FED',
@@ -124,6 +148,13 @@ export const LIGHT_TOKENS: PaletteTokens = {
   palletBlue: '#3F7BF0',
   palletYellow: '#F5C542',
   palletOrange: '#F59E5B',
+  crateNew: '#D8B27A',
+  crateNewDeep: '#C99A5F',
+  crateOld: '#8A5A33',
+  crateOldDeep: '#6E4526',
+  treeFoliage: '#57BB86',
+  treeFoliageDeep: '#45AB76',
+  treeTrunk: '#99756F',
   metal: '#C9D2E3',
   belt: '#3A4A73',
   statusOk: '#1FA653',
@@ -137,10 +168,10 @@ export const LIGHT_TOKENS: PaletteTokens = {
   ink400: '#5F6E85',
   card: '#FFFFFF',
   ...STATUS_EXTRA,
-  zone: '#D7E2FA',
-  zoneLine: '#F2C94C',
-  aisle: '#C9D7F7',
-  aisleLine: '#F2C94C',
+  zone: '#D6E4FF',
+  zoneLine: '#F3CA6C',
+  aisle: '#B8CDFF',
+  aisleLine: '#F3CA6C',
   wallRib: '#DCE4F8',
   wallTop: '#F7F9FE',
   eaveTop: '#6EA7F9',
@@ -155,13 +186,13 @@ export const LIGHT_TOKENS: PaletteTokens = {
   pillBorder: '#0F172A',
   hemiSky: '#C4DAFC',
   hemiGround: '#9FB4F0',
-  keyLight: '#FFF6EC',
+  keyLight: '#FFFCF6',
   rimLight: '#C4DAFC',
   workLight: '#FFE3B0',
   aoColor: '#8EA6EC',
   contactShade: '#7F98E6',
-  vignette: '#C7D3F5',
-  voidGlow: '#E6ECFA',
+  vignette: '#EAF0FA',
+  voidGlow: '#F2F6FC',
 };
 
 /**
@@ -173,6 +204,7 @@ export const DARK_TOKENS: PaletteTokens = {
   floor: '#1E2E58',
   floorLine: '#3A5596',
   apron: '#17244A',
+  truckYard: '#17244A',
   walkline: '#E8B93C',
   wall: '#2A3B68',
   wallAccent: '#3E73FF',
@@ -184,6 +216,15 @@ export const DARK_TOKENS: PaletteTokens = {
   palletBlue: '#4A7FF5',
   palletYellow: '#E8B93C',
   palletOrange: '#E98A4F',
+  // the night look keeps its blue crates (Task 13 is light only)
+  crateNew: '#4A7FF5',
+  crateNewDeep: '#4A7FF5',
+  crateOld: '#4A7FF5',
+  crateOldDeep: '#4A7FF5',
+  // not drawn at night (the ring road is light only); kept so the token set is the same in both themes
+  treeFoliage: '#3F8F6B',
+  treeFoliageDeep: '#357A5B',
+  treeTrunk: '#6B5650',
   metal: '#8A9BC4',
   belt: '#2B3863',
   statusOk: '#3DDC84',
@@ -254,7 +295,9 @@ export function derive(p: PaletteTokens, theme: SceneTheme): ScenePalette {
     motor: p.palletYellow,
     motorGrille: mixHex(p.palletYellow, p.belt, 0.5),
     sackBand: p.brandLight,
-    crate: p.palletBlue,
+    road: p.aisle,
+    crateNewMid: mixHex(p.crateNew, p.crateNewDeep, 0.5),
+    crateOldMid: mixHex(p.crateOld, p.crateOldDeep, 0.5),
     shutter: mixHex(p.wall, p.metal, 0.6),
     // docs/06 D4: no dark gaps around the door openings
     seal: mixHex(p.apron, p.metal, 0.6),
@@ -263,7 +306,8 @@ export function derive(p: PaletteTokens, theme: SceneTheme): ScenePalette {
     doorFrame: dark ? p.wallAccent : p.brand,
     column: mixHex(p.wall, p.metal, 0.55),
     paintWhite: dark ? mixHex(p.floor, LIGHT_TOKENS.card, 0.35) : p.card,
-    workZone: mixHex(p.zone, p.statusIdle, dark ? 0.2 : 0.4),
+    // the belt-mouth plate: towards the aisle in light, as the idle grey turned it lavender (docs/06 section 7.5)
+    workZone: dark ? mixHex(p.zone, p.statusIdle, 0.2) : mixHex(p.zone, p.aisle, 0.4),
     hover: p.brandLight,
     selection: p.statusInfo,
     shade: p.contactShade,
@@ -284,6 +328,7 @@ export const CSS_TOKENS: readonly (readonly [keyof PaletteTokens, string])[] = [
   ['floor', '--scene-floor'],
   ['floorLine', '--scene-floor-line'],
   ['apron', '--scene-apron'],
+  ['truckYard', '--scene-truck-yard'],
   ['walkline', '--scene-walkline'],
   ['wall', '--scene-wall'],
   ['wallAccent', '--scene-wall-accent'],
@@ -295,6 +340,13 @@ export const CSS_TOKENS: readonly (readonly [keyof PaletteTokens, string])[] = [
   ['palletBlue', '--pallet-blue'],
   ['palletYellow', '--pallet-yellow'],
   ['palletOrange', '--pallet-orange'],
+  ['crateNew', '--crate-new'],
+  ['crateNewDeep', '--crate-new-deep'],
+  ['crateOld', '--crate-old'],
+  ['crateOldDeep', '--crate-old-deep'],
+  ['treeFoliage', '--tree-foliage'],
+  ['treeFoliageDeep', '--tree-foliage-deep'],
+  ['treeTrunk', '--tree-trunk'],
   ['metal', '--metal'],
   ['belt', '--belt'],
   ['statusOk', '--ok'],
@@ -406,7 +458,12 @@ export function finishOf(tone: PaletteKey): Finish {
     case 'palletBlue':
     case 'palletYellow':
     case 'palletOrange':
-    case 'crate':
+    case 'crateNew':
+    case 'crateNewMid':
+    case 'crateNewDeep':
+    case 'crateOld':
+    case 'crateOldMid':
+    case 'crateOldDeep':
       return PLASTIC;
     default:
       return MATTE;

@@ -76,6 +76,10 @@ const PAIRS = [
   ['--ink-900', '--topbar-bg', TEXT],
   ['--ink-600', '--topbar-bg', TEXT],
   ['--ink-400', '--topbar-bg', TEXT],
+  // text straight on the scene: the skeleton, and the credit where it sits over the void
+  ['--ink-900', '--scene-void', TEXT],
+  ['--ink-600', '--scene-void', TEXT],
+  ['--ink-400', '--scene-void', TEXT],
   // pills: status text on its tint and on a card (tray counts, inspector values)
   ...STATUS.flatMap((s) => [
     [`--${s}-ink`, `--${s}-bg`, TEXT],
@@ -121,6 +125,38 @@ describe('WCAG AA for every text/background token pair (docs/06 section 8.4)', (
   it('fails a pair that is known to be below AA (the check itself works)', () => {
     expect(contrast(parse('#94a3b8'), parse('#ffffff'))).toBeLessThan(TEXT);
     expect(contrast(parse('#000000'), parse('#ffffff'))).toBeCloseTo(21, 5);
+  });
+});
+
+describe('docs/06 section 7.5 light surfaces', () => {
+  const lum = (name) =>
+    luminance(over(parse(token('light', name)), parse(token('light', '--card'))));
+
+  it('every card is whiter than what it floats on', () => {
+    for (const under of ['--background', '--topbar-bg', '--scene-void', '--scene-vignette'])
+      expect(
+        contrast(parse(token('light', '--card')), parse(token('light', under))),
+        under,
+      ).toBeGreaterThan(1.05);
+  });
+
+  it('a selected or hovered row still shows on the whiter card', () => {
+    expect(lum('--row-selected')).toBeLessThan(lum('--card') - 0.08);
+    expect(lum('--row-hover')).toBeLessThan(lum('--card') - 0.03);
+    expect(lum('--row-selected')).toBeLessThan(lum('--row-hover'));
+  });
+
+  it('page, top bar and void are one atmosphere, with no seam around the canvas', () => {
+    expect(token('light', '--background')).toBe(token('light', '--scene-void'));
+    expect(token('light', '--topbar-bg')).toBe(token('light', '--scene-void'));
+    expect(token('light', '--scene-void-glow')).toBe(token('light', '--scene-void'));
+  });
+
+  // lit paint only: the void is unlit, so its token is not comparable (docs/reference/sample-colours.py checks the render)
+  it('the floors step down: ground, zone plate, aisle', () => {
+    const order = ['--scene-floor', '--scene-zone', '--scene-aisle'];
+    for (let i = 1; i < order.length; i++)
+      expect(lum(order[i]), `${order[i]} under ${order[i - 1]}`).toBeLessThan(lum(order[i - 1]));
   });
 });
 
