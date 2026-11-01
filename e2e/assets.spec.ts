@@ -7,7 +7,7 @@ import { expect, test } from './fixtures';
 
 const MANIFEST = path.resolve(import.meta.dirname, '..', 'public', 'models', 'manifest.json');
 const CDN = /gstatic|jsdelivr|unpkg|cdnjs|googleapis/i;
-const LIVE_MODELS = ['pallet_b01', 'pallet_b01_far', 'box_brown_b28', 'pallet_jack'];
+const LIVE_MODELS = ['pallet_b01', 'pallet_b01_far', 'box_brown_b28', 'pallet_jack', 'forklift'];
 
 test('Med tier loads the live models locally, decodes them and calls no CDN', async ({ page }) => {
   const requested: string[] = [];
@@ -37,8 +37,8 @@ test('Med tier loads the live models locally, decodes them and calls no CDN', as
 
   expect(requested.filter((u) => CDN.test(u))).toEqual([]);
   expect(failed.filter((u) => u.includes('/models/'))).toEqual([]);
-  // forklift, scanner, crate and truck stay out of the live scene until step 7
-  for (const dormant of ['forklift', 'scanner', 'crate', 'truck']) {
+  // scanner and crate are not in the live scene; the truck GLB is rejected, the van is procedural (Task 14)
+  for (const dormant of ['scanner', 'crate', 'truck']) {
     const file = assets[dormant]?.file ?? '?';
     expect(requested.some((u) => u.endsWith(file))).toBe(false);
   }

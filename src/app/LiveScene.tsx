@@ -12,19 +12,36 @@ import { useTranslation } from 'react-i18next';
 import type { BeltStatus } from '@/domain';
 import { DEFAULT_SITE } from '@/features/live';
 import { SceneSlotPlaceholder } from '@/features/live/SceneSlot';
-import type { QualityTier, SceneSelection } from '@/scene';
+import type { ActorFeed, QualityTier, SceneSelection } from '@/scene';
 // Direct paths (not '@/scene'): these are tiny and must not pull three.js into the entry chunk.
 import { useSceneCamera } from '@/scene/camera/cameraController';
 import { SCENE_SAFE_AREA } from '@/scene/camera/view';
 import { AUTO_START_TIER } from '@/scene/quality';
 import { QUALITY_DEBUG } from '@/scene/qualityProbe';
-import { alertStore, liveStore, uiStore, useLiveStore, useUiStore } from '@/stores';
+import {
+  alertStore,
+  getActors,
+  getBay,
+  liveStore,
+  subscribeActors,
+  subscribeBay,
+  subscribeCases,
+  uiStore,
+  useLiveStore,
+  useUiStore,
+} from '@/stores';
 import { MapControls } from './MapControls';
 import { QualityBadge } from './QualityBadge';
 import { bayOfSelection, flyTargetFor, type SceneTargetContext } from './sceneTarget';
 import { hasWebGL } from './webgl';
 
 // three, R3F and drei load in their own chunk, on /live only (docs/02 section 6 bundle budget).
+declare global {
+  interface Window {
+    __sceneCamera?: ReturnType<typeof useSceneCamera>;
+  }
+}
+
 const SceneRoot = lazy(() => import('@/scene').then((m) => ({ default: m.SceneRoot })));
 
 const BAY_IDS: ReadonlySet<string> = new Set(
@@ -52,6 +69,9 @@ function targetContext(): SceneTargetContext {
     events: alertStore.getState().events,
   };
 }
+
+/** Non-React access to live data: what the actor layer interpolates between (docs/02 section 6 rule 1). */
+const ACTOR_FEED: ActorFeed = { getBay, subscribeBay, getActors, subscribeActors, subscribeCases };
 
 const selectBay = (s: SceneSelection) => uiStore.getState().select({ kind: 'bay', id: s.bayId });
 
@@ -118,6 +138,11 @@ export function LiveScene() {
     [statusKey],
   );
 
+  // debug builds: lets the screenshots and the e2e run fly the camera without a pointer
+  useEffect(() => {
+    if (QUALITY_DEBUG) window.__sceneCamera = camera;
+  }, [camera]);
+
   useEffect(() => {
     const root = document.documentElement;
     if (lowTier) root.dataset.quality = 'low';
@@ -152,6 +177,7 @@ export function LiveScene() {
             labels={labels}
             selectedBayId={selectedBayId}
             bayStatus={bayStatus}
+            actors={ACTOR_FEED}
             onSelect={selectBay}
             onReady={() => {
               if (ref.current) ref.current.dataset.sceneReady = 'true';

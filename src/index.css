@@ -141,6 +141,20 @@
   --tree-foliage: #57bb86;
   --tree-foliage-deep: #45ab76;
   --tree-trunk: #99756f;
+  --actor-vest: #c8f03c;
+  --actor-band: #e4e9f2;
+  --actor-skin: #c98f66;
+  --actor-shirt: #5b7fc7;
+  --actor-trousers: #4a5a82;
+  --truck-yellow: #e8c65a;
+  --truck-blue: #4f79c7;
+  --truck-green: #62a982;
+  --truck-teal: #4fa9a8;
+  --truck-canvas: #ede6d6;
+  --truck-glass: #a9c8f2;
+  --truck-interior: #8491b0;
+  --plate-green: #1b7f4e;
+  --plate-fg: #ffffff;
   --metal: #c9d2e3;
   --belt: #3a4a73;
 
@@ -259,6 +273,21 @@
   --segment-track: #1f2a49;
   --row-hover: #202d51;
   --row-selected: #27355d;
+
+  --actor-vest: #c8f03c;
+  --actor-band: #c9d2e3;
+  --actor-skin: #b98562;
+  --actor-shirt: #5c7fcf;
+  --actor-trousers: #3e4e7a;
+  --truck-yellow: #d9b44a;
+  --truck-blue: #5a83d6;
+  --truck-green: #5a9e7a;
+  --truck-teal: #4c9fa0;
+  --truck-canvas: #b8b3a6;
+  --truck-glass: #6f93cf;
+  --truck-interior: #33426e;
+  --plate-green: #1b7f4e;
+  --plate-fg: #ffffff;
 
   --scene-void: #0e1730;
   --scene-floor: #1e2e58;

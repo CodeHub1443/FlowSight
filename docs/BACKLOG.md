@@ -28,15 +28,19 @@ Spec: `docs/06-visual-language.md`. Evidence: `docs/screens/step-merge-02-live-1
 
 ## P1 — Next build steps
 - [x] user · use NVIDIA SimReady assets (ADR-12): forklift, plastic pallets, crates, cartons, pallet truck, barcode scanner → asset pipeline task before step 7; CC-BY-4.0 attribution — pipeline done in Task 11 (ADR-13); attribution still open below
-- [ ] Task 11 · integrate the converted forklift, scanner and crate models into the live scene (converted, shown in `/dev/assets` only) · step 7. The crate GLB is painted `palletBlue` by `scripts/assets/palette.json`; in the scene pass a wood tone per instance (`PropItem.tone`, `crateTone`, docs/06 section 7.5)
-- [ ] Task 11 · waiting and departing trucks: integrate `truck` GLB (exterior only, no opening doors; see the verdict in PROGRESS Task 11) · step 7
-- [ ] Task 11 · docked trucks need a procedural open-rear van: the truck model has no opening doors · step 7
+- [x] Task 11 · integrate the converted forklift, scanner and crate models into the live scene — forklift done in Task 14; scanner stays procedural (a 1,478-tri model for a palm-sized object) and the crate GLB unused, because staging crates are procedural
+- [x] Task 11 · waiting and departing trucks: integrate `truck` GLB — superseded: GLB rejected by the owner, all trucks are the procedural van (Task 14)
+- [x] Task 11 · docked trucks need a procedural open-rear van — done in Task 14
 - [ ] Task 11 · optional: a purpose-built truck model (BD covered van), because the supplied mesh is AI-generated, lumpy up close and not a local vehicle · client decision
 - [ ] Task 11 · `docs/ATTRIBUTION.md` and the About dialog (ADR-12) were not written: licensing was out of scope by owner decision; source paths are in `public/models/manifest.json`
 - [x] Task 07A · default Floor overview leaves a large empty band above the dock wall and storage fills the bottom → tighter framing — superseded by the diagonal hero view (docs/06 D1, Task 09)
 - [x] Task 07A · SCENE_SAFE_AREA top must be 160 (top bar + KPI row), bottom must account for the visit tracker (or collapse it by default) — done: 120 / 384 / 88 / 24 from the scene's top, compact tracker by default (`e2e/live-visual.spec.ts` enforces both)
-- [ ] step 7 · actors: trucks (BD covered van), people (captain full vest + scanner, worker cross-vest), forklifts, items on belts — built in the docs/06 style from the start
-- [ ] Task 04C · contact shadows baked once (frames=1) → update when actors move · step 8
+- [x] step 7 · actors: trucks (BD covered van), people (captain full vest + scanner, worker cross-vest), forklifts, items on belts — done in Task 14
+- [ ] Task 14 · **Intel UHD Med is below the 45 fps stop line with actors on: dark 39.1, light 45.4 mean with later runs at 41** (baseline 55.0 and 55.8; table in PROGRESS Task 14). Per-frame instance uploads are the likely main cost; GPU-driven animation is the option that removes them → user decision
+- [ ] Task 14 · not built, outside the brief's list though in docs/04 section 3 or docs/05 step 7: boom extend/retract, belt UV scroll, camera glyphs · step 8
+- [ ] Task 14 · a truck reversing or driving off passes through a truck parked in a holding slot: the slots lie across every door's path and the layout is frozen → user decision on the apron layout
+- [ ] Task 14 · actors are not clickable yet (uiStore already has truck, person and forklift selections) · step 8
+- [x] Task 04C · contact shadows baked once (frames=1) → update when actors move — not needed: actors stay out of that pass on their own layer and carry soft blob shadows (Task 14)
 - [x] Task 08 · SceneRoot does not report automatic tier steps: the Low-tier card-blur fallback follows a pinned tier or the auto start tier only → `onTierChange` prop on SceneRoot (src/scene API change) — done Task 12
 - [x] Task 08 · SCENE_SAFE_AREA top 160 is the viewport-measured chrome; inside the canvas the KPI row ends at 97 px (BN 105–108) → confirm 160 or tighten to ~112 (one constant + projection test) — done: 120
 - [ ] Task 08 · at 16:9 the 45 m face is width-bound: the first storage rows still fill about the bottom quarter of the Floor overview → accept, or narrower cards / steeper default

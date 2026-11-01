@@ -36,6 +36,21 @@ export interface PaletteTokens {
   treeFoliage: string;
   treeFoliageDeep: string;
   treeTrunk: string;
+  // actors (docs/06 section 7.6)
+  actorVest: string;
+  actorBand: string;
+  actorSkin: string;
+  actorShirt: string;
+  actorTrousers: string;
+  truckYellow: string;
+  truckBlue: string;
+  truckGreen: string;
+  truckTeal: string;
+  truckCanvas: string;
+  truckGlass: string;
+  truckInterior: string;
+  plateGreen: string;
+  plateFg: string;
   metal: string;
   belt: string;
   statusOk: string;
@@ -155,6 +170,20 @@ export const LIGHT_TOKENS: PaletteTokens = {
   treeFoliage: '#57BB86',
   treeFoliageDeep: '#45AB76',
   treeTrunk: '#99756F',
+  actorVest: '#C8F03C',
+  actorBand: '#E4E9F2',
+  actorSkin: '#C98F66',
+  actorShirt: '#5B7FC7',
+  actorTrousers: '#4A5A82',
+  truckYellow: '#E8C65A',
+  truckBlue: '#4F79C7',
+  truckGreen: '#62A982',
+  truckTeal: '#4FA9A8',
+  truckCanvas: '#EDE6D6',
+  truckGlass: '#A9C8F2',
+  truckInterior: '#8491B0',
+  plateGreen: '#1B7F4E',
+  plateFg: '#FFFFFF',
   metal: '#C9D2E3',
   belt: '#3A4A73',
   statusOk: '#1FA653',
@@ -225,6 +254,20 @@ export const DARK_TOKENS: PaletteTokens = {
   treeFoliage: '#3F8F6B',
   treeFoliageDeep: '#357A5B',
   treeTrunk: '#6B5650',
+  actorVest: '#C8F03C',
+  actorBand: '#C9D2E3',
+  actorSkin: '#B98562',
+  actorShirt: '#5C7FCF',
+  actorTrousers: '#3E4E7A',
+  truckYellow: '#D9B44A',
+  truckBlue: '#5A83D6',
+  truckGreen: '#5A9E7A',
+  truckTeal: '#4C9FA0',
+  truckCanvas: '#B8B3A6',
+  truckGlass: '#6F93CF',
+  truckInterior: '#33426E',
+  plateGreen: '#1B7F4E',
+  plateFg: '#FFFFFF',
   metal: '#8A9BC4',
   belt: '#2B3863',
   statusOk: '#3DDC84',
@@ -347,6 +390,20 @@ export const CSS_TOKENS: readonly (readonly [keyof PaletteTokens, string])[] = [
   ['treeFoliage', '--tree-foliage'],
   ['treeFoliageDeep', '--tree-foliage-deep'],
   ['treeTrunk', '--tree-trunk'],
+  ['actorVest', '--actor-vest'],
+  ['actorBand', '--actor-band'],
+  ['actorSkin', '--actor-skin'],
+  ['actorShirt', '--actor-shirt'],
+  ['actorTrousers', '--actor-trousers'],
+  ['truckYellow', '--truck-yellow'],
+  ['truckBlue', '--truck-blue'],
+  ['truckGreen', '--truck-green'],
+  ['truckTeal', '--truck-teal'],
+  ['truckCanvas', '--truck-canvas'],
+  ['truckGlass', '--truck-glass'],
+  ['truckInterior', '--truck-interior'],
+  ['plateGreen', '--plate-green'],
+  ['plateFg', '--plate-fg'],
   ['metal', '--metal'],
   ['belt', '--belt'],
   ['statusOk', '--ok'],

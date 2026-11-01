@@ -24,6 +24,16 @@ export interface QualitySettings {
   cylinderSegments: number;
   /** Dark-theme work lights (docs/06 section 8.3): a floor pool on every tier, plus real spot lights on `spot`. */
   workLights: 'spot' | 'decal';
+  /**
+   * People, forklifts, trucks and belt items (docs/04 section 4). `animated` false is the Low tier's simple static
+   * figures: no limb or truck motion, no belt items, each actor placed on its latest frame.
+   */
+  actors: {
+    animated: boolean;
+    /** Capsule cap segments and radial segments, sphere segments. */
+    capsule: [number, number];
+    sphere: number;
+  };
 }
 
 export const QUALITY: Record<QualityTier, QualitySettings> = {
@@ -36,6 +46,7 @@ export const QUALITY: Record<QualityTier, QualitySettings> = {
     smoothness: { hi: 4, lo: 2 },
     cylinderSegments: 28,
     workLights: 'spot',
+    actors: { animated: true, capsule: [3, 12], sphere: 14 },
   },
   med: {
     dpr: [1, 1.5],
@@ -46,6 +57,7 @@ export const QUALITY: Record<QualityTier, QualitySettings> = {
     cylinderSegments: 18,
     // seven spot lights cost about 15 % of the frame on Intel UHD (52 -> 45 fps, p95 24 -> 42 ms): High only
     workLights: 'decal',
+    actors: { animated: true, capsule: [2, 7], sphere: 9 },
   },
   low: {
     dpr: [1, 1],
@@ -55,6 +67,7 @@ export const QUALITY: Record<QualityTier, QualitySettings> = {
     smoothness: { hi: 1, lo: 1 },
     cylinderSegments: 12,
     workLights: 'decal',
+    actors: { animated: false, capsule: [2, 6], sphere: 6 },
   },
 };
 

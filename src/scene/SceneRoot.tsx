@@ -3,6 +3,10 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Color, SRGBColorSpace, type Scene, type WebGLRenderer } from 'three';
 import type { BeltStatus, SiteConfig } from '@/domain';
+import { ActorsLayer } from './actors/ActorsLayer';
+import { maxTrucks } from './actors/actorRig';
+import type { ActorFeed } from './actors/feed';
+import { TruckPlates, type PlateElements } from './actors/TruckPlates';
 import { preloadLiveModels } from './assets/loader';
 import { AutoQuality } from './AutoQuality';
 import { Bay, type BaySelection } from './bay/Bay';
@@ -67,6 +71,8 @@ export interface SceneRootProps {
   doorOpen?: (bayId: string) => boolean;
   /** Belt status per bay id (default NO_TRUCK): work lights and status colours of the dark theme. */
   bayStatus?: Readonly<Record<string, BeltStatus>>;
+  /** Live trucks, people, forklifts and belt items (docs/04 sections 3 and 4). Without it the shed stands empty. */
+  actors?: ActorFeed;
   /** Event pins (docs/06 D9): three.js world positions of the pin bases. Bound to live events in step 9. */
   pins?: readonly { id: string; at: readonly [number, number, number] }[];
   /** Tone mapping (read once when the canvas is created). Default SCENE_TONE_MAPPING; the dev preview A/B tests it. */
@@ -100,6 +106,7 @@ export function SceneRoot({
   selectedBayId = null,
   doorOpen,
   bayStatus,
+  actors,
   pins,
   toneMapping: lightToneMapping = SCENE_TONE_MAPPING,
   onReady,
@@ -127,6 +134,7 @@ export function SceneRoot({
   const { i18n } = useTranslation('scene');
   const lang = i18n.language === 'bn' ? 'bn' : 'en';
   const pillElements = useRef<PillElements>(new Map());
+  const plateElements = useRef<PlateElements>(new Map());
   // the selection pill keeps showing the last selected bay while it fades out
   const [shownBayId, setShownBayId] = useState(selectedBayId);
   if (selectedBayId && selectedBayId !== shownBayId) setShownBayId(selectedBayId);
@@ -231,6 +239,9 @@ export function SceneRoot({
               </group>
             );
           })}
+          {actors && (
+            <ActorsLayer layout={layout} feed={actors} showPlates={labels} plates={plateElements} />
+          )}
           {pins?.map((pin) => (
             <EventPin key={pin.id} at={pin.at} />
           ))}
@@ -249,6 +260,9 @@ export function SceneRoot({
             background: `radial-gradient(ellipse at center, transparent 35%, ${hexAlpha(palette.vignette, VIGNETTE_ALPHA)} 100%)`,
           }}
         />
+      )}
+      {actors && (
+        <TruckPlates count={maxTrucks(layout)} palette={palette} elements={plateElements} />
       )}
       <PillLayer
         palette={palette}

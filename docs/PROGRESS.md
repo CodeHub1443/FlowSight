@@ -564,3 +564,66 @@ The ring road and trees stay on. The user accepts their Intel UHD cost, includin
 - No full run was green in one pass after the change: the last one had 5 starved tests, which passed on the single re-run the brief allows. That re-run used the throttling opt-out, a temporary helper outside the repo. Nothing in the repo prevents the throttling yet.
 - To run e2e reliably on this machine: keep the IDE or terminal in front during the run. The E-core switch itself is measured; why Windows ties it to the foreground app was not investigated.
 - Live KPI delta: crossing 10 % adds a digit (7-8 px), which narrows the label column on the same row at 1700 px and up. Not hit by the peak scenario (0-3 %), so `live-flicker` does not cover it. Left as is: reserving width would change the accepted chip look.
+
+## Task 14: step 7 actors: trucks, people, forklifts, belt items (uncommitted; stopped at the fps line)
+
+### Status
+Built and working in mock mode, **but the brief's stop condition is hit: Intel UHD Med averages below 45 fps with actors on, in dark (39.1) and only just above it in light (45.4, later runs 41).** Tuning stopped there and the camera was not touched; the decision is the owner's.
+
+### Built
+- **Trucks** (`src/scene/actors/truckParts.ts`, `truckSim.ts`, `livery.ts`, `plateView.ts`, `TruckPlates.tsx`): procedural covered van, 7.4 x 2.4 x 3.2 m box plus cab, 8.9 m overall, wheels, rounded edges. The converted truck GLB is not used. Rear doors open when docked, cargo shows through them. Livery by hash of the plate. States come from visit and queue data only: waiting in its apron slot, reversing 6-8 s eased, docked, departing with a 6 s fade. Rear plate is DOM, Bangla in two lines plus English, mapped onto the plate's real plane with a CSS matrix and hidden when turned away, too small or behind the wall.
+- **People** (`personPose.ts`, `actorRig.ts`): 1.7 m figures. Captain has a full lime vest, silver bands and dark scanner; worker has cross straps. HANDLING, SCANNING, WALKING, STATIONARY and CARRYING animate; amber ring only on `ppeOk === false`. No phone or idle visuals; no captain name in the scene.
+- **Forklifts**: converted GLB, one instance per forklift in the data, E-W in the aisle, pallet on the forks when `act = CARRYING`.
+- **Items** (`beltItems.ts`): boom tip <-> belt mouth by direction; CASE box, SACK pillow, SHRINK wrap; SKU tone within the pack family; flagged red with pin; 24 per bay at most, one instanced pool per type.
+- **Motion** (`tracks.ts`, `ActorsLayer.tsx`): one `useFrame`, no React state per frame, no new store rate; unseen actors fade after 5 s.
+- **Tiers**: High full, Med fewer segments, Low static procedural figures with no items, fades or GLB.
+- `src/stores/caseBus.ts` carries case ticks to the items; `src/scene/actors/feed.ts` keeps the scene free of store imports. `?actors=demo` on the dev scene preview is the static arrangement of docs/05 step 7.
+
+### Fps (interleaved A/B on real GPUs, baseline = commit 6753bf5, 30 s or 25 s per run, final code)
+| GPU, tier, theme | Before mean | After mean | After median | Note |
+|---|---|---|---|---|
+| Intel UHD Med light | 55.8 | **45.4** | 49 | below the 48 report line; first runs 49, later runs 40.6-43.7 (p95 23 -> 46 ms) while the baseline held 54-59 |
+| Intel UHD Med dark | 55.0 | **39.1** | 39.3 | **below the 45 stop line**; 38.2-39.9 in every run shown, p95 47 ms |
+| Intel UHD Low light | 162.4 | 151.4 | 153.3 | |
+| RTX 3050 Med light | 187.0 | 179.1 | 185.4 | |
+| RTX 3050 Med dark | 188.4 | 168.5 | 170.6 | |
+| RTX 3050 High light | 142.4 | 129.9 | 133.5 | |
+
+Only interleaved runs compare: absolute numbers on this machine move a lot with its state (RTX Med baseline was 345 in another rested session, 187 here). Draw calls Med 250 -> 269, triangles 327,743 -> about 430,500; High 355 -> 388, 1,045,990 -> 1,418,416 (measured before the last store change).
+
+Earlier figures in this task (Intel Med light 47.8-48.7, dark 51.4) are superseded. The dark figure was taken with the bug below, when actors were frozen on screen.
+
+Cost evidence, taken in the machine's slower state: actors frozen 70-77 fps against 40 live, and even a 1 KB dummy buffer upload per frame dropped frozen 70 to 39-48 (noisy). So per-frame uploads look like the main cost, not drawing; the mechanism is not established. Why light drifts from 49 to 41 within a run set while the baseline does not is also not established. The governor steps Med down only below 20 fps, so Intel stays on Med.
+
+### Bug found and fixed at the end
+Switching theme or tier at runtime left actors frozen and half-dithered, with truck bodies missing. A new rig reused the old rig's instance buffer; disposing the old rig deleted the GL buffer, and the new VAO kept reading its frozen contents. Each rig now owns its buffers (`createStores` in `actorRig.ts`, regression test `actorRig.test.ts`). Seen only by looking at the dark overview, which comes after a live switch; no e2e catches it, because nothing on a canvas can be queried.
+
+### Deviations and gaps against the docs
+- **Mock values changed, no field or contract change:** forklift runs E-W in the aisle, and workers and captain are kept off the conveyor (`src/data/mock/core/bay.ts`). The brief says to use what the simulator emits; without this the forklift drove across the bays and people stood in the belt.
+- Livery hash uses the plate: the contract has no truck id. SKU colour is a hash within the pack family: `Sku.color` is only on the ADMIN endpoint.
+- Forklift is instanced from the GLB rather than cloned, with the same result. Scanner stays procedural, not GLB.
+- Not built: boom extend and retract, belt UV scroll, camera glyphs (docs/04 section 3 or docs/05 step 7, not in the brief). Actors not clickable (step 8). `doorOpen` stays at its default, no shutter binding.
+- Trucks reversing or departing pass through trucks parked in holding slots: the slots lie across the door paths and the layout is frozen.
+- A reversing mock truck appears in both `visit` and `queue`, contrary to docs/03 section 3.2; existing behaviour, tolerated in `truckTargets`. A waiting truck with `slot: null` is not drawn.
+- `docs/06` section 7.6 adds the actor and truck tokens the brief's colours needed.
+
+### Screenshots
+`docs/screens/t14-{overview-light,overview-dark,docked-light,crew-light,forklift-light,items-light,waiting-light}-en-{1920x1080,1366x768}.png`, RTX, Med. Overviews are `/live` at peak. The close-ups are from `?actors=demo` on the dev preview, because the mock produced no waiting truck in 40 simulated minutes at peak and a forklift carries for seconds only. The close-ups and light overviews were taken before the buffer fix, which only affects a rig rebuilt at runtime; the dark overviews were retaken after it.
+
+### Checks on the final code
+`pnpm typecheck`, `lint`, `format:check`, `i18n:check`, `contract:check`, `build`: all exit 0. `pnpm test`: 59 files, 1148 tests passed.
+
+| e2e run | Foreground | Result |
+|---|---|---|
+| Full, before the plate, Low fade and buffer fixes | not sampled | 35 passed, 19.0 min |
+| Full, final code | not sampled | 26 passed, 9 failed, 38.9 min |
+| `--last-failed`, final code | Firefox for the first 2.5 min, then IDE | 9 passed, 7.8 min |
+
+No full run on the final code is green in one pass. The 9 failures look like the throttling of Task 13e and not a regression: twice the usual run time, timeouts in specs with no actor code such as `smoke`, and all 9 pass at normal durations on the re-run. That is an inference: the failed run itself was not sampled. During the re-run, with Firefox in front 2-8 CPUs were busy in 7 of 9 samples; with the IDE in front all 16 in 17 of 19.
+
+The foreground window was not sampled during the fps runs either. Baseline and Task 14 runs were interleaved, so the comparison holds, but it is unknown whether the focus changed during the Intel light set.
+
+The e2e runs rewrite older tracked screenshots: those 35 files were restored from HEAD. Only `t14-*` screenshots changed.
+
+### Not tested
+`t14-*` in Bangla: the plate is Bangla in both languages and this task adds no UI strings. Actor animations were checked in still frames only. Tier change at runtime with the buffer fix was covered by the unit test, not by a screenshot.

@@ -1,6 +1,7 @@
 import type { DataSource, Unsub } from '@/data/DataSource';
 import { setDropHandler } from '@/domain';
 import { alertStore, type AlertStore } from './alertStore';
+import { publishCase } from './caseBus';
 import { liveStore, type LiveStore } from './liveStore';
 
 export interface WireTargets {
@@ -27,7 +28,10 @@ export function wireDataSource(source: DataSource, targets: WireTargets = DEFAUL
     source.onSiteState((value) => l.ingest({ kind: 'siteState', value })),
     source.onBayState((value) => l.ingest({ kind: 'bayState', value })),
     source.onActors((value) => l.ingest({ kind: 'actors', value })),
-    source.onCase((value) => l.ingest({ kind: 'case', value })),
+    source.onCase((value) => {
+      l.ingest({ kind: 'case', value });
+      publishCase(value);
+    }),
     source.onHealth((value) => l.ingest({ kind: 'health', value })),
     source.onEvent((value) => {
       l.ingest({ kind: 'event', value });

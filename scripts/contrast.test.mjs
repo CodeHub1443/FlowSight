@@ -71,6 +71,8 @@ const STATUS = ['ok', 'warn', 'critical', 'neutral', 'info'];
 const PAIRS = [
   // body text on every surface it appears on
   ...INKS.flatMap((ink) => SURFACES.map((s) => [ink, s, TEXT])),
+  // truck plates (docs/06 section 7.6)
+  ['--plate-fg', '--plate-green', TEXT],
   ['--ink-900', '--background', TEXT],
   ['--ink-600', '--background', TEXT],
   ['--ink-900', '--topbar-bg', TEXT],

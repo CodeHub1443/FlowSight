@@ -22,12 +22,13 @@ export const MODELS = manifest.assets as unknown as Readonly<Record<ModelName, M
 
 export type ModelName = keyof typeof manifest.assets;
 
-/** Models the live scene uses. Forklift, scanner, crate and truck are only in /dev/assets until step 7. */
+/** Models the live scene uses. Scanner and crate are only in /dev/assets; the truck GLB is rejected (Task 14). */
 export const LIVE_MODELS: readonly ModelName[] = [
   'pallet_b01',
   'pallet_b01_far',
   'box_brown_b28',
   'pallet_jack',
+  'forklift',
 ];
 
 export function modelUrl(name: ModelName): string {

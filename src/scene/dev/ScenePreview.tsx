@@ -14,9 +14,11 @@ import {
   type SceneTheme,
 } from '..';
 import type { SceneToneMapping } from '../toneMapping';
+import { createDemoFeed } from './demoFeed';
 
 declare global {
   interface Window {
+    __sceneCamera?: ReturnType<typeof useSceneCamera>;
     __sceneGl?: WebGLRenderer;
     __sceneScene?: Scene;
     /** Canvas pixel where the camera target projects (centre of the safe area). */
@@ -74,6 +76,13 @@ export function ScenePreview() {
     new URLSearchParams(window.location.search).get('safe') === '0'
       ? NO_SAFE_AREA
       : SCENE_SAFE_AREA;
+  const demoActors = useMemo(
+    () =>
+      new URLSearchParams(window.location.search).get('actors') === 'demo'
+        ? createDemoFeed()
+        : undefined,
+    [],
+  );
   const bays = config.dockFaces.flatMap((f) => f.bays);
   const lang = i18n.language === 'bn' ? 'bn' : 'en';
 
@@ -91,10 +100,12 @@ export function ScenePreview() {
         selectedBayId={selected}
         onSelect={(s) => setSelected(s.bayId)}
         doorOpen={(id) => id !== 'B06'}
+        actors={demoActors}
         pins={
           new URLSearchParams(window.location.search).get('pins') === '1' ? PREVIEW_PINS : undefined
         }
         onReady={(gl, scene) => {
+          window.__sceneCamera = camera;
           window.__sceneGl = gl;
           window.__sceneScene = scene;
           window.__sceneSafeCentre = viewFit(

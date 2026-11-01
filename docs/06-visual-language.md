@@ -162,6 +162,23 @@ AO is **not** a cause: with N8AO off the flat floors move ≤ 1 RGB unit, so `AO
 
 **Wood crates.** `--crate-new` `#D8B27A` → `--crate-new-deep` `#C99A5F`, `--crate-old` `#8A5A33` → `--crate-old-deep` `#6E4526`, plus a derived midpoint of each band. `crateTone` (`src/scene/bay/stagingLayout.ts`) picks by bay seed, stack and level from a fixed shuffle (3 new : 2 old), and the existing ±7 % brightness jitter stays; both are deterministic and draw nothing new from the seeded stream, so no prop moves. Plastic pallets keep their colours. Dark: the four tokens equal `--pallet-blue`, so crates stay as §8.2. The crate GLB (`/dev/assets`, not in the live scene) still carries `palletBlue`; step 7 passes a wood tone per instance.
 
+### 7.6 Actors (Task 14)
+Trucks, people and forklifts follow docs/04 section 4. New tokens, because the brief asks for colours that the palette did not have. In dark the paint is a step deeper and the inside of a van a step darker, so that they stay under the §8 layers; the vest is the same lime in both.
+| Token | Light | Dark | Use |
+|---|---|---|---|
+| `--actor-vest` | `#C8F03C` | `#C8F03C` | captain's full vest, worker's X straps |
+| `--actor-band` | `#E4E9F2` | `#C9D2E3` | silver bands on the captain's vest |
+| `--actor-skin` | `#C98F66` | `#B98562` | head |
+| `--actor-shirt` | `#5B7FC7` | `#5C7FCF` | shirt, arms |
+| `--actor-trousers` | `#4A5A82` | `#3E4E7A` | legs |
+| `--truck-yellow` `--truck-blue` `--truck-green` `--truck-teal` | `#E8C65A` `#4F79C7` `#62A982` `#4FA9A8` | `#D9B44A` `#5A83D6` `#5A9E7A` `#4C9FA0` | faded hand-painted liveries; yellow/blue and blue/yellow swap body and band, green and teal take a canvas band |
+| `--truck-canvas` | `#EDE6D6` | `#B8B3A6` | canvas roof and bands |
+| `--truck-glass` | `#A9C8F2` | `#6F93CF` | windscreen and windows (also the forklift's glass) |
+| `--truck-interior` | `#8491B0` | `#33426E` | inside of the box: pale, so it is never a dark hole (D4) |
+| `--plate-green` / `--plate-fg` | `#1B7F4E` / `#FFFFFF` | same | rear plate; 5:1, enforced by `scripts/contrast.test.mjs` |
+
+The forklift GLB's `brand` parts are drawn in `--pallet-yellow` (docs/04 section 4: yellow counterbalance forklift); the GLB is not rebuilt. Items on belts take their colour from existing prop tokens, by SKU within the pack family: there is no SKU colour on any subject all roles can read (`Sku.color` is only in `GET /admin/skus`, an admin endpoint). Flagged items use `--critical`, UNKNOWN `--status-neutral`.
+
 ## 8. Dark theme — "night shift" design (binding)
 Goal: a night-shift control room, **not** a black screen. Readability comes from **value layering** (each layer clearly lighter than
 the one behind it), **cool rim light** to separate silhouettes, **warm work-light pools** over active bays, and **saturation kept on

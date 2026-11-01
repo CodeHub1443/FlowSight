@@ -9,3 +9,4 @@ export type { SceneTheme } from './materials';
 export { SCENE_SAFE_AREA, NO_SAFE_AREA, viewFit } from './camera/view';
 export type { SafeArea, ViewFit } from './camera/view';
 export { contactShadows } from './contactShadowController';
+export type { ActorFeed } from './actors/feed';

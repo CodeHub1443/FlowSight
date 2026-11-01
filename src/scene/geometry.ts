@@ -146,7 +146,7 @@ const FRAGMENT_EMISSIVE = /* glsl */ `
 #endif
 `;
 
-function patchStandard(shader: WebGLProgramParametersWithUniforms, rounded: boolean): void {
+export function patchStandard(shader: WebGLProgramParametersWithUniforms, rounded: boolean): void {
   shader.vertexShader = shader.vertexShader.replace(
     '#include <common>',
     `#include <common>\n${rounded ? ROUNDED_HEAD : FINISH_HEAD}`,

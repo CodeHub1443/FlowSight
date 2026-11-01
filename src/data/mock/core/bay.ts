@@ -28,6 +28,10 @@ export const PALLET_ITEMS = 40;
 const HIST_TOTAL = 575;
 const HIST_RATE = 14;
 const PALLET_CAPACITY = 8;
+/** People at the belt mouth stand at least this far from its centre line: the conveyor body is about 1.8 m wide. */
+const BELT_CLEARANCE_X = 1.3;
+/** A forklift runs E-W along the aisle (docs/04 section 3) to this distance from the bay's centre line. */
+const AISLE_RUN_X = 2.5;
 
 interface Person {
   id: string;
@@ -53,10 +57,10 @@ interface Lift {
   phaseStart: number;
   phaseEnd: number;
   reactAt: number | null;
+  /** Bay x at the start of a run along the aisle and at its far end; bay y of the aisle. */
   ax: number;
   ay: number;
   sx: number;
-  sy: number;
 }
 
 interface Crew {
@@ -67,6 +71,12 @@ interface Crew {
 }
 
 type PalletWait = { since: number; reported: boolean };
+
+/** Moved sideways out of the conveyor body; no random draw, so the simulator's sequence is unchanged. */
+function clearOfBelt(x: number): number {
+  if (Math.abs(x) >= BELT_CLEARANCE_X) return x;
+  return x < 0 ? -BELT_CLEARANCE_X : BELT_CLEARANCE_X;
+}
 
 function normH(h: number): number {
   let r = h;
@@ -611,9 +621,8 @@ export class BaySim {
       ax: round(rng.range(wz.x[0] + 1, wz.x[1] - 1), 2),
       ay: round((aisle[0] + aisle[1]) / 2, 2),
       sx: 0,
-      sy: round(st.y[1] - 2, 2),
     };
-    lift.sx = lift.ax;
+    lift.sx = lift.ax >= 0 ? -AISLE_RUN_X : AISLE_RUN_X;
     this.crew = {
       captain,
       captainEmp: v.captain ?? this.ctx.captainFor(this.id, t),
@@ -884,7 +893,7 @@ export class BaySim {
       if (p.role === 'CAPTAIN') {
         const target =
           p.step % 2 === 0
-            ? { x: round(rng.range(-1.2, 1.2), 2), y: round(rng.range(7.4, 8.6), 2) }
+            ? { x: clearOfBelt(round(rng.range(-1.2, 1.2), 2)), y: round(rng.range(7.4, 8.6), 2) }
             : this.pointIn({ x: st.x, y: [st.y[0], st.y[0] + 4] });
         p.tx = target.x;
         p.ty = target.y;
@@ -893,7 +902,7 @@ export class BaySim {
         p.tx = target.x;
         p.ty = target.y;
       } else if (p.step === 0 || p.step === 1) {
-        p.tx = clamp(p.slotX + rng.range(-0.2, 0.2), wz.x[0] + 0.3, wz.x[1] - 0.3);
+        p.tx = clearOfBelt(clamp(p.slotX + rng.range(-0.2, 0.2), wz.x[0] + 0.3, wz.x[1] - 0.3));
         p.ty = round(rng.range(wz.y[0] + 0.5, wz.y[1] - 0.4), 2);
       } else {
         const target = this.pointIn({ x: st.x, y: [st.y[0], st.y[0] + 3] });
@@ -960,27 +969,26 @@ export class BaySim {
       const l = crew.lift;
       const dur = Math.max(1, l.phaseEnd - l.phaseStart);
       const f = clamp((t - l.phaseStart) / dur, 0, 1);
-      let y = l.ay;
+      let x = l.ax;
       let act: ActorAct = 'STATIONARY';
-      let h = round(Math.PI, 2);
       const carrying = this.current?.dir === 'OUT' ? l.phase === 'OUT' : l.phase === 'BACK';
       if (l.phase === 'OUT') {
-        y = l.ay + (l.sy - l.ay) * f;
+        x = l.ax + (l.sx - l.ax) * f;
         act = carrying ? 'CARRYING' : 'DRIVING';
       } else if (l.phase === 'DROP') {
-        y = l.sy;
+        x = l.sx;
       } else if (l.phase === 'BACK') {
-        y = l.sy + (l.ay - l.sy) * f;
+        // back along the aisle in reverse: the forks keep pointing the same way, so it never spins on the spot
+        x = l.sx + (l.ax - l.sx) * f;
         act = carrying ? 'CARRYING' : 'DRIVING';
-        h = 0;
       }
       actors.push({
         id: l.id,
         kind: 'FORKLIFT',
         role: 'FORKLIFT_OP',
-        x: round(l.ax, 2),
-        y: round(y, 2),
-        h,
+        x: round(x, 2),
+        y: round(l.ay, 2),
+        h: round(headingTo(l.sx - l.ax, 0), 2),
         act,
         ppeOk: null,
       });

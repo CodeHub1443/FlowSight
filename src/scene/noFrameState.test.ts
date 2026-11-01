@@ -50,9 +50,12 @@ describe('no React state per frame', () => {
   //    section 4: labels move with the camera without any React render).
   //  - EventPin.tsx: the 1.2 s bob of an event pin (docs/06 D9), ref-driven.
   //  - AutoQuality.tsx: feeds the frame time to TierGovernor (a ref); reports to React only on a tier step.
-  it('limits useFrame to the camera rig, motion, on-demand contact shadows, pills, event pins and auto quality', () => {
+  //  - ActorsLayer.tsx: interpolates people, forklifts, trucks and belt items into instance buffers (docs/02 section 6
+  //    rule 2) and places the truck plates; all refs and buffers, no React state.
+  it('limits useFrame to the camera rig, motion, on-demand contact shadows, pills, event pins, auto quality and actors', () => {
     expect(withFrame.map(([p]) => base(p)).sort()).toEqual(
       [
+        'ActorsLayer.tsx',
         'Appear.tsx',
         'AutoQuality.tsx',
         'CameraRig.tsx',

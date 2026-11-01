@@ -303,6 +303,22 @@ describe('invariants across shifts', { timeout: 60_000 }, () => {
     expect(forklifts).toBeGreaterThan(50);
   });
 
+  it('forklifts drive east-west along the aisle (docs/04 section 3)', () => {
+    const aisle = CFG.bayInterior.forkliftAisle.y;
+    const xs = new Map<string, Set<number>>();
+    for (const m of msgs) {
+      if (m.kind !== 'actors') continue;
+      for (const a of m.value.actors) {
+        if (a.kind !== 'FORKLIFT') continue;
+        expect(a.y).toBeGreaterThanOrEqual(aisle[0]);
+        expect(a.y).toBeLessThanOrEqual(aisle[1]);
+        expect(Math.abs(a.h)).toBeCloseTo(Math.PI / 2, 1);
+        xs.set(a.id, (xs.get(a.id) ?? new Set()).add(a.x));
+      }
+    }
+    expect([...xs.values()].some((s) => s.size > 2)).toBe(true);
+  });
+
   it('captain names are never published (privacy.showCaptainNames = false)', () => {
     expect(CFG.privacy.showCaptainNames).toBe(false);
     let seen = 0;
