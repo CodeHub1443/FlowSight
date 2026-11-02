@@ -9,7 +9,6 @@ import { Plate } from '../Plate';
 import { useSceneEnv } from '../sceneEnv';
 import { roundedPlate, roundedRing } from '../shapes';
 import type { BayLayout, FaceLayout } from '../site/layout';
-import { hashString } from '../site/random';
 import {
   CABINET_FRONT,
   CABINET_LABEL_Z,
@@ -24,7 +23,7 @@ import {
 } from './bayItems';
 import { DoorAssembly } from './DoorAssembly';
 import { SelectionMarker } from './SelectionMarker';
-import { buildStaging } from './stagingLayout';
+import { buildStaging, stagingInput } from './stagingLayout';
 import { STATUS_TONE } from './status';
 import { WorkLight } from './WorkLight';
 
@@ -63,19 +62,8 @@ export function Bay({ face, bay, selected, doorOpen, status, onSelect }: BayProp
   const { palette, materials, shadows, theme } = useSceneEnv();
   const hoverRef = useRef<Group>(null);
   const { conveyor: c, zones } = bay;
-  const w = c.width;
 
-  const staging = useMemo(
-    () =>
-      buildStaging({
-        seed: hashString(bay.id),
-        x: zones.staging.x,
-        y: zones.staging.y,
-        beltHalf: w / 2 + 0.3,
-        beltEnd: c.fixedTo,
-      }),
-    [bay.id, zones.staging, w, c.fixedTo],
-  );
+  const staging = useMemo(() => buildStaging(stagingInput(bay)), [bay]);
 
   const ringW = bay.pitch - 0.2;
   const ringY0 = 0.5;

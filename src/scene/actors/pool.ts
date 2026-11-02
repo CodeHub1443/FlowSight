@@ -74,8 +74,9 @@ const FINISH_AT = 19;
 
 /**
  * Every per-instance value of many pools in one interleaved buffer, so a frame costs at most one upload and a frame in
- * which nothing changed costs none. Per-frame uploads are the actors' main cost on Intel UHD, far more than drawing them
- * (docs/PROGRESS.md, Task 14).
+ * which nothing changed costs none. Rewriting a buffer the frame draws from makes that frame wait for the GPU, whatever
+ * the upload's size, and that wait is what keeps the frames even: a ring of buffers or a lower redraw rate removes it and
+ * then frames bunch up and stall (measured, docs/PROGRESS.md, Task 15).
  */
 export class InstanceStore {
   private readonly rows: number;

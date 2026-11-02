@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import type { BoxItem } from '../items';
 import { BoxInstances } from '../primitives';
 import { useSceneEnv } from '../sceneEnv';
-import { WALL_THICKNESS, type SiteLayout } from '../site/layout';
+import { COLUMN_SIZE, WALL_THICKNESS, type SiteLayout } from '../site/layout';
 
 // The shed in the site frame (X east, Y up, Z south). Items use mapping "three": at = [X, Y, Z], size = [x, y, z].
 
@@ -23,7 +23,7 @@ export function Shed({ layout }: { layout: SiteLayout }) {
       out.push(
         {
           at: [c.X, fl + layout.columnHeight / 2, c.Z],
-          size: [0.34, layout.columnHeight, 0.34],
+          size: [COLUMN_SIZE, layout.columnHeight, COLUMN_SIZE],
           tone: 'column',
         },
         { at: [c.X, fl + 0.03, c.Z], size: [0.62, 0.06, 0.62], tone: 'metal' },

@@ -1,7 +1,8 @@
 import type { PropItem } from '../assets/PropInstances';
 import type { BoxItem } from '../items';
 import type { PaletteKey } from '../materials';
-import { rng } from '../site/random';
+import type { BayLayout } from '../site/layout';
+import { hashString, rng } from '../site/random';
 
 export interface StorageInput {
   seed: number;
@@ -9,6 +10,16 @@ export interface StorageInput {
   centerX: number;
   pitch: number;
   y: readonly [number, number];
+}
+
+/** One bay's input: what the face draws and what actors must stay out of are the same layout. */
+export function storageInput(bay: BayLayout): StorageInput {
+  return {
+    seed: hashString(`${bay.id}-storage`),
+    centerX: bay.localX,
+    pitch: bay.pitch,
+    y: bay.zones.storage,
+  };
 }
 
 /** Distance between pallet rows, rows between cross aisles, and the width of a cross aisle. */

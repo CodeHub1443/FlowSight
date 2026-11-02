@@ -12,6 +12,7 @@ import { actorProbe } from './actorProbe';
 import { ActorRig, bayMaps, maxTrucks, type GlbPool } from './actorRig';
 import { BeltItems, beltTrip, MIN_ITEM_GAP_M } from './beltItems';
 import type { ActorFeed } from './feed';
+import { ObstacleField } from './obstacles';
 import { clearOfWall, plateLines, plateShown, type WallView } from './plateView';
 import { ACTOR_LAYER, ACTOR_SOLID_MATERIAL, InstancePool, retain } from './pool';
 import { PLATE_BASE_H_PX, PLATE_BASE_PX, type PlateElements } from './TruckPlates';
@@ -27,6 +28,7 @@ interface World {
   tracks: ActorTracks;
   trucks: TruckSim;
   items: BeltItems;
+  obstacles: ObstacleField;
   /** Dock wall per face, for the plates. */
   walls: Map<string, WallView>;
 }
@@ -50,7 +52,8 @@ function createWorld(layout: SiteLayout): World {
     },
     maxTrucks(layout),
   );
-  return { tracks: new ActorTracks(), trucks, items: new BeltItems(), walls };
+  const obstacles = new ObstacleField(layout);
+  return { tracks: new ActorTracks(obstacles), trucks, items: new BeltItems(), obstacles, walls };
 }
 
 /** The GLB parts of the forklift and its pallet, one pool per part, with the forklift's paint from docs/04 section 4. */
@@ -297,6 +300,9 @@ export function ActorsLayer({
           people++;
           if (t.actor.role === 'CAPTAIN') crewBays.push(t.bay);
           if (showsPpeRing(t.actor)) ppeRings++;
+          actorProbe.personSamples++;
+          if (world.obstacles.isInside(t.bay, t.actor.x, t.actor.y, 0)) actorProbe.dataInProps++;
+          if (world.obstacles.isInside(t.bay, t.x, t.y, 0)) actorProbe.drawnInProps++;
         }
       }
       actorProbe.people = people;

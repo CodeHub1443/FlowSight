@@ -16,6 +16,10 @@ export interface ActorProbe {
   crewBays: string[];
   /** Bays with an item on the belt. */
   itemBays: string[];
+  /** Running counts over every sampled person: how often the data, and the drawn figure, stood inside a prop's footprint. */
+  personSamples: number;
+  dataInProps: number;
+  drawnInProps: number;
 }
 
 export const actorProbe: ActorProbe = {
@@ -28,6 +32,9 @@ export const actorProbe: ActorProbe = {
   dockedBays: [],
   crewBays: [],
   itemBays: [],
+  personSamples: 0,
+  dataInProps: 0,
+  drawnInProps: 0,
 };
 
 declare global {

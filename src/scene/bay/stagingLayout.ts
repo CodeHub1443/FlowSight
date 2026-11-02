@@ -1,7 +1,8 @@
 import type { PropItem } from '../assets/PropInstances';
 import type { BoxItem, MarkItem } from '../items';
 import type { PaletteKey } from '../materials';
-import { rng } from '../site/random';
+import type { BayLayout } from '../site/layout';
+import { hashString, rng } from '../site/random';
 
 export interface StagingInput {
   seed: number;
@@ -12,6 +13,17 @@ export interface StagingInput {
   beltHalf: number;
   /** Where the belt body ends (y); the receiving pallet sits just beyond it. */
   beltEnd: number;
+}
+
+/** One bay's input: what the bay draws and what its actors must stay out of are the same layout. */
+export function stagingInput(bay: BayLayout): StagingInput {
+  return {
+    seed: hashString(bay.id),
+    x: bay.zones.staging.x,
+    y: bay.zones.staging.y,
+    beltHalf: bay.conveyor.width / 2 + 0.3,
+    beltEnd: bay.conveyor.fixedTo,
+  };
 }
 
 export interface StagingResult {

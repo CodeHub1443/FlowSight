@@ -1,14 +1,13 @@
 import { useMemo } from 'react';
 import { GlbOrProcedural } from '../assets/GlbOrProcedural';
 import { PropInstances } from '../assets/PropInstances';
-import { buildStorage, storageProps } from '../bay/storageLayout';
+import { buildStorage, storageInput, storageProps } from '../bay/storageLayout';
 import { DockWall } from '../building/DockWall';
 import type { BoxItem } from '../items';
 import { Appear } from '../Appear';
 import { BoxInstances, Bx } from '../primitives';
 import { useSceneEnv } from '../sceneEnv';
 import { roundedPlate } from '../shapes';
-import { hashString } from './random';
 import type { FaceLayout, SiteLayout } from './layout';
 
 const LINE = 0.12;
@@ -103,18 +102,7 @@ export function FaceContents({ layout, face }: { layout: SiteLayout; face: FaceL
     return out;
   }, [aisleBox, theme]);
 
-  const storage = useMemo(
-    () =>
-      face.bays.flatMap((b) =>
-        buildStorage({
-          seed: hashString(`${b.id}-storage`),
-          centerX: b.localX,
-          pitch: b.pitch,
-          y: b.zones.storage,
-        }),
-      ),
-    [face],
-  );
+  const storage = useMemo(() => face.bays.flatMap((b) => buildStorage(storageInput(b))), [face]);
   const storageGlb = useMemo(() => storageProps(storage), [storage]);
 
   return (

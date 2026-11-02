@@ -115,6 +115,8 @@ export interface SiteLayout {
 }
 
 export const WALL_THICKNESS = 0.35;
+/** Square section of a shed column. */
+export const COLUMN_SIZE = 0.34;
 const ALL_FACES: readonly Face[] = ['N', 'S', 'E', 'W'];
 
 function faceOrigin(face: Face, width: number, depth: number): DoorOrigin {

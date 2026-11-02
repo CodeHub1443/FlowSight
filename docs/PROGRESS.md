@@ -627,3 +627,74 @@ The e2e runs rewrite older tracked screenshots: those 35 files were restored fro
 
 ### Not tested
 `t14-*` in Bangla: the plate is Bangla in both languages and this task adds no UI strings. Actor animations were checked in still frames only. Tier change at runtime with the buffer fix was covered by the unit test, not by a screenshot.
+
+## Task 15: actor collision fix and Intel UHD Med performance pass (uncommitted)
+
+### Status
+Collision fix built and passing. Performance: no renderer or actor change was kept, because no candidate helped on evidence. Against Task 14 in the clean A/B: Intel UHD Med light 49.2 (target met), dark mean 47.9 and median 48.1 (mean 0.1 under the target, Task 14 is 48.0). **At the default 60 Hz cap Intel Med runs at 34-35 fps with or without this task**; the 48 target is an uncapped figure. See "Remaining gaps".
+
+### Collision
+- `src/scene/actors/obstacles.ts`: `bayObstacles(bay)` builds rectangles from the layout code that places the props: staging pallets, stacks and crates, pallet jacks, conveyor body, motor box, control cabinets, storage blocks, shed columns, and nearby rects of neighbouring bays. `stagingInput` and `storageInput` were extracted so scene and obstacles share one input; `COLUMN_SIZE` moved to `layout.ts`.
+- `ObstacleField.resolve` runs at render time: per-bay bucket grid (0.5 m), nearest way out with iterative deepening, and a sticky cost so a figure does not flip between two sides. A person keeps 0.45 m, or 0.36 m while handling or carrying (stands at the stack's edge). A forklift keeps its y in the aisle and stops short of columns; its carried pallet is not an obstacle.
+- `tracks.ts` blends the push (about 150 ms, speed cap 11 m/s); Low places the figure at once. Data and stores are not changed; the mock was not changed either.
+- Evidence: `obstacles.test.ts` (every obstacle kind, free from anywhere, open-floor points unmoved, no step above 30 cm per frame, no flip-flop, more than 300 calls per ms on the worst bay); `e2e/t15-collision.spec.ts` at peak in the running app: more than 20 samples of data inside a prop, 0 drawn inside one, on Low.
+- Screenshots: `t15-collision-{before,after}-light-en-*` (`?actors=demo`, B04).
+
+### Profile, Med, 1920x1080, Task 14 -> Task 15 (ms per frame, foreground IDE, GL hooks on)
+| Cost | Intel light | Intel dark | RTX light | RTX dark |
+|---|---|---|---|---|
+| GPU total, timer query, live | 18.00 -> 17.99 | 18.23 -> 18.40 | 3.05 -> 3.04 | 3.13 -> 3.13 |
+| GPU main pass, seg1 (scene and actors) | 5.94 -> 5.95 | 5.86 -> 5.85 | 1.15 -> 1.16 | 1.15 -> 1.17 |
+| GPU actors only (live minus actors hidden) | 0.54 -> 0.55 | 0.56 -> 0.56 | 0.26 -> 0.24 | 0.29 -> 0.33 |
+| CPU `uniformMatrix4fv` (260-272 calls; mostly waiting on the GPU process) | 7.35 -> 7.49 | 7.39 -> 7.52 | 0.12 -> 0.12 | 0.12 -> 0.11 |
+| CPU `drawElementsInstanced` | 1.83 -> 1.97 | 1.66 -> 1.68 | 0.06 -> 0.06 | 0.06 -> 0.06 |
+| CPU actor JS: `tracks.update` | 0.012 -> 0.043 | 0.012 -> 0.039 | 0.006 -> 0.029 | 0.006 -> 0.026 |
+| CPU actor JS: `rig.drawTrack` | 0.074 -> 0.076 | 0.076 -> 0.074 | 0.071 -> 0.074 | 0.070 -> 0.065 |
+| Upload, `bufferSubData` (about 150-170 KB) | 0.041 -> 0.042 | 0.033 -> 0.034 | 0.021 -> 0.021 | 0.020 -> 0.020 |
+
+Post-processing and AO passes (the other timer segments) are about 12 ms of Intel's 18; pass names were not verified. The Intel dark +0.17 ms in GPU total also shows with actors hidden (17.67 -> 17.85) and not when frozen (18.27 -> 18.28), so it is not actor cost; its cause is not established. Chrome trace: renderer 84% in `CommandBufferProxyImpl::WaitForGetOffset`; the GPU process is blocked in the driver. JS is not the bottleneck, so the resolver's +0.03 ms per frame does not move fps.
+
+### Corrections to Task 14
+- "Per-frame uploads are the main cost" is superseded. Upload size has no effect (1 KB and 170 KB behave alike, usage hint no change) and uploads do not change GPU time. Holding the frame on the GPU is the cost.
+- Task 14's drift and its 39.1 / 45.4 means are mostly background throttling: with the IDE in front about 49, with another app in front 36-42 in every variant, changing exactly at the switch. Task 14's runs were not sampled, so that link is an inference.
+
+### Rejected on evidence
+| Candidate | Result | Why not kept |
+|---|---|---|
+| Ring of 3 instance buffers | uncapped +1-2 fps | at 60 Hz cap 34.6 -> 32.5 light, 33.7 -> 29.5 dark, about 32% of frames over 40 ms (2 runs per variant) |
+| 30 Hz actor redraw on Med | uncapped light 49.5 -> 50.4, dark 48.2 -> 50.1 (n=4) | at 60 Hz cap +0.2-1 fps but frames over 40 ms from about 0% to about 17% |
+| Instance compaction, usage hint | no effect | upload size does not matter |
+| Hide forklifts (test only) | main pass -0.24 ms | one forklift GLB is about 10k triangles; a lighter LOD needs an asset edit, outside this brief's permissions |
+| Hide people or items (test only) | about 0 ms | nothing to gain |
+
+### Fps A/B (Task 14 commit vs Task 15, interleaved, 12 runs each, fresh page, peak, foreground IDE in every run, no errors)
+| GPU, tier, theme | Task 14 mean / median / p5 | Task 15 mean / median / p5 | Target |
+|---|---|---|---|
+| Intel Med light | 49.2 / 49.3 / 48.5 | 49.2 / 49.4 / 48.3 | >= 48 met |
+| Intel Med dark | 48.0 / 48.1 / 46.9 | 47.9 / 48.1 / 47.3 | >= 48: mean 0.1 short, median met |
+| RTX Med light | 308.0 / 308.6 / 304.9 | 307.8 / 307.6 / 304.2 | no worse: met |
+| RTX Med dark | 299.0 / 298.9 / 296.9 | 298.8 / 298.9 / 295.4 | no worse: met |
+| RTX High light | 133.3 / 133.5 / 132.1 | 133.2 / 133.5 / 132.3 | no worse: met |
+| Intel Low light | 162.4 / 162.7 / 149.8 | 155.5 / 161.6 / 119.2 | unchanged: median yes, mean no, see below |
+
+Intel Med at the 60 Hz cap (no uncapping flags, 4 runs each, foreground IDE): light 34.6 -> 35.1, dark 33.8 -> 34.1; median frame 33 ms (30 fps); frames over 40 ms 0.85 -> 0.10% light, 1.70 -> 0.15% dark.
+
+Low: three slow Task 15 runs (119.2, 139.9, 142.4) pull the mean down. An earlier set with 9 IDE-only runs each gave mean 168.8 -> 160.4, median 167.3 -> 162.4. A 1-3% cost on Low cannot be ruled out; the +0.03 ms of resolver work explains about 0.5% of it.
+
+Measurement: headless Chromium with real GPU via ANGLE D3D11, uncapped, 15 s per Intel Med run and 10 s otherwise. The first batch of this task, with other apps in front, is not used except where stated. The Windows power-throttling opt-out applied to test browser processes only.
+
+### Remaining gaps and deviations
+- **60 Hz cap:** Intel GPU time is 18 ms against a 16.7 ms budget, even with actors hidden (17.5 ms), so a capped page falls to about 30-35 fps. Only post-processing is large enough to change that, and it is outside this brief because it alters the look. A headed browser on a real panel was not tested, because a headed window would take the focus from the fps runs.
+- **People overlap each other.** No person-to-person separation exists and none was requested. At B02 figures bunch beside the belt in both builds, from the mock's `clearOfBelt` (Task 14), which sends everyone near the belt to the same two x lines.
+- A real person on a belt (`compliance.on_belt`) is drawn beside it, because the conveyor is an obstacle; the event pin still reports.
+- Low has no jack mesh, but the jack's obstacle stays.
+- Part B has no code change. `pool.ts` only has its comment corrected.
+
+### Screenshots
+`docs/screens/t15-{overview-light,overview-dark,bay-light,collision-before-light,collision-after-light}-en-{1920x1080,1366x768}.png`, RTX, Med. Overview and bay are `/live` at peak (bay is B02).
+
+### Checks on the final code
+`pnpm typecheck`, `lint`, `format:check`, `i18n:check`, `contract:check`, `build`: exit 0. `pnpm test`: 60 files, 1180 tests passed. `pnpm e2e`: 36 passed in 18.9 min in one pass, foreground IDE in 114 of 114 samples. The 35 older tracked screenshots it rewrote were restored from HEAD.
+
+### Not tested
+`t15-*` in Bangla (this task adds no UI strings; the e2e suite still covers Bangla). Motion was checked by unit tests and still frames, not by eye in motion. The final numbers are from a build with one added debug hook, the only difference from the working tree.
