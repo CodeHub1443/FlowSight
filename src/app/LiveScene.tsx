@@ -109,6 +109,7 @@ function SceneSkeleton() {
  * The scene itself never touches a store.
  */
 export function LiveScene() {
+  const { t } = useTranslation('live');
   const camera = useSceneCamera();
   const theme = useUiStore((s) => s.theme);
   const labels = useUiStore((s) => s.labels);
@@ -165,7 +166,17 @@ export function LiveScene() {
 
   if (!hasWebGL()) return <SceneSlotPlaceholder />;
   return (
-    <div ref={ref} data-testid="scene-canvas" className="absolute inset-0">
+    // Focusable so the camera keys work after Tab as well as after a click (SCENE_KEYS_SELECTOR, keyboardPan.ts). The
+    // ring is on a pseudo-element, because the canvas would cover a ring drawn on this box itself.
+    <div
+      ref={ref}
+      data-testid="scene-canvas"
+      data-scene-keys=""
+      role="region"
+      tabIndex={0}
+      aria-label={t('map.sceneRegion')}
+      className="focus-visible:after:ring-ring/70 absolute inset-0 focus-visible:outline-none focus-visible:after:pointer-events-none focus-visible:after:absolute focus-visible:after:inset-0 focus-visible:after:ring-[3px] focus-visible:after:ring-inset"
+    >
       <SceneBoundary>
         <Suspense fallback={<SceneSkeleton />}>
           <SceneRoot

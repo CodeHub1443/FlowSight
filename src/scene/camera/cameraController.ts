@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import type { ScenePreset } from './presets';
+import type { CameraPose, ScenePreset } from './presets';
 
 /** A preset name, or a bay id such as `B04`. */
 export type FlyTarget = ScenePreset | (string & {});
@@ -10,6 +10,8 @@ interface Rig {
   zoomBy(factor: number): void;
   /** Orbit around the target by `radians` (positive = counter-clockwise from above). */
   orbitBy(radians: number): void;
+  /** Where the camera is now; null before the controls exist. */
+  pose(): CameraPose | null;
 }
 
 // The camera rig lives inside <SceneRoot/>'s Canvas, while callers (tray rows, search, a preset switcher) live
@@ -39,15 +41,22 @@ export const cameraController = {
   orbitBy(radians: number): void {
     rig?.orbitBy(radians);
   },
+  pose(): CameraPose | null {
+    return rig?.pose() ?? null;
+  },
 };
 
 /** Stable API for moving the scene camera: `useSceneCamera().flyTo('floorOverview' | 'dockWall' | ... | 'B04')`. */
-export function useSceneCamera(): Pick<typeof cameraController, 'flyTo' | 'zoomBy' | 'orbitBy'> {
+export function useSceneCamera(): Pick<
+  typeof cameraController,
+  'flyTo' | 'zoomBy' | 'orbitBy' | 'pose'
+> {
   return useMemo(
     () => ({
       flyTo: cameraController.flyTo,
       zoomBy: cameraController.zoomBy,
       orbitBy: cameraController.orbitBy,
+      pose: cameraController.pose,
     }),
     [],
   );

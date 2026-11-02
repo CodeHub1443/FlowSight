@@ -283,6 +283,13 @@
     "zoomOut": "Zoom out",
     "rotateLeft": "Rotate left",
     "rotateRight": "Rotate right",
-    "home": "Back to overview"
+    "home": "Back to overview",
+    "sceneRegion": "3D view of the depot. Arrow keys move the view.",
+    "keys": {
+      "label": "Keyboard shortcuts",
+      "move": "Arrow keys: move the view",
+      "fast": "Shift + arrow keys: move faster",
+      "zoom": "+ and −: zoom"
+    }
   }
 }

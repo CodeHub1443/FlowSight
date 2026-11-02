@@ -1,11 +1,14 @@
-import { Home, Minus, Plus, RotateCcw, RotateCw, type LucideIcon } from 'lucide-react';
+import { Home, Keyboard, Minus, Plus, RotateCcw, RotateCw, type LucideIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { useSceneCamera } from '@/scene/camera/cameraController';
 
 /** One +/- step of the distance to the orbit target, and one rotate step. */
 const ZOOM_STEP = 0.8;
 const ROTATE_STEP = Math.PI / 8;
+const CONTROL_CLASS =
+  'soft-transition text-ink-600 hover:bg-row-hover hover:text-ink-900 focus-visible:ring-ring/50 grid size-9 place-items-center rounded-full active:scale-95 focus-visible:ring-[3px] focus-visible:outline-none';
 
 function Control({
   testId,
@@ -27,13 +30,42 @@ function Control({
       aria-label={label}
       title={label}
       onClick={onClick}
-      className={cn(
-        'soft-transition text-ink-600 hover:bg-row-hover hover:text-ink-900 focus-visible:ring-ring/50 grid size-9 place-items-center rounded-full active:scale-95 focus-visible:ring-[3px] focus-visible:outline-none',
-        className,
-      )}
+      className={cn(CONTROL_CLASS, className)}
     >
       <Icon className="size-[18px]" strokeWidth={1.75} aria-hidden />
     </button>
+  );
+}
+
+/** The keyboard shortcuts of the scene, on hover or keyboard focus. Has its own provider, so it works outside the shell. */
+function KeysHint() {
+  const { t } = useTranslation('live');
+  return (
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button
+            type="button"
+            data-testid="map-keys"
+            aria-label={t('map.keys.label')}
+            className={CONTROL_CLASS}
+          >
+            <Keyboard className="size-[18px]" strokeWidth={1.75} aria-hidden />
+          </button>
+        </TooltipTrigger>
+        <TooltipContent
+          side="left"
+          sideOffset={10}
+          data-testid="map-keys-hint"
+          className="text-[14px] leading-5 text-balance"
+        >
+          <p className="font-medium">{t('map.keys.label')}</p>
+          <p>{t('map.keys.move')}</p>
+          <p>{t('map.keys.fast')}</p>
+          <p>{t('map.keys.zoom')}</p>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   );
 }
 
@@ -83,6 +115,8 @@ export function MapControls() {
         label={t('map.home')}
         onClick={() => camera.flyTo('floorOverview')}
       />
+      <span aria-hidden className="bg-hairline my-0.5 h-px w-5" />
+      <KeysHint />
     </div>
   );
 }

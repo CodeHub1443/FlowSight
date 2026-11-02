@@ -86,6 +86,14 @@ the shed interior**:
 truck rear visible through it) · `Staging & aisle` · `Apron` (from inside over the dock wall, looking at docked/waiting trucks).
 Tray rows and search results fly to the object.
 
+**Keyboard (`src/scene/camera/keyboardPan.ts`, in `CameraRig`):** presets and limits are unchanged; the keys only move the view inside them.
+- Arrow keys pan over the floor relative to the view: Left and Right across it, Up away from the viewer, Down towards the viewer. The view moves, so the scene slides the other way on screen.
+  Speed is 0.2 m/s per metre of camera distance (about 22% of the view width per second at any zoom, about 18 m/s at the default view), Shift ×3. Hold moves continuously; release stops with the OrbitControls decay (0.09 per frame at 60 fps, as a decay in time, so frame rate does not change the distance).
+- `+` and `-` zoom while held, within 10–120 m. Shift+arrow is the faster pan, so it does not orbit or tilt; the map-control buttons and the mouse do that.
+- The pan limit (footprint + apron + 4 m) is applied before each step: pressed against an edge the view rests or slides along it.
+- The keys belong to the camera only when focus is on the page or in the scene region (`data-scene-keys`, focusable by Tab or click, focus ring for the keyboard). Inputs, the search box, tray, inspector, top bar, dialogs and popovers keep theirs, as does a panel just clicked with focus left on the page (Chrome scrolls it). Ctrl, Alt and Meta always pass through. `preventDefault` only when a key is consumed.
+- A fly-to or map-control step stops key motion until it ends. A key still held then takes over. A preset or Home lands exactly on its pose.
+
 ## 7. Wall mode
 Cycle: Floor overview (with KPIs) 30 s → each active bay 15 s → Alerts board 20 s. Big pill labels, no hover UI.
 

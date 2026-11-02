@@ -698,3 +698,51 @@ Measurement: headless Chromium with real GPU via ANGLE D3D11, uncapped, 15 s per
 
 ### Not tested
 `t15-*` in Bangla (this task adds no UI strings; the e2e suite still covers Bangla). Motion was checked by unit tests and still frames, not by eye in motion. The final numbers are from a build with one added debug hook, the only difference from the working tree.
+
+## Task 16: keyboard camera controls (uncommitted)
+
+### Status
+Built and passing. Controls note: docs/04 section 6. Default pose, presets, `SCENE_SAFE_AREA`, limits, lighting and data contract are unchanged.
+
+### Behaviour
+- `src/scene/camera/keyboardPan.ts` (pure, three-free): `KeyInput` (held keys by `code`, Shift, focus rules) and `stepPan` / `stepZoom` (exact integral of the easing, so frame rate does not change the distance; limits applied before the step, velocity into a limit dropped). `CameraRig` runs it in `useFrame`, in refs, with no React state.
+- Arrows pan relative to the view; speed is 0.2 x camera distance per second, Shift x3. Release decays at the OrbitControls rate (0.09 per frame at 60 fps, expressed in time). `+` and `-` zoom while held. One frame's step is capped at 0.25 s.
+- Focus is an allowlist: the page or the scene region (`data-scene-keys`, `role="region"`, `tabIndex=0`, aria-label EN and BN, ring on a pseudo-element because the canvas covers a ring on the box itself). A press on a panel that leaves focus on the page also keeps the keys off the camera, because Chrome scrolls that panel with the arrows.
+- Debug read of the pose: `cameraController.pose()`, on `window.__sceneCamera` in debug builds only.
+
+### Skipped, and why
+**Shift+Left/Right orbit and Shift+Up/Down tilt.** Brief item 3 conflicts with item 1 and its required test: Shift+arrow cannot be both the faster pan and an orbit. Item 3 allows skipping what is not clean. Orbit stays on the map-control buttons and the mouse; a different modifier is an owner decision. The `+` and `-` zoom of item 3 is in.
+
+### Deviations and notes
+- The map-control pill gains a 7th button (keyboard hint), about 40 px taller; at 1920 and 1366 it covers only the ground beyond the shed. The brief asks for the hint here. `LivePage`'s layout comment is still true: the width and position are unchanged.
+- Focus on a top-bar or KPI button also keeps the arrows off the camera. The brief does not list these; it follows from the allowlist. Click the scene or press Tab to return.
+- First tuning was 0.35/s (31 m/s at the hero view, half the floor in about 1 s). Lowered to 0.2/s to be able to stop on a bay. Tuned from numbers, not by hand: **the feel has not been tried on a real keyboard and panel.**
+
+### Fps A/B (Task 15 commit vs Task 16, RTX 3050 Med, 1920x1080, interleaved, 6 runs each, fresh page, peak, uncapped, 10 s, no page errors, foreground IDE in all 24 samples)
+| Theme | Task 15 mean / median / min | Task 16 mean / median / min |
+|---|---|---|
+| Light | 305.0 / 307.0 / 291.8 | 307.4 / 308.1 / 302.1 |
+| Dark | 297.6 / 297.1 / 296.4 | 297.0 / 297.7 / 292.8 |
+
+With keys moving the view for the whole run (Left and Right in turn), light: 316.1 / 316.2 / 315.2 (3 runs); that is the Task 16 build only, and it does not fall below idle. A first A/B with other apps in front (176 light, 161-163 dark) is not used. Intel UHD was not run; the brief asks for RTX only.
+
+### Auto-quality
+`TierGovernor` reads only frame timing, so panning reaches it only if it costs frames, and it does not. RTX, automatic mode, 40 s, 1 run each: without keys `med -> high` at 298 fps, with keys `med -> high` at 303 fps; no step down.
+
+### SwiftShader: a moving camera is very slow (not from this task)
+Any camera motion costs 2-5 s per frame on SwiftShader at 1366x768: 24 frames in 46 s for a mouse drag on the Task 15 build, 27 in 50 s on this one, 8 in 20 s for key pan. Idle on Task 15 was 17 frames in 8 s, with one Task 16 idle run far lower (4 in 10 s); earlier idle runs of both builds read about 2 fps. The cause is not established. The RTX runs above show no such cost. Consequences:
+- `e2e/t16-keyboard.spec.ts` waits on rendered frames instead of wall time, and has a 600 s test limit.
+- **`live-scene.spec.ts` "map controls move the camera" failed once** in the first of two full runs: the pill had not left its post-rotate place after the fixed 3 s wait, which suggests no frame was drawn in time (inferred, not proven). It then passed 5 of 5 alone and in the second full run. The test was not changed. It can flake when the machine is busy.
+
+### Tests
+`keyboardPan.test.ts`: direction at every yaw, distance scaling, Shift, frame-rate independence (held and coasting), damping equal to OrbitControls per 60 fps frame, full rest, limits at any speed and frame rate, no velocity build-up, sliding, every preset inside the limits, zoom, repeat events, modifiers, focus rules.
+`e2e/t16-keyboard.spec.ts`: all four directions at both sizes and that the offset does not change; Home exact; rotate then Up follows the new view; `+` and `-`; the limit with no change across rendered frames while held; search box, tray row and tray padding (the tray scrolls and the camera stays); Ctrl, Alt, Ctrl+Shift+D; Tab and click reach the region; ring; fly-to cancel; hint in EN and BN by hover and focus. The Shift 3x ratio and the Meta key are unit-tested only.
+
+### Screenshots
+`docs/screens/t16-{initial,after-left,after-up,hint-en,hint-bn}-1920x1080.png`, SwiftShader, Low (the debug tier badge is visible), which is why the mock clock differs between them.
+
+### Checks on the final code
+`pnpm typecheck`, `lint`, `format:check`, `i18n:check`, `contract:check`, `build`: exit 0. `pnpm test`: 61 files, 1228 tests passed. `pnpm e2e`: 45 passed in 27.1 min in the second full run; the first had 44 passed and the flake above. The 35 older tracked screenshots it rewrote were restored from HEAD.
+
+### Not tested
+A headed browser and a real keyboard: all key input is Playwright-synthesised and headless, and motion was checked by samples and still frames, not by eye. The foreground window was not sampled during the e2e runs, only during the fps runs. The focus ring is checked by computed style, not in a screenshot. Non-US keyboard layouts for `+` and `-`.
