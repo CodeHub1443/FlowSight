@@ -1,5 +1,5 @@
-import { ChevronRight } from 'lucide-react';
-import { memo, useRef, type ReactNode } from 'react';
+import { ChevronRight, X } from 'lucide-react';
+import { memo, useEffect, useMemo, useRef, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   CollapsiblePanel,
@@ -24,6 +24,8 @@ import { formatPlate } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import { useBays, useOpenAlerts, useUiStore, type Selection, type TrayTab } from '@/stores';
 import { focusObject } from './focusObject';
+import { alertGroupOf, matchesAlertGroup, type AlertGroupId } from './kpiDetail/selectors';
+import { clearTrayAlertGroup, useTrayAlertGroup, useTrayOpenRequest } from './kpiDetail/trayFilter';
 import { captainName } from './privacy';
 import { bayLabel } from './siteInfo';
 import { BELT_TONE, EVENT_STATUS_TONE, PHASE_TONE, SEV_TONE } from './tones';
@@ -51,6 +53,7 @@ function Row({
   sub,
   pill,
   meta,
+  alertGroup,
 }: {
   selected: boolean;
   onClick: () => void;
@@ -61,12 +64,15 @@ function Row({
   sub: ReactNode;
   pill: ReactNode;
   meta?: ReactNode;
+  /** Alerts tab: the row's alert group (spec 5A), for the group filter and tests. */
+  alertGroup?: AlertGroupId;
 }) {
   return (
     <li data-flip-key={flipKey}>
       <button
         type="button"
         data-testid={testId}
+        data-alert-group={alertGroup}
         aria-current={selected ? 'true' : undefined}
         onClick={onClick}
         className={cn(
@@ -302,6 +308,7 @@ function TrucksList({ lang }: { lang: UiLang }) {
 
 const AlertRow = memo(function AlertRow({
   id,
+  group,
   title,
   bay,
   sev,
@@ -311,6 +318,7 @@ const AlertRow = memo(function AlertRow({
   lang,
 }: {
   id: string;
+  group: AlertGroupId;
   title: string;
   bay: string | null;
   sev: Severity;
@@ -325,6 +333,7 @@ const AlertRow = memo(function AlertRow({
     <Row
       flipKey={id}
       testId={`tray-alert-${id}`}
+      alertGroup={group}
       selected={selected}
       onClick={() => focusObject({ kind: 'event', id })}
       tone={SEV_TONE[sev]}
@@ -348,6 +357,7 @@ function AlertsList({ lang, alerts }: { lang: UiLang; alerts: WhEventWithStatus[
         <AlertRow
           key={e.id}
           id={e.id}
+          group={alertGroupOf(e.category, e.type)}
           title={e.title[lang] || e.title.en}
           bay={e.bay}
           sev={e.sev}
@@ -436,18 +446,58 @@ function FlipList({ children }: { children: ReactNode }) {
   );
 }
 
+/** "Showing: PPE (3)" above the alert rows, with a button that drops the filter. */
+function AlertGroupFilterBar({ group, count }: { group: AlertGroupId; count: number }) {
+  const { t } = useTranslation('kpidetail');
+  const fmt = useFmt();
+  return (
+    <div
+      data-testid="tray-filter"
+      data-group={group}
+      className="bg-row-selected bn-leading mx-1 mb-1 flex min-h-8 items-center gap-2 rounded-[12px] ps-3 pe-1 text-[12.5px] leading-4"
+    >
+      <span className="text-ink-900 min-w-0 flex-1 truncate font-medium">
+        {t('tray.filter', { group: t(`groups.${group}`) })}
+      </span>
+      <span className="text-info-ink shrink-0 tabular-nums">{fmt.num(count)}</span>
+      <button
+        type="button"
+        data-testid="tray-filter-clear"
+        aria-label={t('tray.clear')}
+        title={t('tray.clear')}
+        onClick={clearTrayAlertGroup}
+        className="soft-transition text-ink-400 hover:bg-row-hover hover:text-ink-900 focus-visible:ring-ring/50 grid size-6 shrink-0 place-items-center rounded-full focus-visible:ring-[3px] focus-visible:outline-none"
+      >
+        <X className="size-3.5" strokeWidth={1.75} aria-hidden />
+      </button>
+    </div>
+  );
+}
+
 /**
  * Bottom-right tray: Bays n/7 · Trucks n · Alerts n · Captains n (docs/01 §3.1). Rows select the object and fly the
  * camera to it. Order is stable: bays by id, trucks at a bay then queued by arrival, alerts newest first.
  */
 export function Tray() {
   const { t } = useTranslation('live');
+  const { t: td } = useTranslation('kpidetail');
   const fmt = useFmt();
   const bays = useBays();
   const trucks = useActiveVisits();
   const alerts = useOpenAlerts();
   const tab = useUiStore((s) => s.trayTab);
   const setTab = useUiStore((s) => s.setTrayTab);
+  // Alert-group filter, set from the "Needs attention" popover (Task 19 spec 5A). It narrows the same role-filtered
+  // open list and lasts while the Alerts tab is showing.
+  const group = useTrayAlertGroup();
+  const openRequest = useTrayOpenRequest();
+  const shownAlerts = useMemo(
+    () => (group === null ? alerts : alerts.filter((e) => matchesAlertGroup(e, group))),
+    [alerts, group],
+  );
+  useEffect(() => {
+    if (tab !== 'alerts') clearTrayAlertGroup();
+  }, [tab]);
 
   const running = bays.filter((b) => b.belt.status === 'RUNNING_LOADED').length;
   const captains = bays.filter((b) => b.crew.captain?.present).length;
@@ -460,6 +510,9 @@ export function Tray() {
 
   return (
     <CollapsiblePanel
+      // a new "open for a group" request re-creates the panel, so a collapsed tray opens (CollapsiblePanel is
+      // uncontrolled); the key is constant otherwise, so live updates never remount it
+      key={openRequest}
       testId="tray"
       className="max-h-[46%] w-full shrink-0"
       headerClassName="ps-[12px] pe-[10px] pt-[12px] pb-[8px]"
@@ -500,10 +553,16 @@ export function Tray() {
       <div id="tray-panel" role="tabpanel" aria-labelledby={`tray-tab-${tab}`}>
         {tab === 'bays' && <BaysList lang={fmt.lang} />}
         {tab === 'trucks' && <TrucksList lang={fmt.lang} />}
-        {tab === 'alerts' && <AlertsList lang={fmt.lang} alerts={alerts} />}
+        {tab === 'alerts' && group !== null && (
+          <AlertGroupFilterBar group={group} count={shownAlerts.length} />
+        )}
+        {tab === 'alerts' && <AlertsList lang={fmt.lang} alerts={shownAlerts} />}
         {tab === 'captains' && <CaptainsList lang={fmt.lang} />}
         {tab === 'alerts' && alerts.length === 0 && (
           <p className="text-ink-400 px-2 py-4 text-center text-[13px]">{t('tray.noAlerts')}</p>
+        )}
+        {tab === 'alerts' && alerts.length > 0 && shownAlerts.length === 0 && (
+          <p className="text-ink-400 px-2 py-4 text-center text-[13px]">{td('tray.empty')}</p>
         )}
       </div>
     </CollapsiblePanel>

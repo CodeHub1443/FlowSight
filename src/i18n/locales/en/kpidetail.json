@@ -1,3 +1,74 @@
 {
-  "title": "KPI details"
+  "title": "KPI details",
+  "open": "{{label}}: show details",
+  "close": "Close details",
+  "loading": "Loading…",
+  "chip": {
+    "occupancy": "Bay occupancy",
+    "attention": "Needs attention",
+    "sevSplit": "{{critical}} critical, {{warn}} warning, {{info}} info",
+    "sev": {
+      "critical": "{{n}} critical",
+      "warn": "{{n}} warning",
+      "info": "{{n}} info"
+    },
+    "worstBay": "Most violations today: {{bay}} ({{n}})",
+    "noViolations": "No violations today"
+  },
+  "cartons": {
+    "title": "Cartons today",
+    "out": "Out today",
+    "in": "In today",
+    "deltaNote": "Change vs the same time yesterday",
+    "rateTitle": "Rate now",
+    "outPerHour": "Out per hour",
+    "inPerHour": "In per hour",
+    "perHour": "{{n}}/h",
+    "noBelt": "No belt is running right now"
+  },
+  "turnaround": {
+    "title": "Turnaround today",
+    "occupancy": "Bay occupancy",
+    "occupancyHint": "docked to departed",
+    "preOp": "Pre-operation delay",
+    "work": "Loading / unloading",
+    "postOp": "Post-operation delay",
+    "depot": "Depot turnaround",
+    "depotHint": "arrived to departed",
+    "waitForDock": "Wait before docking",
+    "visits": "Finished visits today",
+    "bar": "Share of bay occupancy: pre-operation {{preOp}}, loading or unloading {{work}}, post-operation {{postOp}}",
+    "noVisit": "No truck has finished yet today",
+    "legacyNote": "This server reports only the average turnaround. The breakdown appears once it sends contract rev 1.1 data."
+  },
+  "ppe": {
+    "title": "PPE compliance",
+    "score": "PPE compliance",
+    "worst": "Most violations today",
+    "worstValue": "{{bay}} ({{n}})",
+    "none": "None today",
+    "note": "Share of checked person-observations with all mandatory PPE. Safety events (on belt, crowding, forklift proximity) are counted under Safety alerts."
+  },
+  "alerts": {
+    "title": "Needs attention",
+    "groupsTitle": "Open alerts by kind",
+    "none": "No open alerts",
+    "openGroup": "Show {{group}} in the alerts list"
+  },
+  "groups": {
+    "delays": "Delays & waiting",
+    "idle": "Idle & stoppage",
+    "throughput": "Throughput & staging",
+    "ppe": "PPE",
+    "safety": "Safety",
+    "hygiene": "Product hygiene",
+    "security": "Security",
+    "system": "System & roster",
+    "other": "Other"
+  },
+  "tray": {
+    "filter": "Showing: {{group}}",
+    "clear": "Clear filter",
+    "empty": "No open alerts of this kind"
+  }
 }

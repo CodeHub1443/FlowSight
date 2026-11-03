@@ -1,8 +1,10 @@
-import { screen } from '@testing-library/react';
+import { act, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it } from 'vitest';
+import i18n from '@/i18n';
 import { alertStore, uiStore } from '@/stores';
 import { makeBay, makeEvent, makeSite, ulid } from '@/stores/testUtils';
+import { openAlertsTrayForGroup, resetTrayFilter } from './kpiDetail/trayFilter';
 import { Tray } from './Tray';
 import { push, renderWithProviders, resetStores, T0 } from './testHarness';
 
@@ -145,5 +147,74 @@ describe('Tray', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Collapse panel' }));
     expect(screen.queryByTestId('tray-bay-B02')).not.toBeInTheDocument();
     expect(screen.getByRole('tab', { name: /Bays/ })).toBeInTheDocument();
+  });
+});
+
+describe('Tray alert-group filter (Task 19 spec 5A)', () => {
+  const BELT_ID = ulid(2);
+  const DOOR_ID = ulid(3);
+  beforeEach(async () => {
+    resetTrayFilter();
+    await seed();
+    const s = alertStore.getState();
+    s.ingestEvent(
+      makeEvent(BELT_ID, { category: 'belt', type: 'empty_run', data: { minutes: 6 } }),
+    );
+    s.ingestEvent(
+      makeEvent(DOOR_ID, { category: 'security', type: 'door_open_idle', data: { minutes: 9 } }),
+    );
+  });
+
+  const alertRows = () => screen.queryAllByTestId(/^tray-alert-[0-9A-Z]+$/);
+
+  it('opens the Alerts tab narrowed to one group, and the clear button shows every alert again', async () => {
+    renderWithProviders(<Tray />);
+    act(() => openAlertsTrayForGroup('idle'));
+    expect(screen.getByRole('tab', { name: /Alerts/ })).toHaveAttribute('aria-selected', 'true');
+    const bar = screen.getByTestId('tray-filter');
+    expect(bar).toHaveTextContent('Showing: Idle & stoppage');
+    expect(bar).toHaveTextContent('2');
+    // belt.empty_run and security.door_open_idle are both "Idle & stoppage"; hygiene.damaged is not
+    expect(alertRows().map((r) => r.dataset.alertGroup)).toEqual(['idle', 'idle']);
+    expect(screen.queryByTestId(`tray-alert-${EVENT_ID}`)).toBeNull();
+    // the tab count stays the total of open alerts
+    expect(screen.getByRole('tab', { name: /Alerts/ })).toHaveTextContent('3');
+
+    await userEvent.click(screen.getByTestId('tray-filter-clear'));
+    expect(screen.queryByTestId('tray-filter')).toBeNull();
+    expect(alertRows()).toHaveLength(3);
+  });
+
+  it('says so when a group has no open alert', () => {
+    renderWithProviders(<Tray />);
+    act(() => openAlertsTrayForGroup('ppe'));
+    expect(alertRows()).toHaveLength(0);
+    expect(screen.getByText('No open alerts of this kind')).toBeInTheDocument();
+  });
+
+  it('drops the filter when another tab is chosen', async () => {
+    renderWithProviders(<Tray />);
+    act(() => openAlertsTrayForGroup('hygiene'));
+    expect(alertRows()).toHaveLength(1);
+    await userEvent.click(screen.getByRole('tab', { name: /Bays/ }));
+    await userEvent.click(screen.getByRole('tab', { name: /Alerts/ }));
+    expect(screen.queryByTestId('tray-filter')).toBeNull();
+    expect(alertRows()).toHaveLength(3);
+  });
+
+  it('re-opens a collapsed tray', async () => {
+    renderWithProviders(<Tray />);
+    await userEvent.click(screen.getByRole('button', { name: 'Collapse panel' }));
+    expect(screen.queryByRole('tabpanel')).toBeNull();
+    act(() => openAlertsTrayForGroup('hygiene'));
+    expect(within(screen.getByRole('tabpanel')).getByTestId('tray-filter')).toBeInTheDocument();
+  });
+
+  it('renders the filter in Bangla', async () => {
+    await i18n.changeLanguage('bn');
+    renderWithProviders(<Tray />);
+    act(() => openAlertsTrayForGroup('idle'));
+    expect(screen.getByTestId('tray-filter')).toHaveTextContent('দেখানো হচ্ছে: অলস ও বন্ধ');
+    expect(screen.getByTestId('tray-filter')).toHaveTextContent('২');
   });
 });
