@@ -1,3 +1,44 @@
 {
-  "title": "Bay panel"
+  "title": "Bay panel",
+  "timeline": {
+    "title": "Truck timeline",
+    "barLabel": "Bay occupancy by phase",
+    "preOp": "Pre-operation delay",
+    "loading": "Loading",
+    "unloading": "Unloading",
+    "postOp": "Post-operation delay",
+    "occupancy": "Bay occupancy",
+    "soFar": "{{dur}} so far",
+    "notStarted": "Not started yet",
+    "eta": "Finish ETA",
+    "etaValue": "{{n}} min left · {{clock}}",
+    "empty": "No truck at this bay",
+    "notDocked": "Truck arrived, not docked yet"
+  },
+  "throughput": {
+    "title": "Throughput",
+    "visitCartons": "Cartons this visit",
+    "noTruck": "No truck at this bay",
+    "rate": "Cartons/min",
+    "todayCartons": "Cartons today",
+    "todaySplit": "{{out}} out · {{in}} in",
+    "trucks": "Trucks today",
+    "tat": "Avg turnaround today"
+  },
+  "workforce": {
+    "title": "Workforce",
+    "workers": "Workers detected",
+    "storekeeper": "Storekeeper (captain) detected",
+    "forkliftOp": "Forklift operator detected",
+    "yes": "Yes",
+    "no": "No"
+  },
+  "more": {
+    "title": "More details",
+    "show": "Show more details",
+    "hide": "Hide more details",
+    "skus": "SKUs detected",
+    "skusAbsent": "Not reported by the backend yet",
+    "noTruck": "No truck at this bay"
+  }
 }

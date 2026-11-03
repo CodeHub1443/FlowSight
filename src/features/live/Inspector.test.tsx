@@ -36,7 +36,7 @@ describe('Inspector', () => {
     expect(screen.queryByTestId('inspector')).not.toBeInTheDocument();
   });
 
-  it('opens a bay body on selection: belt state, truck plate (Bangla primary), crew, staging, today', () => {
+  it('opens a bay body on selection: belt state, truck plate (Bangla primary), timeline, throughput, workforce; crew and staging in More details', async () => {
     renderWithProviders(<Inspector />);
     select('bay', 'B02');
     expect(screen.getByTestId('inspector-title')).toHaveTextContent('Bay 2');
@@ -44,9 +44,14 @@ describe('Inspector', () => {
     expect(body).toHaveTextContent('Running loaded');
     expect(within(body).getByTestId('inspector-plate')).toHaveTextContent('ঢাকা মেট্রো-ড ১১-২১৭১');
     expect(within(body).getByTestId('inspector-plate')).toHaveTextContent('DHAKA METRO-DA 11-2171');
+    expect(within(body).getByTestId('bay-timeline')).toHaveTextContent('Truck timeline');
+    expect(within(body).getByTestId('bay-throughput')).toHaveTextContent('2,410');
+    expect(within(body).getByTestId('bay-workforce')).toHaveTextContent('Workers detected');
+    // T19 spec 5B: the former crew, staging, today and camera rows sit in "More details", collapsed by default
+    expect(body).not.toHaveTextContent('Pallets waiting');
+    await userEvent.click(within(body).getByRole('button', { name: 'Show more details' }));
     expect(body).toHaveTextContent('6 (1 captain, 4 workers, 1 forklift)');
     expect(body).toHaveTextContent('Pallets waiting');
-    expect(body).toHaveTextContent('2,410');
   });
 
   it('shows the captain name only to roles allowed to see it', async () => {
