@@ -22,6 +22,7 @@ import {
   useSiteKpi,
   type Selection,
 } from '@/stores';
+import { BayMoreDetails, BayThroughput, BayTimeline, BayWorkforce } from './bay';
 import { InspectorFrame, ProgressRow, SectionTitle, type FrameActions } from './InspectorFrame';
 import type { Tone } from '@/components/common';
 import { resolveVisit, visitCount, visitProgress } from './model';
@@ -143,16 +144,13 @@ export function BayBody({
   const fmt = useFmt();
   const bay = useBay(bayId);
   const role = useRole();
-  const now = useStreamNow();
   if (!bay) return <MissingBody selection={{ kind, id: bayId }} actions={actions} />;
 
-  const { visit, belt, crew, staging, today, health } = bay;
-  const cams = Object.values(health.cams);
-  const camsOk = cams.filter((c) => c === 'OK').length;
+  // T19 spec 5B: the always-visible rows, then truck timeline, throughput, workforce and a collapsed "More details".
+  const { visit, belt, crew } = bay;
   const name = captainName(bay, role);
   const captain = crew.captain;
   const plate = visit ? formatPlate(visit.plate) : null;
-  const progress = visit ? visitProgress(visit) : null;
   const conveyor = bayConveyor(bayId);
 
   return (
@@ -167,27 +165,7 @@ export function BayBody({
       href={`/bays/${bayId}`}
       actions={actions}
     >
-      {/* Always mounted: when the truck leaves the values fall back to "—" instead of the card jumping. */}
-      <ProgressRow
-        label={t(
-          visit?.phase === 'UNLOADING' ? 'inspector.bay.unloading' : 'inspector.bay.loading',
-        )}
-        value={progress}
-        caption={
-          visit
-            ? `${fmt.num(visitCount(visit))} / ${visit.expected === null ? '—' : fmt.num(visit.expected)}`
-            : '—'
-        }
-        tone={BELT_TONE[belt.status]}
-      />
       <KeyValueList>
-        <KeyValue label={t('inspector.bay.belt')}>
-          {t(`belt.direction.${belt.direction}`)} ·{' '}
-          {belt.rateCpm > 0 ? t('tray.rate', { n: fmt.num(belt.rateCpm, 1) }) : '—'}
-        </KeyValue>
-        <KeyValue label={t('inspector.bay.since')}>
-          {fmt.clock(belt.since)} · {fmt.dur(Math.max(0, (now - Date.parse(belt.since)) / 1000))}
-        </KeyValue>
         <KeyValue label={t('inspector.bay.truck')}>
           {plate ? (
             <span data-testid="inspector-plate">
@@ -210,18 +188,8 @@ export function BayBody({
           )}
         </KeyValue>
         <KeyValue label={t('inspector.bay.door')}>{t(`door.${bay.door.status}`)}</KeyValue>
-      </KeyValueList>
-
-      <SectionTitle>{t('inspector.bay.crewSection')}</SectionTitle>
-      <KeyValueList>
-        <KeyValue label={t('inspector.bay.crew')}>
-          {t('inspector.bay.crewSplit', {
-            total: fmt.num(crew.total),
-            captains: fmt.num(crew.captains),
-            workers: fmt.num(crew.workers),
-            forklift: fmt.num(crew.forkliftOps),
-          })}
-        </KeyValue>
+        {/* Rate (cartons/min) is in Throughput and "in this state since" in More details. */}
+        <KeyValue label={t('inspector.bay.belt')}>{t(`belt.direction.${belt.direction}`)}</KeyValue>
         <KeyValue label={t('actorRole.CAPTAIN')}>
           {captain ? (
             <span data-testid="inspector-captain">
@@ -237,36 +205,10 @@ export function BayBody({
         <KeyValue label={t('inspector.bay.ppeNow')}>{fmt.num(crew.ppeViolationsNow)}</KeyValue>
       </KeyValueList>
 
-      <SectionTitle>{t('inspector.bay.stagingSection')}</SectionTitle>
-      <ProgressRow
-        label={t('inspector.bay.occupancy')}
-        value={staging.occupancyPct}
-        caption={fmt.pct(staging.occupancyPct)}
-        tone={staging.oldestWaitSec > DEFAULT_SITE.thresholds.palletWaitSec ? 'warn' : 'info'}
-      />
-      <KeyValueList>
-        <KeyValue label={t('inspector.bay.pallets')}>{fmt.num(staging.palletsWaiting)}</KeyValue>
-        <KeyValue label={t('inspector.bay.oldestWait')}>{fmt.dur(staging.oldestWaitSec)}</KeyValue>
-      </KeyValueList>
-
-      <SectionTitle>{t('inspector.bay.todaySection')}</SectionTitle>
-      <KeyValueList>
-        <KeyValue label={t('inspector.bay.casesOut')}>{fmt.num(today.casesOut)}</KeyValue>
-        <KeyValue label={t('inspector.bay.casesIn')}>{fmt.num(today.casesIn)}</KeyValue>
-        <KeyValue label={t('inspector.bay.trucks')}>{fmt.num(today.trucks)}</KeyValue>
-        <KeyValue label={t('inspector.bay.tat')}>
-          <MaybeValue value={today.avgTatMin} reason={t('kpi.noTat')}>
-            {fmt.dur((today.avgTatMin ?? 0) * 60)}
-          </MaybeValue>
-        </KeyValue>
-        <KeyValue label={t('inspector.bay.damage')}>{fmt.num(today.damage)}</KeyValue>
-        <KeyValue label={t('inspector.bay.fallOff')}>{fmt.num(today.fallOff)}</KeyValue>
-        <KeyValue label={t('inspector.bay.cameras')}>
-          <span className={camsOk < cams.length ? 'text-critical-ink' : undefined}>
-            {t('inspector.bay.camsOk', { ok: fmt.num(camsOk), total: fmt.num(cams.length) })}
-          </span>
-        </KeyValue>
-      </KeyValueList>
+      <BayTimeline bay={bay} />
+      <BayThroughput bay={bay} />
+      <BayWorkforce bay={bay} />
+      <BayMoreDetails bay={bay} />
     </InspectorFrame>
   );
 }
