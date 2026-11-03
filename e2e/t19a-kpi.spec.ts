@@ -79,8 +79,8 @@ async function close(page: Page, id: string) {
 const focusedPanel = (page: Page) =>
   page.evaluate(
     () =>
-      document.activeElement?.closest('[data-testid^="kpidetail-"]')?.getAttribute('data-testid') ??
-      null,
+      // the popover content is the dialog; closest() on the testid prefix would match the focused close button itself
+      document.activeElement?.closest('[role="dialog"]')?.getAttribute('data-testid') ?? null,
   );
 
 async function setLang(page: Page, lang: Lang) {
@@ -198,7 +198,10 @@ test.describe('Task 19A: KPI chips and detail popovers', () => {
     await expect(page.getByTestId('kpidetail-cartons')).toBeVisible();
     const vp = page.viewportSize();
     await page.mouse.click((vp?.width ?? 0) / 2, (vp?.height ?? 0) / 2);
-    await expect(page.getByTestId('kpidetail-cartons')).toHaveCount(0);
+    // Closed at once (trigger state); the DOM node goes after the 200 ms exit animation, which SwiftShader can start
+    // seconds late after a click that sets the scene rendering (19.9 trace: 0.6-2.3 s at 1920x1080, more at 2560x1440).
+    await expect(page.getByTestId('kpi-open-cartons')).toHaveAttribute('aria-expanded', 'false');
+    await expect(page.getByTestId('kpidetail-cartons')).toHaveCount(0, { timeout: 20_000 });
   });
 
   test('displayed numbers equal the store values, in English and Bangla', async ({ page }) => {
@@ -213,6 +216,59 @@ test.describe('Task 19A: KPI chips and detail popovers', () => {
     await setLang(page, 'en');
   });
 
+  // Seam check (spec 5A, decision D3 in 19.9b): groups come from the alertStore, totals from kpi.openAlerts. The
+  // simulator now backfills every open alert on connect, and the mock default role (DC_MANAGER) sees every category, so
+  // once the snapshot has landed, per severity, the sum of the group counts equals kpi.openAlerts[severity].
+  test('alert-group counts equal the kpi.openAlerts totals per severity', async ({ page }) => {
+    await openLive(page);
+    await openByKeyboard(page, 'alerts');
+    const read = () =>
+      page.getByTestId('kpidetail-alerts').evaluate((root) => {
+        const split = root.querySelector('[data-testid="kpidetail-alerts-split"]');
+        const kpi = {
+          critical: Number(split?.getAttribute('data-critical')),
+          warn: Number(split?.getAttribute('data-warn')),
+          info: Number(split?.getAttribute('data-info')),
+        };
+        const groups = { critical: 0, warn: 0, info: 0 };
+        let total = 0;
+        for (const row of Array.from(root.querySelectorAll('[data-testid^="kpidetail-group-"]'))) {
+          total += Number(row.getAttribute('data-total'));
+          for (const sev of ['critical', 'warn', 'info'] as const)
+            groups[sev] += Number(
+              row.querySelector(`[data-sev="${sev}"]`)?.getAttribute('data-value'),
+            );
+        }
+        return { kpi, groups, total };
+      });
+    let last = await read();
+    // live events and SiteState arrive separately: poll until one consistent picture shows equality
+    await expect
+      .poll(async () => {
+        last = await read();
+        const { kpi, groups, total } = last;
+        return (
+          total === groups.critical + groups.warn + groups.info &&
+          groups.critical === kpi.critical &&
+          groups.warn === kpi.warn &&
+          groups.info === kpi.info
+        );
+      })
+      .toBe(true);
+    const headline = Number(
+      await page.getByTestId('kpidetail-alerts-attention-value').getAttribute('data-value'),
+    );
+    expect(headline).toBe(last.kpi.critical + last.kpi.warn);
+    expect(last.total).toBe(headline + last.kpi.info);
+    const bell = (await page.getByTestId('alert-bell-count').textContent())?.trim() ?? '';
+    test.info().annotations.push({
+      type: 'alert-counts',
+      description: `groups ${JSON.stringify(last.groups)} sum ${last.total}; needs attention ${headline} + info ${last.kpi.info}; bell ${bell}`,
+    });
+    console.log(`[t19.9b] alert counts: ${JSON.stringify(last)} headline ${headline} bell ${bell}`);
+    await close(page, 'alerts');
+  });
+
   test('an alert group opens the Alerts tray filtered to that group', async ({ page }) => {
     await openLive(page);
     const panel = await openByKeyboard(page, 'alerts');
@@ -222,7 +278,10 @@ test.describe('Task 19A: KPI chips and detail popovers', () => {
     expect(group).not.toBeNull();
     await first.click();
 
-    await expect(page.getByTestId('kpidetail-alerts')).toHaveCount(0);
+    // Closed at once (trigger state); the DOM node goes after the 200 ms exit animation, which SwiftShader can start
+    // seconds late after a click that sets the scene rendering (19.9 trace: 0.6-2.3 s at 1920x1080, more at 2560x1440).
+    await expect(page.getByTestId('kpi-open-alerts')).toHaveAttribute('aria-expanded', 'false');
+    await expect(page.getByTestId('kpidetail-alerts')).toHaveCount(0, { timeout: 20_000 });
     await expect(page.getByRole('tab', { name: /^Alerts/ })).toHaveAttribute(
       'aria-selected',
       'true',

@@ -1,12 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import {
-  KeyValue,
-  KeyValueList,
-  MaybeValue,
-  TONE_BAR,
-  TONE_DOT,
-  type Tone,
-} from '@/components/common';
+import { MaybeValue, TONE_BAR } from '@/components/common';
 import type { BayState } from '@/domain';
 import { cn } from '@/lib/utils';
 import { useNow1Hz } from '@/stores';
@@ -16,17 +9,12 @@ import {
   type TimelineSegment,
   type TimelineSegmentId,
 } from '../kpiDetail/selectors';
+import { SEGMENT_FILL_CLASS, SEGMENT_TONE, SEGMENT_TRACK_CLASS } from '../kpiDetail/segmentTone';
 import { useFmt } from '../useFmt';
+import { BayCell, BayCells } from './BayCells';
 
 const MIN_MS = 60_000;
 const SEGMENT_IDS: readonly TimelineSegmentId[] = ['preOp', 'work', 'postOp'];
-
-/** Delays read as warnings, the physical work as ok, the wait after work as neutral. */
-const SEGMENT_TONE: Record<TimelineSegmentId, Tone> = {
-  preOp: 'warn',
-  work: 'ok',
-  postOp: 'neutral',
-};
 
 /**
  * Section 1 of the bay inspector (T19 spec 5B): pre-op / loading|unloading / post-op as a proportional bar with a
@@ -58,14 +46,14 @@ export function BayTimeline({ bay }: { bay: BayState }) {
     inProgress ? t('timeline.soFar', { dur: fmt.durHM(Math.floor(min)) }) : fmt.durHM(min);
   const eta = visit.etaMin;
   const etaRow = eta !== null && (
-    <KeyValue label={t('timeline.eta')}>
+    <BayCell label={t('timeline.eta')}>
       <span data-testid="bay-eta">
         {t('timeline.etaValue', {
           n: fmt.num(Math.round(eta)),
           clock: fmt.clock(nowMs + eta * MIN_MS),
         })}
       </span>
-    </KeyValue>
+    </BayCell>
   );
 
   if (tl.occupancyMin === null) {
@@ -78,7 +66,7 @@ export function BayTimeline({ bay }: { bay: BayState }) {
         >
           {t('timeline.notDocked')}
         </p>
-        {etaRow && <KeyValueList>{etaRow}</KeyValueList>}
+        {etaRow && <BayCells cols={2}>{etaRow}</BayCells>}
       </section>
     );
   }
@@ -91,14 +79,14 @@ export function BayTimeline({ bay }: { bay: BayState }) {
         data-testid="bay-timeline-bar"
         role="img"
         aria-label={t('timeline.barLabel')}
-        className="bg-track mt-1 mb-1.5 flex h-[8px] w-full gap-px overflow-hidden rounded-full"
+        className={cn(SEGMENT_TRACK_CLASS, 'mt-1 mb-1.5')}
       >
         {SEGMENT_IDS.map((id) => (
           <div
             key={id}
             data-seg={id}
             className={cn(
-              'ease-soft h-full transition-[width] duration-300',
+              SEGMENT_FILL_CLASS,
               TONE_BAR[SEGMENT_TONE[id]],
               byId.get(id)?.inProgress && 'opacity-60',
             )}
@@ -106,22 +94,12 @@ export function BayTimeline({ bay }: { bay: BayState }) {
           />
         ))}
       </div>
-      <KeyValueList>
+      {/* 19.9b (D2): the three phases side by side, then occupancy and ETA, so the section fits above the fold */}
+      <BayCells cols={3}>
         {SEGMENT_IDS.map((id) => {
           const seg = byId.get(id);
           return (
-            <KeyValue
-              key={id}
-              label={
-                <span className="inline-flex items-center gap-1.5">
-                  <span
-                    aria-hidden
-                    className={cn('size-2 shrink-0 rounded-full', TONE_DOT[SEGMENT_TONE[id]])}
-                  />
-                  {label(id)}
-                </span>
-              }
-            >
+            <BayCell key={id} label={label(id)} swatch={SEGMENT_TONE[id]}>
               <span
                 data-testid={`bay-seg-${id}`}
                 data-in-progress={seg?.inProgress ? 'true' : 'false'}
@@ -130,14 +108,16 @@ export function BayTimeline({ bay }: { bay: BayState }) {
                   {seg && span(seg.min, seg.inProgress)}
                 </MaybeValue>
               </span>
-            </KeyValue>
+            </BayCell>
           );
         })}
-        <KeyValue label={t('timeline.occupancy')}>
+      </BayCells>
+      <BayCells cols={2}>
+        <BayCell label={t('timeline.occupancy')}>
           <span data-testid="bay-occupancy">{span(tl.occupancyMin, tl.occupancyInProgress)}</span>
-        </KeyValue>
+        </BayCell>
         {etaRow}
-      </KeyValueList>
+      </BayCells>
     </section>
   );
 }

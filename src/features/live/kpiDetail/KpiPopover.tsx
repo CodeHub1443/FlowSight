@@ -38,14 +38,46 @@ export function KpiPopoverTrigger({
   );
 }
 
-/** Floating card under the chip (docs/06 §3): title, close button, then the lazily loaded body. */
+/**
+ * The headline number of a popover, on its title line (19.9b, decision D1: the title is never repeated as the label of a
+ * first row). Carries the raw store value in `data-value` like the body rows (`<testId>-value`).
+ */
+export function KpiPopoverHeadline({
+  testId,
+  raw,
+  children,
+}: {
+  testId: string;
+  raw: number | null | undefined;
+  children: ReactNode;
+}) {
+  return (
+    <span
+      data-testid={`${testId}-value`}
+      data-value={raw ?? undefined}
+      className="text-ink-900 shrink-0 text-[16px] leading-6 font-bold whitespace-nowrap tabular-nums"
+    >
+      {children}
+    </span>
+  );
+}
+
+/**
+ * Compact floating card under the chip (docs/06 §3 and §7.7): title (and an optional headline number), close button,
+ * then the lazily loaded body. `align="end"` lines it up with the chip's right edge: the right-most chips use it, so the
+ * card never reaches the inspector or the tray on the right (decision D1).
+ */
 export function KpiPopoverPanel({
   id,
   title,
+  headline,
+  align = 'start',
   children,
 }: {
   id: string;
   title: string;
+  headline?: ReactNode;
+  align?: 'start' | 'end';
   children: ReactNode;
 }) {
   const { t } = useTranslation('kpidetail');
@@ -56,18 +88,19 @@ export function KpiPopoverPanel({
         data-testid={`kpidetail-${id}`}
         aria-labelledby={titleId}
         side="bottom"
-        align="start"
+        align={align}
         sideOffset={8}
         collisionPadding={16}
-        className="card-surface animate-in fade-in-0 slide-in-from-top-1 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 z-40 flex max-h-(--radix-popover-content-available-height) w-[min(320px,calc(100vw-32px))] origin-(--radix-popover-content-transform-origin) flex-col overflow-y-auto px-4 pt-3 pb-4 duration-200 outline-none"
+        className="card-surface animate-in fade-in-0 slide-in-from-top-1 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 z-40 flex max-h-(--radix-popover-content-available-height) w-[min(320px,calc(100vw-32px))] origin-(--radix-popover-content-transform-origin) flex-col overflow-y-auto px-3.5 pt-2 pb-3 duration-200 outline-none"
       >
-        <div className="flex items-center justify-between gap-2 pb-1">
+        <div className="flex items-center gap-2 pb-0.5">
           <h2
             id={titleId}
-            className="text-ink-900 bn-leading min-w-0 truncate text-[14px] leading-5 font-semibold"
+            className="text-ink-900 bn-leading min-w-0 flex-1 truncate text-[14px] leading-5 font-semibold"
           >
             {title}
           </h2>
+          {headline}
           <Popover.Close
             data-testid={`kpidetail-${id}-close`}
             aria-label={t('close')}

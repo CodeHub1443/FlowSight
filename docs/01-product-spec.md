@@ -59,8 +59,27 @@ A user has one role plus a list of site IDs. RBAC lives in `src/lib/rbac.ts` as 
 - **Top bar:** Unilever logo + product name · global search (plate bn/en, bay, captain, SKU, event ID) ·
   site switcher (`Dhaka Central Depot · 5/7 bays active`) · `LIVE 19:50` badge (or amber `REPLAY` / grey `MOCK`) ·
   connection health dot · alert bell with count · EN/বাং toggle · user menu.
-- **KPI chips (top-left, 4–6):** Cases today (out / in) · Trucks on site (docked / waiting) · Bays running x/7 ·
-  Avg turnaround today · Compliance score · Open alerts. Each shows a delta vs the same time yesterday.
+- **KPI chips (top-left, 4–6):** Cartons today (out / in) · Trucks on site (docked / waiting) · Bays running x/7 ·
+  Bay occupancy (turnaround) · PPE compliance · Needs attention. Every chip has a row in the admission table. Deltas vs the same time yesterday where the payload has one.
+  Definitions (Task 19; formulas in `docs/tasks/t19-spec.md` section 1, fields in docs/03 rev 1.1):
+  - *Cartons today*: `kpi.casesOut + casesIn` with deltas. Popover: out and in today with deltas; rate now out/h and in/h
+    (sum of running belts' `rateCpm` × 60 by direction; "—" when no belt runs).
+  - *Bay occupancy* (headline of the turnaround chip, shown from 1700 px): mean `departedAt − dockedAt` over visits finished
+    today. Popover: depot turnaround (`= avgTatMin`, with delta), pre-operation delay, loading/unloading, post-operation delay,
+    wait before docking (only when non-null), a stacked bar pre-op / work / post-op and the visit count. An older backend
+    without `kpi.turnaround` gets "Avg turnaround" (`avgTatMin`).
+  - *PPE compliance* (shown from 2000 px): `kpi.complianceScore`, PPE only (safety events count under "Safety"), and
+    "Most violations today: Bay N (count)" from `BayState.today.ppe`.
+  - *Needs attention*: open warn + critical from `kpi.openAlerts`; beneath it the critical / warn / info split. Info never
+    inflates the headline. Popover: open alerts by group (one config table, unknown types in "Other"); a row opens the
+    Alerts tray filtered to that group.
+  **Admission rule:** every number in prime space (chips, popovers, the top sections of the bay inspector) has a row in the
+  metric admission table, `docs/tasks/t19-spec.md` section 3; anything else goes to "More details" or `/analytics`.
+- **Bay inspector (Task 19, order per 19.9b):** plate and phase on top, then truck timeline (pre-op / loading or unloading /
+  post-op, bay occupancy, finish ETA), throughput (cartons this visit, cartons/min, bay today), workforce (workers, storekeeper
+  detected, forklift operator detected), bay status (door, belt direction, captain line, PPE violations now) and a collapsed
+  "More details" (belt since, crew split, staging, damage, fall-offs, cameras, SKUs detected). The whole timeline is visible
+  without scrolling at 1366x768. Never idle or phone time, never per-person rankings.
 - **Inspector card (right):** opens on click of any object (site, bay, belt, truck, person, forklift, pallet zone, event pin).
   Header: type label, name, status chip; then a key-value list, a progress bar where relevant, and an evidence thumbnail.
   Pin button keeps it open; ↗ opens the full page.

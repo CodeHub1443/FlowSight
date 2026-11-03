@@ -20,7 +20,7 @@ Spec: `docs/06-visual-language.md`. Evidence: `docs/screens/step-merge-02-live-1
 
 ## P1 — Data / simulator polish
 - [ ] Task 06 · simulator core ships in live-mode entry chunk → dynamic import MockSource in the factory
-- [ ] Task 06 · bell shows only last-3-h replayed alerts (45) vs KPI open alerts (79) → snapshot delivers all open events; bell and chip agree
+- [x] Task 06 · bell shows only last-3-h replayed alerts (45) vs KPI open alerts (79) → snapshot delivers all open events; bell and chip agree — mock done in 19.9b (D3): the connect backfill sends every open alert (cap 500); the real backend still has to deliver them (JetStream / snapshot)
 - [ ] Task 06 · mode badge shows wall clock in MOCK mode → show simulated time
 - [ ] Task 06 · demo looks quiet at peak (1/7 belts loaded, queue rarely > 1) → "Busy demo" scenario (shorter dock→start, higher arrival rate)
 - [ ] Task 06 · enforce docs/03 §3.2 "a visit appears in exactly one of visit or queue" in simulator + test
@@ -58,6 +58,17 @@ Spec: `docs/06-visual-language.md`. Evidence: `docs/screens/step-merge-02-live-1
 - [ ] Task 08 · truck inspector title ellipsises the Bangla plate at 360 px (three header buttons); full plate is in the tray and tracker
 - [x] vis-ui · pill text in docs/06 colours (e.g. `#E8890C` on `#FFF1DF`) is below WCAG AA at 12 px → docs/06 decision — done Task 09: `--*-ink` tokens (docs/06 section 7.3), enforced by `scripts/contrast.test.mjs`
 - [ ] Task 04B · captain-name visibility per role pending client answer (docs/01 §9 item 4)
+
+## Task 19 follow-ups (integration 19.9, 2026-11-03)
+- [ ] T19 · **P0 Task 20: Performance tab in `/analytics`**: compare bays against comparable operations (direction, carton volume, crew size, shift length), with sample sizes and "insufficient data" states; no chart library before Task 20 (spec section 7)
+- [ ] T19 · turnaround chip shows from 1700 px and PPE chip from 2000 px, so at 1366 and 1920 px some popovers are unreachable → consider a "More KPIs" overflow chip
+- [ ] T19 · KPI popovers may overlap bays while open (decision D1, accepted); if users object: a camera offset while a popover is open (scene change, out of T19)
+- [x] T19 · alert groups vs KPI "Needs attention": groups 40 vs 74 at peak start in 19.9 → done 19.9b (D3): mock backfill sends every open alert; e2e asserts groups = `kpi.openAlerts` per severity. Open: the bell counts *unread* alerts, so it equals the open count only until someone reads one; the real backend must also deliver all open events on connect
+- [ ] T19 · `belt.low_throughput` (warn, abnormal drop in cartons/min): proposal to the backend, docs/03 changelog rev 1.1, not implemented
+- [ ] T19 · backend (wh-api / state-engine) must implement contract rev 1.1: `kpi.turnaround`, `visit.skuCount`, `Visit.dwell.{waitForDockMin, preOpMin, occupancyMin}`, PPE-only `complianceScore`; until then the UI shows the legacy turnaround and "—"
+- [ ] T19 · 5 s unit-test timeouts under load (App ×2+, alertStore retention, simulation 7-day and retention, MockControls; LiveOverlay.flicker at its own 30 s) → per-file timeouts or lighter histories; all pass with `--testTimeout=60000` or alone
+- [ ] T19 · `pnpm e2e:fast` (tag scene-heavy specs; see the Task 05 P2 line); also: Radix exit animations start seconds late under SwiftShader after a canvas click, so e2e waits up to 20 s for a closed popover to unmount
+- [x] T19 · "Trucks on site" and "Bays running" chips have no row in the metric admission table (t19-spec section 3) → done 19.9b (D4): rows added, plus Bay: PPE violations now and Bay: today cartons / trucks / avg TAT
 
 ## Client open items (docs/01 §9)
 - [ ] Shift timings · [ ] mandatory PPE · [ ] SKU class list · [ ] roster source · [ ] real door pitch / bay order · [ ] brand kit · [ ] Telegram egress · [ ] transporter list

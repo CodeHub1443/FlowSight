@@ -40,5 +40,8 @@
     "skus": "SKUs detected",
     "skusAbsent": "Not reported by the backend yet",
     "noTruck": "No truck at this bay"
+  },
+  "status": {
+    "title": "Bay status"
   }
 }

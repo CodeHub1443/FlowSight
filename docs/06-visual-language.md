@@ -179,6 +179,35 @@ Trucks, people and forklifts follow docs/04 section 4. New tokens, because the b
 
 The forklift GLB's `brand` parts are drawn in `--pallet-yellow` (docs/04 section 4: yellow counterbalance forklift); the GLB is not rebuilt. **Belt items (Task 18, replaces the SKU-by-pack colouring that stood here): cartons only.** Every item on every belt is a kraft carton drawn like the pallet cartons (`--carton` body, `--carton-tape` strip across the top, rounded). The only variation is 3 sizes (small, medium, large) and 2 kraft tones (light = `--carton`, medium = `--carton` x 0.9), picked from the item's seed, and a yaw jitter of at most ~3.4 degrees. No other shape, colour or material appears on a belt, whatever the pack, SKU or flag of the case tick. A flagged item keeps the red pin above it (docs/04 section 3); the carton itself is not recoloured.
 
+### 7.7 KPI popovers and the bay operational panel (Task 19, revised 19.9b)
+**KPI detail popover.** Radix Popover, modal (focus trapped, Esc and outside click close, focus returns to the chip), portalled,
+`side="bottom"`, 8 px under the chip, 16 px collision padding; `align="start"`, except the right-most chip (Needs attention),
+which uses `align="end"`. A compact floating card (`card-surface`, §3): width `min(320px, 100vw − 32px)`, padding 14 px (8 px
+top, 12 px bottom), height capped at the available space and scrolling inside. Title line: 14 px semibold `--ink-900`, then an
+optional headline number (16 px bold, tabular) and a 28 px round close button; the title is never repeated as the label of
+the first row. Rows: 32 px min, label left 13 px `--ink-600`, value right, tabular, plain text (no tween), delta beside it.
+Two- or three-column cells where they save height: label 12 px `--ink-600` (optional 8 px tone dot) over the value (16 px bold,
+or 14 px semibold in a three-column block); a hairline under each block. Enter/exit: fade + 4 px slide, 200 ms. The chip opens
+it through a transparent button over the whole chip (hover ring `--ring`/40, open ring /60); the chip row never moves or grows.
+**Placement rule (decision D1).** A popover may transiently overlap bays (it opens on click and closes on outside click or Esc).
+It must never cover the chip row, the inspector card or the tray, and stays inside the viewport.
+**Contents.** Cartons: Out | In cells (value, delta, "Rate now n/h"), a note. Turnaround: bay occupancy row, phase bar, pre-op |
+loading/unloading | post-op cells, depot turnaround | wait before docking cells, finished visits row. PPE: score as the headline,
+most violations row, definition note. Alerts: needs attention as the headline, then "4 critical, 70 warning, 0 info" (critical
+count in `--critical-ink`), then group rows: 40 px min height, 12 px radius, hover `--row-hover`, severity counts as 20 px pills
+tinted by `SEV_TONE` (grey text when 0), a chevron. The chip itself shows the split as dot + count per severity.
+**Stacked phase bar (one definition for both places, `src/features/live/kpiDetail/segmentTone.ts`).** Tones: pre-operation delay
+`--status-warn`, loading/unloading `--status-ok`, post-operation delay `--status-neutral`. Track `SEGMENT_TRACK_CLASS`: 8 px high,
+full radius, `--track` background, 1 px gaps; segments `SEGMENT_FILL_CLASS`, fixed order, widths glide 300 ms. A running segment
+in the bay panel is at 60 % opacity and its value reads "… so far".
+**Bay inspector (decision D2).** Header and belt-status pill as before; then one line with the plate (Bangla primary, English
+12 px `--ink-400` under it) and the phase pill on the right; then Truck timeline (bar, the three phases as three cells, bay
+occupancy | finish ETA as two cells), Throughput, Workforce, Bay status (door | belt direction, captain line | PPE violations now
+as two-column cells) and "More details". Section titles as the existing `SectionTitle`; Throughput and Workforce as
+`KeyValueList`; Yes/No values as `StatusPill`s (Yes `ok`; No `warn` while a truck is at the bay, else `neutral`). "More details"
+is the shared `CollapsiblePanel` nested in the inspector card without its own shadow, collapsed by default, header 13 px
+`--ink-600`. At 1366x768 the whole timeline is visible without scrolling (enforced by `e2e/t19b-bay.spec.ts`).
+
 ## 8. Dark theme — "night shift" design (binding)
 Goal: a night-shift control room, **not** a black screen. Readability comes from **value layering** (each layer clearly lighter than
 the one behind it), **cool rim light** to separate silhouettes, **warm work-light pools** over active bays, and **saturation kept on

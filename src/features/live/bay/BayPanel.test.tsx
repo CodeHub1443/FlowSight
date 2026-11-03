@@ -32,26 +32,36 @@ const expandMore = () =>
 beforeEach(() => resetStores());
 
 describe('Bay inspector: section order', () => {
-  it('a loading truck shows timeline, throughput, workforce, then More details', async () => {
+  // order per 19.9b decision D2: plate and phase, timeline, throughput, workforce, bay status, More details
+  const ORDER = [
+    'bay-truck',
+    'bay-timeline',
+    'bay-throughput',
+    'bay-workforce',
+    'bay-status',
+    'bay-more',
+  ];
+
+  it('a loading truck shows plate and phase, timeline, throughput, workforce, bay status, then More details', async () => {
     await show();
     const body = screen.getByTestId('inspector-bay');
     const ids = [...body.querySelectorAll('[data-testid^="bay-"]')]
       .map((e) => e.getAttribute('data-testid'))
-      .filter((id) =>
-        ['bay-timeline', 'bay-throughput', 'bay-workforce', 'bay-more'].includes(id ?? ''),
-      );
-    expect(ids).toEqual(['bay-timeline', 'bay-throughput', 'bay-workforce', 'bay-more']);
+      .filter((id) => ORDER.includes(id ?? ''));
+    expect(ids).toEqual(ORDER);
   });
 
-  it('keeps the always-visible rows: plate, phase, door, belt direction, captain line, PPE now', async () => {
+  it('keeps plate and phase on top and door, belt direction, captain line, PPE now in the bay status block', async () => {
     await show();
     const body = screen.getByTestId('inspector-bay');
-    expect(within(body).getByTestId('inspector-plate')).toHaveTextContent('ঢাকা মেট্রো-ড ১১-২১৭১');
-    expect(body).toHaveTextContent('Phase');
-    expect(body).toHaveTextContent('Door');
-    expect(body).toHaveTextContent('Outbound');
-    expect(within(body).getByTestId('inspector-captain')).toHaveTextContent('Md. Rahim Uddin');
-    expect(body).toHaveTextContent('PPE violations now');
+    const top = within(body).getByTestId('bay-truck');
+    expect(within(top).getByTestId('inspector-plate')).toHaveTextContent('ঢাকা মেট্রো-ড ১১-২১৭১');
+    expect(within(top).getByLabelText('Phase')).toHaveTextContent('Loading');
+    const status = within(body).getByTestId('bay-status');
+    expect(status).toHaveTextContent('Door');
+    expect(status).toHaveTextContent('Outbound');
+    expect(within(status).getByTestId('inspector-captain')).toHaveTextContent('Md. Rahim Uddin');
+    expect(status).toHaveTextContent('PPE violations now');
   });
 });
 

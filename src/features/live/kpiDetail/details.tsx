@@ -2,7 +2,14 @@ import { useMemo, type ReactNode } from 'react';
 import { ChevronRight } from 'lucide-react';
 import { Popover } from 'radix-ui';
 import { useTranslation } from 'react-i18next';
-import { MaybeValue, TONE_DOT, TONE_TEXT, TONE_TINT, type Tone } from '@/components/common';
+import {
+  MaybeValue,
+  TONE_BAR,
+  TONE_DOT,
+  TONE_TEXT,
+  TONE_TINT,
+  type Tone,
+} from '@/components/common';
 import type { Severity } from '@/domain';
 import { cn } from '@/lib/utils';
 import { useBays, useOpenAlerts, useSiteKpi } from '@/stores';
@@ -18,17 +25,12 @@ import {
   selectWorstPpeBay,
   type AlertGroupRow,
 } from './selectors';
+import { SEGMENT_FILL_CLASS, SEGMENT_TONE, SEGMENT_TRACK_CLASS } from './segmentTone';
 import { openAlertsTrayForGroup } from './trayFilter';
 
 // Popover bodies for the KPI chips (Task 19 spec 5A). A separate chunk, loaded on first use (React.lazy in
 // KpiChips). Every value comes from the stores through the 19.0 selectors; nothing here is computed from a sample.
 // Values are plain text (no tween) and carry their raw store value in `data-value`, so a test can compare the two.
-
-/** Phase colours of the turnaround stacked bar (tokens only). */
-const PHASE_TONE = { preOp: 'warn', work: 'info', postOp: 'neutral' } as const satisfies Record<
-  string,
-  Tone
->;
 
 function Rows({ children }: { children: ReactNode }) {
   return <dl className="flex flex-col">{children}</dl>;
@@ -58,7 +60,7 @@ function Row({
   return (
     <div
       data-testid={testId}
-      className="border-hairline bn-leading flex min-h-9 items-center justify-between gap-3 border-b py-1.5 text-[13px] leading-5 last:border-b-0"
+      className="border-hairline bn-leading flex min-h-8 items-center justify-between gap-3 border-b py-1 text-[13px] leading-5 last:border-b-0"
     >
       <dt className="text-ink-600 flex min-w-0 items-center gap-2">
         {swatch && (
@@ -83,6 +85,75 @@ function Row({
         {delta}
       </dd>
     </div>
+  );
+}
+
+/**
+ * One cell of a two- or three-column block (19.9b, decision D1: compact popovers). Label on top (optional tone dot and
+ * hint), value and delta below, optional extra lines. Same test ids as a Row: `<testId>` and `<testId>-value`.
+ */
+function StatCell({
+  testId,
+  label,
+  hint,
+  swatch,
+  raw,
+  value,
+  delta,
+  size = 'lg',
+  children,
+}: {
+  testId: string;
+  label: string;
+  hint?: string;
+  swatch?: Tone;
+  raw?: number | null;
+  value: ReactNode;
+  delta?: ReactNode;
+  size?: 'lg' | 'md';
+  children?: ReactNode;
+}) {
+  return (
+    <div data-testid={testId} className="bn-leading min-w-0">
+      <dt className="text-ink-600 flex min-w-0 items-start gap-1.5 text-[12px] leading-4">
+        {swatch && (
+          <span aria-hidden className={cn('mt-1 size-2 shrink-0 rounded-full', TONE_DOT[swatch])} />
+        )}
+        <span className="min-w-0">
+          <span className="block">{label}</span>
+          {hint && <span className="text-ink-400 block">{hint}</span>}
+        </span>
+      </dt>
+      <dd className="flex flex-wrap items-baseline gap-x-1.5">
+        <span
+          data-testid={`${testId}-value`}
+          data-value={raw ?? undefined}
+          className={cn(
+            'text-ink-900 whitespace-nowrap tabular-nums',
+            size === 'lg'
+              ? 'text-[16px] leading-6 font-bold'
+              : 'text-[14px] leading-5 font-semibold',
+          )}
+        >
+          {value}
+        </span>
+        {delta}
+      </dd>
+      {children}
+    </div>
+  );
+}
+
+function Cells({ cols, children }: { cols: 2 | 3; children: ReactNode }) {
+  return (
+    <dl
+      className={cn(
+        'border-hairline grid gap-x-3 gap-y-2 border-b py-2 last:border-b-0',
+        cols === 2 ? 'grid-cols-2' : 'grid-cols-3',
+      )}
+    >
+      {children}
+    </dl>
   );
 }
 
@@ -111,10 +182,25 @@ export function CartonsDetail() {
   const noDelta = tl('kpi.noDelta');
   const noRate = bays.length === 0 ? noData : t('cartons.noBelt');
   const pct = (v: number) => fmt.pctAbs1(v);
+  // per direction: rate now, a measured "0/h" when belts run the other way only, "—" when no belt runs
+  const rate = (testId: string, title: string, perHour: number | null) => (
+    <dd data-testid={testId} title={title} className="text-ink-600 pt-0.5 text-[12px] leading-4">
+      {t('cartons.rateTitle')}{' '}
+      <span
+        data-testid={`${testId}-value`}
+        data-value={perHour ?? undefined}
+        className="text-ink-900 font-semibold whitespace-nowrap tabular-nums"
+      >
+        <MaybeValue value={perHour} reason={noRate}>
+          {t('cartons.perHour', { n: fmt.int(perHour ?? 0) })}
+        </MaybeValue>
+      </span>
+    </dd>
+  );
   return (
     <>
-      <Rows>
-        <Row
+      <Cells cols={2}>
+        <StatCell
           testId="kpidetail-cartons-out"
           label={t('cartons.out')}
           raw={kpi?.casesOut}
@@ -128,8 +214,10 @@ export function CartonsDetail() {
               {pct}
             </Delta>
           }
-        />
-        <Row
+        >
+          {rate('kpidetail-rate-out', t('cartons.outPerHour'), rates.outPerHour)}
+        </StatCell>
+        <StatCell
           testId="kpidetail-cartons-in"
           label={t('cartons.in')}
           raw={kpi?.casesIn}
@@ -143,32 +231,11 @@ export function CartonsDetail() {
               {pct}
             </Delta>
           }
-        />
-      </Rows>
+        >
+          {rate('kpidetail-rate-in', t('cartons.inPerHour'), rates.inPerHour)}
+        </StatCell>
+      </Cells>
       <Note>{t('cartons.deltaNote')}</Note>
-      <SectionTitle>{t('cartons.rateTitle')}</SectionTitle>
-      <Rows>
-        <Row
-          testId="kpidetail-rate-out"
-          label={t('cartons.outPerHour')}
-          raw={rates.outPerHour}
-          value={
-            <MaybeValue value={rates.outPerHour} reason={noRate}>
-              {t('cartons.perHour', { n: fmt.int(rates.outPerHour ?? 0) })}
-            </MaybeValue>
-          }
-        />
-        <Row
-          testId="kpidetail-rate-in"
-          label={t('cartons.inPerHour')}
-          raw={rates.inPerHour}
-          value={
-            <MaybeValue value={rates.inPerHour} reason={noRate}>
-              {t('cartons.perHour', { n: fmt.int(rates.inPerHour ?? 0) })}
-            </MaybeValue>
-          }
-        />
-      </Rows>
     </>
   );
 }
@@ -190,13 +257,13 @@ function PhaseBar({ shares }: { shares: { preOp: number; work: number; postOp: n
         work: pct(shares.work),
         postOp: pct(shares.postOp),
       })}
-      className="bg-hairline my-2 flex h-2 w-full overflow-hidden rounded-full"
+      className={cn(SEGMENT_TRACK_CLASS, 'my-2')}
     >
       {(['preOp', 'work', 'postOp'] as const).map((id) => (
         <span
           key={id}
           data-share={shares[id]}
-          className={cn('soft-transition h-full', TONE_DOT[PHASE_TONE[id]])}
+          className={cn(SEGMENT_FILL_CLASS, TONE_BAR[SEGMENT_TONE[id]])}
           style={{ width: `${shares[id] * 100}%` }}
         />
       ))}
@@ -256,29 +323,34 @@ export function TurnaroundDetail() {
         />
       </Rows>
       <PhaseBar shares={view.shares} />
-      <Rows>
-        <Row
+      <Cells cols={3}>
+        <StatCell
           testId="kpidetail-turnaround-preop"
           label={t('turnaround.preOp')}
-          swatch={PHASE_TONE.preOp}
+          swatch={SEGMENT_TONE.preOp}
           raw={view.preOpDelayMin}
           value={dur(view.preOpDelayMin)}
+          size="md"
         />
-        <Row
+        <StatCell
           testId="kpidetail-turnaround-work"
           label={t('turnaround.work')}
-          swatch={PHASE_TONE.work}
+          swatch={SEGMENT_TONE.work}
           raw={view.activeMin}
           value={dur(view.activeMin)}
+          size="md"
         />
-        <Row
+        <StatCell
           testId="kpidetail-turnaround-postop"
           label={t('turnaround.postOp')}
-          swatch={PHASE_TONE.postOp}
+          swatch={SEGMENT_TONE.postOp}
           raw={view.postOpDelayMin}
           value={dur(view.postOpDelayMin)}
+          size="md"
         />
-        <Row
+      </Cells>
+      <Cells cols={2}>
+        <StatCell
           testId="kpidetail-turnaround-depot"
           label={t('turnaround.depot')}
           hint={t('turnaround.depotHint')}
@@ -289,15 +361,19 @@ export function TurnaroundDetail() {
               {minutes}
             </Delta>
           }
+          size="md"
         />
         {view.waitForDockMin !== null && (
-          <Row
+          <StatCell
             testId="kpidetail-turnaround-waitdock"
             label={t('turnaround.waitForDock')}
             raw={view.waitForDockMin}
             value={dur(view.waitForDockMin)}
+            size="md"
           />
         )}
+      </Cells>
+      <Rows>
         <Row
           testId="kpidetail-turnaround-visits"
           label={t('turnaround.visits')}
@@ -315,23 +391,11 @@ export function PpeDetail() {
   const { t } = useTranslation('kpidetail');
   const { t: tl } = useTranslation('live');
   const fmt = useFmt();
-  const kpi = useSiteKpi();
   const bays = useBays();
   const worst = useMemo(() => selectWorstPpeBay(bays), [bays]);
   return (
     <>
       <Rows>
-        <Row
-          testId="kpidetail-ppe-score"
-          label={t('ppe.score')}
-          raw={kpi?.complianceScore}
-          value={
-            <MaybeValue value={kpi?.complianceScore} reason={tl('kpi.noCompliance')}>
-              {fmt.pctInt(kpi?.complianceScore ?? 0)}
-            </MaybeValue>
-          }
-          strong
-        />
         <Row
           testId="kpidetail-ppe-worst"
           label={t('ppe.worst')}
@@ -411,7 +475,6 @@ function GroupRow({ row }: { row: AlertGroupRow }) {
 
 export function AlertsDetail() {
   const { t } = useTranslation('kpidetail');
-  const { t: tl } = useTranslation('live');
   const fmt = useFmt();
   const kpi = useSiteKpi();
   const attention = selectAttention(kpi);
@@ -419,19 +482,6 @@ export function AlertsDetail() {
   const groups = useMemo(() => selectAlertGroups(alerts), [alerts]);
   return (
     <>
-      <Rows>
-        <Row
-          testId="kpidetail-alerts-attention"
-          label={t('alerts.title')}
-          raw={attention?.needsAttention}
-          value={
-            <MaybeValue value={attention?.needsAttention} reason={tl('kpi.noData')}>
-              {fmt.int(attention?.needsAttention ?? 0)}
-            </MaybeValue>
-          }
-          strong
-        />
-      </Rows>
       {attention && (
         <p
           data-testid="kpidetail-alerts-split"

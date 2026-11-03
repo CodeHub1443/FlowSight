@@ -6,7 +6,33 @@ import { settle, startPeak } from './mockSim';
 // Written in the parallel phase, run first in 19.9 (no browser in 19B). Mock mode: the data is simulated, so the checks
 // are structural (sections, order, labels, digit scripts), never sample numbers.
 
-const SECTIONS: readonly string[] = ['bay-timeline', 'bay-throughput', 'bay-workforce', 'bay-more'];
+// order per 19.9b decision D2
+const SECTIONS: readonly string[] = [
+  'bay-truck',
+  'bay-timeline',
+  'bay-throughput',
+  'bay-workforce',
+  'bay-status',
+  'bay-more',
+];
+
+/**
+ * 19.9b (D2): the whole truck timeline lies inside the inspector's visible scroll area without scrolling. Returns the
+ * shortfall in px (0 when it fits) so a failure says by how much.
+ */
+async function timelineShortfall(page: Page): Promise<number> {
+  return page.getByTestId('bay-timeline').evaluate((el) => {
+    let scroller: HTMLElement | null = el.parentElement;
+    while (scroller && !/(auto|scroll)/.test(getComputedStyle(scroller).overflowY))
+      scroller = scroller.parentElement;
+    if (!scroller) return 0;
+    // "without scrolling": measure from the top (a click on the More details chevron scrolls it into view)
+    scroller.scrollTop = 0;
+    const box = scroller.getBoundingClientRect();
+    const tl = el.getBoundingClientRect();
+    return Math.max(0, Math.ceil(tl.bottom - box.bottom));
+  });
+}
 
 async function openLive(page: Page, speed: 1 | 10 = 1) {
   await page.setViewportSize({ width: 1366, height: 768 });
@@ -42,6 +68,7 @@ test('loading truck: timeline, throughput, workforce, collapsed More details, EN
   const inspector = page.getByTestId('inspector-bay');
 
   expect(await sectionOrder(page)).toEqual([...SECTIONS]);
+  expect(await timelineShortfall(page), 'timeline below the fold at 1366x768 (EN), px').toBe(0);
 
   // 1. Truck timeline: the bar, three phase rows, the work phase running "so far", bay occupancy so far.
   const timeline = page.getByTestId('bay-timeline');
@@ -91,6 +118,7 @@ test('loading truck: timeline, throughput, workforce, collapsed More details, EN
   await expect(more).toContainText('আরও বিস্তারিত');
   expect(await sectionOrder(page)).toEqual([...SECTIONS]);
   await settle(page);
+  expect(await timelineShortfall(page), 'timeline below the fold at 1366x768 (BN), px').toBe(0);
 
   // No Latin digits leaked into the Bangla timeline and throughput.
   await expect(timeline).not.toContainText(/\d/);

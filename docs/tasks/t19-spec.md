@@ -63,7 +63,12 @@ Additive, nullable or optional. The frontend must parse payloads WITHOUT the new
 | Bay: workers detected | Is the bay staffed? | Move people between bays | crew.workers |
 | Bay: storekeeper detected Yes/No | Is anyone accountable at the bay? | Assign or call the captain | crew.captain.present |
 | Bay: forklift operator detected Yes/No | Will pallets be moved? | Reassign an operator | crew.forkliftOps |
+| Trucks on site (docked / waiting) | Is the yard congested? | Dock allocation, call trucks forward | kpi.trucksOnSite, trucksDocked, trucksWaiting |
+| Bays running x/7 | Is all capacity in use? | Re-sequence trucks, open an idle bay | kpi.baysRunning, baysTotal |
+| Bay: PPE violations now | Is someone unsafe right now? | Send a supervisor | crew.ppeViolationsNow |
+| Bay: today cartons / trucks / avg TAT | How has this bay performed today? | Compare bays; feeds Task 20 | BayState.today.casesOut/In, trucks, avgTatMin |
 | Bay: SKUs detected | (none by itself) | none | visit.skuCount: DEMOTED to "More details" |
+Rows added by 19.9b (decision D4): Trucks on site, Bays running, Bay: PPE violations now, Bay: today cartons / trucks / avg TAT.
 Existing rows of the bay inspector (belt, door, staging, today, cameras) keep their content but move into a collapsed "More details" block.
 
 ## 4. Shared pure code (owned by 19.0; 19A and 19B import it and must not edit it)
@@ -80,7 +85,12 @@ Existing rows of the bay inspector (belt, door, staging, today, cameras) keep th
 ### 5A KPI chips (owner 19A; files `src/features/live/KpiChips.tsx` and new `src/features/live/kpiDetail/**`)
 Chips stay compact; the top-left row must not grow or shift (docs/06 safe area, 1366x768 included). Each chip opens a detail
 popover: click or Enter; Esc and outside click close; focus-trapped; floating-card style (docs/06 section 3); anchored under
-the chip; never covers a bay at 1366x768; lazy-loaded; no layout shift; tabular numbers; DOM only, no scene work.
+the chip; lazy-loaded; no layout shift; tabular numbers; DOM only, no scene work.
+Placement and size (19.9b, decision D1, replaces "never covers a bay at 1366x768"): popovers are compact (two- or three-column
+cells where it helps, tight padding, no title that repeats the first row's label: a headline number sits on the title line).
+They MAY transiently overlap bays, because they open on click and close on outside click or Esc. They must NEVER cover the chip
+row, the inspector card or the tray, and must stay inside the viewport (the right-most chip's popover aligns to the chip's right
+edge for this).
 - Cartons: chip shows the total today and the delta (as now). Popover: Out today and In today with deltas; rate now
   out/hour and in/hour; "-" with tooltip when no belt is running.
 - Turnaround chip: headline "Bay occupancy 1h 05m". Popover rows: Depot turnaround (+ existing delta), Pre-operation delay,
@@ -105,13 +115,16 @@ Tray filtering: reuse `AlertFilter.categories` from `src/stores/alertFilter.ts`;
 minimal filter state inside the tray files only (`Tray.tsx`), nothing in `src/stores/**`; if that is impossible, stop and report.
 
 ### 5B Bay inspector (owner 19B; `BayBody` in `src/features/live/InspectorBodies.tsx` plus new `src/features/live/bay/**`)
-Keep header, status, plate, door, belt line, captain line, PPE violations now. Body sections in this order:
+Order revised by 19.9b (decision D2; goal: the whole truck timeline visible without scrolling at 1366x768, EN and BN, with a
+truck loading, inside `BayBody` and `src/features/live/bay/**` only). Keep the header and the belt-status pill. Body in this order:
+0. Plate (Bangla primary, English secondary) and the phase pill, one compact line.
 1. Truck timeline: stacked bar pre-op / loading|unloading / post-op with durations and total bay occupancy; in-progress
    segment marked "so far" and ticking from the shared 1 Hz clock (no per-component timers, no React state per frame);
    phase DOCKED shows pre-op counting up; finish ETA from `visit.etaMin` when present; no truck: empty state.
 2. Throughput: cartons this visit (casesOut or casesIn by direction), cartons/min (belt.rateCpm), bay-today cartons, trucks, avg TAT.
 3. Workforce: workers detected, storekeeper detected Yes/No, forklift operator detected Yes/No. Captain name only when the
    payload carries it (showCaptainNames rule).
+3b. Bay status, one compact block: door, belt direction, captain line (name per the showCaptainNames rule), PPE violations now.
 4. "More details" (collapsed by default, existing CollapsiblePanel): the existing belt, door, staging, today and cameras rows
    plus SKUs detected.
 PRIVACY (binding): never idle or phone time, never per-person rankings or any person-level behaviour.

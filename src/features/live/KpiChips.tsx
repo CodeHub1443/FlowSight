@@ -21,7 +21,12 @@ import type { SiteState } from '@/domain';
 import { cn } from '@/lib/utils';
 import { useBays, useSiteKpi } from '@/stores';
 import { Delta } from './kpiDetail/Delta';
-import { KpiPopover, KpiPopoverPanel, KpiPopoverTrigger } from './kpiDetail/KpiPopover';
+import {
+  KpiPopover,
+  KpiPopoverHeadline,
+  KpiPopoverPanel,
+  KpiPopoverTrigger,
+} from './kpiDetail/KpiPopover';
 import {
   selectAttention,
   selectTurnaround,
@@ -47,6 +52,9 @@ interface ChipDetail {
   /** Popover id: trigger `kpi-open-<id>`, panel `kpidetail-<id>`. */
   id: string;
   title: string;
+  /** Headline number on the popover's title line (instead of a first row repeating the title). */
+  headline?: ReactNode;
+  align?: 'start' | 'end';
   panel: ReactNode;
 }
 
@@ -128,7 +136,12 @@ function Chip({
   return (
     <KpiPopover>
       {card}
-      <KpiPopoverPanel id={detail.id} title={detail.title}>
+      <KpiPopoverPanel
+        id={detail.id}
+        title={detail.title}
+        headline={detail.headline}
+        align={detail.align}
+      >
         {detail.panel}
       </KpiPopoverPanel>
     </KpiPopover>
@@ -285,7 +298,18 @@ const Chips = memo(function Chips({
         icon={Shield3d}
         label={t('kpi.compliance')}
         className="hidden min-[2000px]:flex"
-        detail={{ id: 'ppe', title: td('ppe.title'), panel: <PpeDetail /> }}
+        detail={{
+          id: 'ppe',
+          title: td('ppe.title'),
+          headline: (
+            <KpiPopoverHeadline testId="kpidetail-ppe-score" raw={kpi?.complianceScore}>
+              <MaybeValue value={kpi?.complianceScore} reason={t('kpi.noCompliance')}>
+                {fmt.pctInt(kpi?.complianceScore ?? 0)}
+              </MaybeValue>
+            </KpiPopoverHeadline>
+          ),
+          panel: <PpeDetail />,
+        }}
         value={
           <MaybeValue value={kpi?.complianceScore} reason={t('kpi.noCompliance')}>
             <Num value={kpi?.complianceScore ?? 0} format={fmt.pctInt} minCh={4} />
@@ -302,7 +326,20 @@ const Chips = memo(function Chips({
         icon={Bell3d}
         iconTone={alertTone}
         label={td('chip.attention')}
-        detail={{ id: 'alerts', title: td('alerts.title'), panel: <AlertsDetail /> }}
+        detail={{
+          id: 'alerts',
+          title: td('alerts.title'),
+          // the right-most chip: lined up with its right edge, the card never reaches the inspector or the tray
+          align: 'end',
+          headline: (
+            <KpiPopoverHeadline testId="kpidetail-alerts-attention" raw={attention?.needsAttention}>
+              <MaybeValue value={attention?.needsAttention} reason={noData}>
+                {fmt.int(attention?.needsAttention ?? 0)}
+              </MaybeValue>
+            </KpiPopoverHeadline>
+          ),
+          panel: <AlertsDetail />,
+        }}
         value={
           <MaybeValue value={attention?.needsAttention} reason={noData}>
             <Num value={attention?.needsAttention ?? 0} format={fmt.int} minCh={3} />

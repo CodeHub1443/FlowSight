@@ -22,7 +22,7 @@ import {
   useSiteKpi,
   type Selection,
 } from '@/stores';
-import { BayMoreDetails, BayThroughput, BayTimeline, BayWorkforce } from './bay';
+import { BayMoreDetails, BayStatus, BayThroughput, BayTimeline, BayWorkforce } from './bay';
 import { InspectorFrame, ProgressRow, SectionTitle, type FrameActions } from './InspectorFrame';
 import type { Tone } from '@/components/common';
 import { resolveVisit, visitCount, visitProgress } from './model';
@@ -143,18 +143,18 @@ export function BayBody({
   const { t } = useTranslation('live');
   const fmt = useFmt();
   const bay = useBay(bayId);
-  const role = useRole();
   if (!bay) return <MissingBody selection={{ kind, id: bayId }} actions={actions} />;
 
-  // T19 spec 5B: the always-visible rows, then truck timeline, throughput, workforce and a collapsed "More details".
-  const { visit, belt, crew } = bay;
-  const name = captainName(bay, role);
-  const captain = crew.captain;
+  // T19 spec 5B as revised by 19.9b (D2): plate and phase, truck timeline, throughput, workforce, bay status, More details.
+  const { visit, belt } = bay;
   const plate = visit ? formatPlate(visit.plate) : null;
   const conveyor = bayConveyor(bayId);
 
   return (
+    // keyed by bay (19.9b, D2): a newly selected bay opens at the top, its timeline in view, not at the previous bay's
+    // scroll position; "More details" starts collapsed for each bay
     <InspectorFrame
+      key={bayId}
       testId="inspector-bay"
       icon={KIND_ICON[kind]}
       typeLabel={[t(`inspector.type.${kind}`), conveyor].filter(Boolean).join(' · ')}
@@ -165,49 +165,32 @@ export function BayBody({
       href={`/bays/${bayId}`}
       actions={actions}
     >
-      <KeyValueList>
-        <KeyValue label={t('inspector.bay.truck')}>
-          {plate ? (
-            <span data-testid="inspector-plate">
-              {plate.primary}
-              {plate.secondary && (
-                <span className="text-ink-400 block text-[12px] font-normal">
-                  {plate.secondary}
-                </span>
-              )}
-            </span>
-          ) : (
-            t('tray.noTruck')
-          )}
-        </KeyValue>
-        <KeyValue label={t('inspector.bay.phase')}>
-          {visit ? (
+      {/* 19.9b (D2): plate and phase on top, then the operational sections, then the bay status block. */}
+      <div
+        data-testid="bay-truck"
+        className="border-hairline bn-leading flex items-start justify-between gap-3 border-b py-2 text-[13px] leading-5"
+      >
+        {plate ? (
+          <span data-testid="inspector-plate" className="text-ink-900 min-w-0 font-semibold">
+            {plate.primary}
+            {plate.secondary && (
+              <span className="text-ink-400 block text-[12px] font-normal">{plate.secondary}</span>
+            )}
+          </span>
+        ) : (
+          <span className="text-ink-600">{t('tray.noTruck')}</span>
+        )}
+        {visit && (
+          <span aria-label={t('inspector.bay.phase')} className="shrink-0">
             <StatusPill tone={PHASE_TONE[visit.phase]}>{t(`phase.${visit.phase}`)}</StatusPill>
-          ) : (
-            '—'
-          )}
-        </KeyValue>
-        <KeyValue label={t('inspector.bay.door')}>{t(`door.${bay.door.status}`)}</KeyValue>
-        {/* Rate (cartons/min) is in Throughput and "in this state since" in More details. */}
-        <KeyValue label={t('inspector.bay.belt')}>{t(`belt.direction.${belt.direction}`)}</KeyValue>
-        <KeyValue label={t('actorRole.CAPTAIN')}>
-          {captain ? (
-            <span data-testid="inspector-captain">
-              {name ? name[fmt.lang] || name.en : t('inspector.bay.captainHidden')}
-              <span className="text-ink-400 block text-[12px] font-normal">
-                {captain.present ? t('tray.onFloor') : t('tray.notOnFloor')}
-              </span>
-            </span>
-          ) : (
-            '—'
-          )}
-        </KeyValue>
-        <KeyValue label={t('inspector.bay.ppeNow')}>{fmt.num(crew.ppeViolationsNow)}</KeyValue>
-      </KeyValueList>
+          </span>
+        )}
+      </div>
 
       <BayTimeline bay={bay} />
       <BayThroughput bay={bay} />
       <BayWorkforce bay={bay} />
+      <BayStatus bay={bay} />
       <BayMoreDetails bay={bay} />
     </InspectorFrame>
   );

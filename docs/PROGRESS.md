@@ -849,3 +849,79 @@ Every belt item is now a kraft carton drawn like the pallet cartons (`--carton` 
 
 **Checks:** typecheck, lint, format:check, i18n:check, contract:check, build: pass. `pnpm test`: 4 files timed out at the 5 s default under 62 parallel workers (App, alertStore, LiveOverlay.flicker, obstacles perf, simulation history; the set varied per run, none import belt code); those files pass when rerun alone (simulation.test with `--testTimeout=60000`). e2e run: t18 cartons spec (60x: all 7 bays; 1x: at least 3 bays carried items, since belts idle at 1x), t14 actors: pass (t14 Low flaked once after a long test, passes alone). Full e2e not run, per brief.
 
+
+## Task 19: executive KPI popovers + bay operational panel (19.0, 19A, 19B, integration 19.9)
+
+- [x] 19.0 base: contract rev 1.1, shared selectors, namespaces ([notes](progress/t19-0.md); `a87c8fc`)
+- [x] 19A KPI chips and popovers ([notes](progress/t19a.md); `bc2c3cc`, merged `36a0788`)
+- [x] 19B bay inspector operational panel ([notes](progress/t19b.md); `14d191a`, merged `3de23a4`)
+- [x] 19.9 integration + 19.9b layout decisions D1-D5: merged, seam fixes, mock backfill, screenshots, docs; one commit
+      "task-19.9: ...". Binding spec: `docs/tasks/t19-spec.md` (sections 3, 5A, 5B revised by 19.9b).
+
+### Integration (19.9)
+Pre-merge review: both branches inside their spec section 6 columns; `InspectorBodies.tsx` changed only in `BayBody` plus one import;
+no shared file, secret, generated artifact or whitespace error. Accepted. `git merge --no-ff` of both: no conflicts.
+
+Seam fixes:
+- One tone mapping for every pre-op / work / post-op bar, `src/features/live/kpiDetail/segmentTone.ts` (pre-op warn, work ok,
+  post-op neutral), imported by the turnaround popover (`details.tsx`, was work = info) and the bay timeline (`BayTimeline.tsx`).
+- Alert groups vs headline: new e2e `alert-group counts never exceed the kpi.openAlerts totals (gap recorded)` in
+  `e2e/t19a-kpi.spec.ts`. Mock at peak start: groups 40 (0 critical, 40 warn, 0 info), kpi 4 critical, 70 warn, 0 info, so
+  needs attention 74 + info 0, **gap 34**. Cause: the simulator connect backfill sends only open alerts of the last 3 h, at most 40
+  (`src/data/mock/core/controller.ts`), while `kpi.openAlerts` counts all open alerts. Not fixed: it is the backend/snapshot
+  contract question already in BACKLOG ("snapshot delivers all open events"), not a seam. The test asserts groups <= kpi per severity.
+- `e2e/t19a-kpi.spec.ts`: `focusedPanel` used `closest('[data-testid^="kpidetail-"]')`, which matches the focused close button
+  itself (`kpidetail-cartons-close`); now `closest('[role="dialog"]')` (same strictness). Closing checks now assert the trigger's
+  `aria-expanded="false"` at once and allow 20 s for the DOM node to go: traced in a browser, the popover state closes at once but
+  the 200 ms exit animation starts 0.6-2.3 s late under SwiftShader after a canvas click (more at 2560x1440).
+- New opt-in `e2e/t19-shots.spec.ts` (`$env:T19_SHOTS='1'`), screenshots with `animations: 'disabled'` (the enter fade otherwise
+  leaves popovers at opacity 0 in the shot).
+
+### Screenshot findings (`docs/screens/t19-*`)
+1. **Design decision: 1366x768 popovers cover bays.** Cartons popover (x 68-388, y 167-392) covers the B05/B06 doors and trucks;
+   the alerts popover's left edge clips the end of the B01 conveyor. Under the cartons chip there are ~105 px before the B05-B07
+   trucks, so "anchored under the chip" and "never covers a bay" cannot both hold. At 1920 the turnaround popover covers B01/B02
+   doors and at 2560 the PPE popover covers B01/B02 (not required by the spec).
+2. **Design decision: bay inspector at 1366x768: the truck timeline is below the fold.** The card is capped above the tray; the
+   kept rows (truck, phase, door, belt, captain, PPE now) fill it, the timeline starts after scrolling. 1920x1080: timeline visible.
+3. Alerts popover shows groups 40 under a headline of 74, with 4 critical in no group (finding of seam check b).
+4. Minor: popover title repeats its first row label ("Needs attention" / "Needs attention 74", "PPE compliance" twice).
+5. Minor: phase bar track differs (popover `--hairline`, no gaps; bay `--track`, 1 px gaps).
+6. OK: chip row unchanged in size at all widths, no ellipsis; BN glyphs not clipped in chips, popovers, bay panel, tray filter bar;
+   dark theme popovers; tray filter bar "Showing: <group> n" EN and BN; turnaround numbers consistent (12 + 40 + 6 ~ 59 m occupancy,
+   3 m wait + 59 m = 1 h 02 m depot turnaround).
+7. Not seen: the "More details" card look (below the fold in every bay shot).
+
+### Commands and results (final tree)
+See the 19.9 final report. typecheck, lint, format:check, i18n:check, contract:check, build: pass. `pnpm test`: 10 timeouts under
+load (5 s default; App, MockControls, simulation retention, alertStore, LiveOverlay.flicker); with `--testTimeout=60000` 1364/1365,
+the flicker test (own 30 s timeout) passes alone (2/2, 8 s). e2e one run of the 7 named specs: 13 passed, 7 failed; live-shell (5)
+pass alone 6/6 (throttling); t19a (2) failed on the closing checks above, pass alone 4/4 after the test fixes.
+Tracked screenshots rewritten by e2e (25) restored from HEAD.
+
+### 19.9b: decisions D1-D5 (the 19.9 stop resolved)
+- **D1 compact popovers** (`kpiDetail/KpiPopover.tsx`, `details.tsx`, `KpiChips.tsx`): padding 14/8/12 px, 32 px rows; cartons as
+  Out | In cells with "Rate now" under each; turnaround phases as three cells, depot turnaround | wait before docking as two;
+  PPE score and Needs attention as a headline number on the title line (no first row repeating the title); the alerts popover
+  aligns to its chip's right edge. Popovers may overlap bays; `e2e/t19-shots.spec.ts` asserts for every popover at 1366, 1920
+  and 2560, with a bay inspector open, that it stays in the viewport and off the chip row, the inspector card and the tray.
+  Spec 5A and docs/06 7.7 reworded.
+- **D2 bay inspector order** (`BayBody`, `bay/**`): plate + phase pill on one line, Truck timeline (phases as three cells,
+  occupancy | ETA as two), Throughput, Workforce, Bay status (new `bay/BayStatus.tsx`: door | belt, captain | PPE now), More
+  details. Shared cells `bay/BayCells.tsx`. Timeline fully visible without scrolling at 1366x768, EN and BN, truck loading
+  (asserted in `e2e/t19b-bay.spec.ts`, shortfall 0 px). `InspectorFrame` keyed by bay inside `BayBody`, so a newly selected bay
+  opens at the top (found in the screenshots: the scroll position of the previous bay carried over); "More details" now starts
+  collapsed per bay. Spec 5B revised.
+- **D3 mock backfill** (`src/data/mock/core/controller.ts`): on connect every open alert (OPEN or ACK) from the same open set as
+  `kpi.openAlerts`, newest first, capped at `BACKFILL_MAX_EVENTS` = 500 = alertStore `MAX_EVENTS`; ACK lifecycle after each
+  acknowledged one. Tests `controller.test.ts` (5). e2e now asserts equality per severity. Mock at peak start: groups
+  {critical 4, warn 70, info 0} = 74 = kpi.openAlerts {4, 70, 0}; needs attention 74; **bell 74** (was 40; the bell counts unread).
+- **D4** spec section 3 rows: Trucks on site, Bays running, Bay: PPE violations now, Bay: today cartons / trucks / avg TAT.
+- **D5** one phase-bar track and segment class in `kpiDetail/segmentTone.ts` (`--track`, 8 px, 1 px gaps), used by both bars.
+
+Screenshots (`docs/screens/t19-*`): chips and popovers at 1366/1920/2560 x light/dark x EN/BN with the inspector open; bay
+inspector loading / waiting / post-op / no truck at 1366 and 1920 x light/dark x EN/BN; `t19-bay-more-*` with More details open;
+tray filter EN/BN. Findings: popovers clear the inspector and tray; timeline above the fold at 1366; More details reads as a bordered
+card inside the inspector card in both themes, no double shadow; BN labels in three-column cells wrap to two lines (accepted);
+popovers overlap bays while open (accepted by D1).
+

@@ -2,13 +2,18 @@ import { SiteConfigSchema, type SiteConfig } from '@/domain';
 import siteConfigJson from '../../../../config/sites/dhk-depot.json';
 import { handleApi, type ApiRequest, type ApiResponse } from './api';
 import { Depot, DEFAULT_CADENCE, LIVE_STEP_MS } from './depot';
-import { HOUR } from './clock';
 import type { SimMessage } from './types';
 
 // The framework-free brain behind the worker: owns the Depot, the virtual clock and the command protocol.
 // simulator.worker.ts is a 5-line wrapper; tests and jsdom run the same controller inline.
 
 export type Scenario = 'now' | 'peak';
+
+/**
+ * Most open alerts sent on connect: the alertStore retention cap (`MAX_EVENTS` in src/stores/alertStore.ts; the worker
+ * does not import the store, a test keeps the two equal).
+ */
+export const BACKFILL_MAX_EVENTS = 500;
 
 /** The evening-peak demo day: 2026-10-24 19:20 Asia/Dhaka (the date of the contract fixtures). */
 export const PEAK_START_MS = Date.parse('2026-10-24T19:20:00+06:00');
@@ -192,12 +197,16 @@ export class SimController {
     const depot = this.depot;
     if (!depot) return;
     const items: SimMessage[] = depot.snapshot();
-    // JetStream-style backfill: the alerts that are still open from the last 3 hours
-    const since = depot.now - 3 * HOUR;
-    const open = depot.store.events.filter(
-      (e) => e.status !== 'CLOSED' && Date.parse(e.ts) >= since,
-    );
-    for (const e of open.slice(-40)) {
+    // Backfill (19.9b): every alert that is still open (OPEN or ACK), newest first, from the same open set that
+    // `kpi.openAlerts` counts, so the alert groups add up to the KPI totals once the snapshot has landed. Bounded only
+    // by the client's alertStore retention cap; past it the newest are kept, as the store's own eviction would.
+    const open = depot.store
+      .openIds()
+      .map((id) => depot.store.eventById.get(id))
+      .filter((e): e is NonNullable<typeof e> => e !== undefined && e.status !== 'CLOSED')
+      .sort((a, b) => Date.parse(b.ts) - Date.parse(a.ts))
+      .slice(0, BACKFILL_MAX_EVENTS);
+    for (const e of open) {
       items.push({ kind: 'event', value: e });
       if (e.status === 'ACK' && e.ack) {
         items.push({
