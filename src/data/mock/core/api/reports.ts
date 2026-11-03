@@ -15,7 +15,8 @@ import { DAY, HOUR, iso, MIN } from '../clock';
 import type { Depot } from '../depot';
 import { clamp, round } from '../rng';
 import { BELT_KEYS, type VisitRec } from '../types';
-import { beltUtilisation, complianceScoreOf, skuAnalytics } from './analytics';
+import { aggregateTurnaround, complianceScoreOf } from '../kpi';
+import { beltUtilisation, skuAnalytics } from './analytics';
 import { NAME_ROLES, visitFor } from './util';
 
 export const DEFAULT_WEIGHTS = { throughput: 40, tat: 20, damage: 15, compliance: 15, idle: 10 };
@@ -180,21 +181,16 @@ function kpiFor(depot: Depot, from: number, to: number, isNow: boolean): SiteSta
     if (dir === 'OUT') out += n;
     else inn += n;
   }
-  let tatSum = 0;
-  let tatN = 0;
-  for (const v of depot.store.visits) {
-    if (v.departedAt !== null && v.departedAt >= from && v.departedAt < to) {
-      tatSum += (v.departedAt - v.arrivedAt) / MIN;
-      tatN += 1;
-    }
-  }
+  const completed = depot.store.visits.filter(
+    (v) => v.departedAt !== null && v.departedAt >= from && v.departedAt < to,
+  );
+  const turnaround = aggregateTurnaround(completed);
   const open: Record<Severity, number> = { info: 0, warn: 0, critical: 0 };
   let ppe = 0;
-  let crit = 0;
   for (const e of depot.store.eventsBetween(from, to)) {
     if (e.status !== 'CLOSED') open[e.sev] += 1;
+    // PPE compliance (contract rev 1.1) counts PPE only.
     if (e.category === 'ppe') ppe += 1;
-    else if (e.category === 'compliance' && e.sev === 'critical') crit += 1;
   }
   const live = isNow ? depot.siteState().kpi : null;
   return {
@@ -207,10 +203,11 @@ function kpiFor(depot: Depot, from: number, to: number, isNow: boolean): SiteSta
     trucksWaiting: live?.trucksWaiting ?? 0,
     baysRunning: live?.baysRunning ?? 0,
     baysTotal: depot.bays.length,
-    avgTatMin: tatN > 0 ? Math.round(tatSum / tatN) : null,
+    avgTatMin: turnaround.depotTatMin,
     avgTatDeltaMin: null,
-    complianceScore: out + inn > 0 ? complianceScoreOf(ppe, crit) : null,
+    complianceScore: out + inn > 0 ? complianceScoreOf(ppe) : null,
     openAlerts: open,
+    turnaround,
   };
 }
 

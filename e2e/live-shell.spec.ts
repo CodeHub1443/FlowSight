@@ -15,7 +15,7 @@ async function openLive(page: Page, width: number, height: number) {
   await page.goto('/live');
   await expect(page.getByTestId('tray-bay-B02')).toBeVisible({ timeout: 60_000 });
   await startPeak(page);
-  await expect(page.getByTestId('kpi-cases')).toHaveText(/Cases today\D*\d/);
+  await expect(page.getByTestId('kpi-cases')).toHaveText(/Cartons today\D*\d/);
 }
 
 /** A bay whose belt is running loaded (a truck loading or unloading): its tray row. */

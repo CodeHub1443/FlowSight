@@ -80,6 +80,7 @@ export function bayVariant(base: BayState, index: number, tick: number, nowMs: n
           etaSource: 'NONE',
           damage: 0,
           skuTop: [],
+          skuCount: 0,
         });
         // reversing to the door: it keeps its apron slot until it docks
         b.queue = [{ visitId: v.visitId, plate: v.plate, arrivedAt: v.arrivedAt, slot: 2 }];
@@ -125,7 +126,14 @@ export function bayVariant(base: BayState, index: number, tick: number, nowMs: n
     case 'B07':
       b.door.status = 'OPEN';
       b.belt = { ...b.belt, status: 'STOPPED', rateCpm: 0 };
-      if (v) Object.assign(v, { phase: 'DOCKED', startedAt: null, casesOut: 0, skuTop: [] });
+      if (v)
+        Object.assign(v, {
+          phase: 'DOCKED',
+          startedAt: null,
+          casesOut: 0,
+          skuTop: [],
+          skuCount: 0,
+        });
       break;
   }
   return b;

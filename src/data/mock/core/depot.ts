@@ -21,6 +21,7 @@ import { DAY, HOUR, hourOfDay, iso, MIN, ShiftClock, dateOf } from './clock';
 import type { SimCtx } from './ctx';
 import { buildEvent, type EventSpec } from './eventFactory';
 import { CURVE_SLOT_MS, HISTORY_RETENTION_DAYS, HistoryStore } from './history';
+import { aggregateTurnaround, complianceScoreOf } from './kpi';
 import { hashSeed, Rng, round } from './rng';
 import type { EventRec, SimMessage, VisitRec } from './types';
 
@@ -76,7 +77,7 @@ export class Depot implements SimCtx {
   private trackDay = '';
   private readonly visitSeq = new Map<string, number>();
   private lastPruneAt: number;
-  private day = { key: '', ppe: 0, critical: 0, evaluated: false };
+  private day = { key: '', ppe: 0, evaluated: false };
   private shiftStart = 0;
   /** True while a manual trigger runs: events then draw ids from the trigger stream. */
   private manual = false;
@@ -178,14 +179,13 @@ export class Depot implements SimCtx {
 
   private rollDay(t: number): void {
     const d = this.clock.businessDay(t);
-    if (this.day.key !== d) this.day = { key: d, ppe: 0, critical: 0, evaluated: false };
+    if (this.day.key !== d) this.day = { key: d, ppe: 0, evaluated: false };
   }
 
   private countDay(key: string): void {
     this.rollDay(this.now);
+    // PPE compliance counts PPE only (contract rev 1.1); safety events are not part of it.
     if (key === 'ppe.violation') this.day.ppe += 1;
-    else if (key === 'compliance.on_belt' || key === 'compliance.forklift_proximity')
-      this.day.critical += 1;
   }
 
   nextTrackId(prefix: 't' | 'f'): string {
@@ -779,13 +779,9 @@ export class Depot implements SimCtx {
       waiting += b.waiting;
       if (b.running) running += 1;
     }
-    let tatSum = 0;
-    let tatN = 0;
-    for (const b of this.bays) {
-      tatSum += b.today.tatSum;
-      tatN += b.today.tatN;
-    }
-    const avgTat = tatN > 0 ? Math.round(tatSum / tatN) : null;
+    // One sample (the visits completed today) feeds avgTatMin and kpi.turnaround, so depotTatMin = avgTatMin.
+    const turnaround = aggregateTurnaround(this.bays.flatMap((b) => b.today.done));
+    const avgTat = turnaround.depotTatMin;
     let tatDelta: number | null = null;
     if (avgTat !== null) {
       if (t - this.tatCache.at > MIN) {
@@ -794,9 +790,8 @@ export class Depot implements SimCtx {
       tatDelta = this.tatCache.value === null ? null : Math.round(avgTat - this.tatCache.value);
     }
     const open = this.store.openBySeverity();
-    const score = this.day.evaluated
-      ? Math.max(0, Math.min(100, Math.round(100 - 1.5 * this.day.ppe - 10 * this.day.critical)))
-      : null;
+    // PPE compliance (contract rev 1.1): PPE only; safety events (on_belt, crowding, forklift_proximity) do not count.
+    const score = this.day.evaluated ? complianceScoreOf(this.day.ppe) : null;
     return {
       v: 1,
       ts: iso(t),
@@ -817,6 +812,7 @@ export class Depot implements SimCtx {
         avgTatDeltaMin: tatDelta,
         complianceScore: score,
         openAlerts: open,
+        turnaround,
       },
     };
   }

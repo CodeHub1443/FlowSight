@@ -2,6 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   formatDuration,
+  formatDurationMin,
   formatLang,
   formatNumber,
   formatPercent,
@@ -96,6 +97,35 @@ describe('formatDuration', () => {
     expect(formatDuration(125 * 3600 + 300, 'en')).toBe('125h 05m');
     expect(formatDuration(3900, 'bn', 'latin')).toBe('1 ঘ 05 মি');
     expect(formatDuration(3900, 'en', 'bangla')).toBe('১h ০৫m');
+  });
+});
+
+describe('formatDurationMin (fmt.durHM)', () => {
+  it('formats minutes as h + zero-padded m in EN and BN', () => {
+    expect(formatDurationMin(65, 'en')).toBe('1h 05m');
+    expect(formatDurationMin(65, 'bn')).toBe('১ ঘ ০৫ মি');
+    expect(formatDurationMin(45, 'en')).toBe('45m');
+    expect(formatDurationMin(45, 'bn')).toBe('৪৫ মি');
+    expect(formatDurationMin(120, 'bn')).toBe('২ ঘ ০০ মি');
+  });
+
+  it('rounds to the nearest minute (averages are fractional)', () => {
+    expect(formatDurationMin(64.6, 'en')).toBe('1h 05m');
+    expect(formatDurationMin(64.4, 'en')).toBe('1h 04m');
+    expect(formatDurationMin(0.4, 'en')).toBe('0m');
+    expect(formatDurationMin(59.5, 'en')).toBe('1h 00m');
+  });
+
+  it('unknown is an em dash; negative is 0', () => {
+    expect(formatDurationMin(null, 'en')).toBe('—');
+    expect(formatDurationMin(undefined, 'bn')).toBe('—');
+    expect(formatDurationMin(NaN, 'en')).toBe('—');
+    expect(formatDurationMin(-3, 'en')).toBe('0m');
+  });
+
+  it('follows the digit toggle independently of the language', () => {
+    expect(formatDurationMin(65, 'bn', 'latin')).toBe('1 ঘ 05 মি');
+    expect(formatDurationMin(65, 'en', 'bangla')).toBe('১h ০৫m');
   });
 });
 

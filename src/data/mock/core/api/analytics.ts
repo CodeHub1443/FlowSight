@@ -13,7 +13,8 @@ import type {
 import { AGENCIES, skuInfo, skuName, UNKNOWN_SKU } from '../catalog';
 import { DAY, HOUR, hourOfDay, iso, MIN } from '../clock';
 import type { Depot } from '../depot';
-import { clamp, round } from '../rng';
+import { complianceScoreOf } from '../kpi';
+import { round } from '../rng';
 import { BELT_KEYS, type BeltAcc } from '../types';
 import { BELT_KEY_OF } from '../ctx';
 import { bayLabel, csv, floorTo, stepOf } from './util';
@@ -207,15 +208,10 @@ export function skuAnalytics(
   return { rows, unknownSharePct: total > 0 ? round((unknown / total) * 100, 1) : 0 };
 }
 
-/** Daily compliance score used by the series and the reports: 100 minus penalties per violation. */
-export function complianceScoreOf(ppe: number, critical: number): number {
-  return clamp(Math.round(100 - 1.5 * ppe - 10 * critical), 0, 100);
-}
-
 export function compliance(depot: Depot, from: number, to: number): ComplianceResponse {
   const byType = new Map<string, number>();
   const heat = new Map<string, number>();
-  const perDay = new Map<string, { ppe: number; crit: number }>();
+  const perDay = new Map<string, number>();
   for (const e of depot.store.eventsBetween(from, to)) {
     if (e.category !== 'ppe' && e.category !== 'compliance') continue;
     const t = Date.parse(e.ts);
@@ -226,15 +222,12 @@ export function compliance(depot: Depot, from: number, to: number): ComplianceRe
       heat.set(hk, (heat.get(hk) ?? 0) + 1);
     }
     const day = depot.clock.businessDay(t);
-    const d = perDay.get(day) ?? { ppe: 0, crit: 0 };
-    if (e.category === 'ppe') d.ppe += 1;
-    else if (e.sev === 'critical') d.crit += 1;
-    perDay.set(day, d);
+    // The score series is PPE compliance (contract rev 1.1): safety events are counted in byType, not in the score.
+    if (e.category === 'ppe') perDay.set(day, (perDay.get(day) ?? 0) + 1);
   }
   const points: Series['points'] = [];
   for (let t = depot.clock.businessDayStart(from); t < to; t += DAY) {
-    const d = perDay.get(depot.clock.businessDay(t)) ?? { ppe: 0, crit: 0 };
-    points.push({ t: iso(t), v: complianceScoreOf(d.ppe, d.crit) });
+    points.push({ t: iso(t), v: complianceScoreOf(perDay.get(depot.clock.businessDay(t)) ?? 0) });
   }
   return {
     byType: [...byType.entries()]

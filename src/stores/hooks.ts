@@ -99,3 +99,21 @@ export function useBayStale(bayId: string): boolean {
     () => true,
   );
 }
+
+const SEC_MS = 1000;
+const floorSec = (ms: number) => Math.floor(ms / SEC_MS) * SEC_MS;
+const wallSecSnapshot = () => floorSec(clockNow());
+const noWall = () => 0;
+
+/**
+ * "Now" for elapsed counters (truck timeline "so far"), epoch ms floored to the whole second, so a component
+ * re-renders at most once per second. Stream time: the newest message timestamp (correct under replay and mock
+ * speed-up); before the first message it falls back to the shared 1 Hz wall clock. No per-component timers.
+ * It stands still while the stream is silent (the data is stale then; the staleness badge says so).
+ */
+export function useNow1Hz(): number {
+  const streamSec = useLiveStore((s) => (s.lastTs === null ? null : floorSec(s.lastTs)));
+  const snapshot = streamSec === null ? wallSecSnapshot : noWall;
+  const wall = useSyncExternalStore(subscribeClock, snapshot, snapshot);
+  return streamSec ?? wall;
+}

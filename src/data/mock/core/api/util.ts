@@ -101,6 +101,11 @@ export function toVisit(v: VisitRec, role: Role): Visit {
     postLoadMin:
       v.finishedAt === null || v.departedAt === null ? null : mins(v.departedAt - v.finishedAt),
     totalMin: v.departedAt === null ? null : mins(v.departedAt - v.arrivedAt),
+    // contract rev 1.1
+    waitForDockMin: v.dockedAt === null ? null : mins(v.dockedAt - v.arrivedAt),
+    preOpMin: v.dockedAt === null || v.startedAt === null ? null : mins(v.startedAt - v.dockedAt),
+    occupancyMin:
+      v.dockedAt === null || v.departedAt === null ? null : mins(v.departedAt - v.dockedAt),
   };
   const captain = v.captain;
   return {

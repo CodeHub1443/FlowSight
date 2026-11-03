@@ -43,6 +43,9 @@ export type UiLang = z.infer<typeof UiLangSchema>;
 export type Lang = z.infer<typeof S.LangSchema>;
 
 export type SiteState = z.infer<typeof S.SiteStateSchema>;
+export type SiteKpi = SiteState['kpi'];
+/** rev 1.1 `kpi.turnaround` (docs/03 section 3.1). */
+export type Turnaround = z.infer<typeof S.TurnaroundSchema>;
 export type BayState = z.infer<typeof S.BayStateSchema>;
 export type BayVisit = NonNullable<BayState['visit']>;
 export type BayQueueEntry = BayState['queue'][number];

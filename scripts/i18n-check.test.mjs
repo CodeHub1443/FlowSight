@@ -6,7 +6,12 @@ import { describe, expect, it } from 'vitest';
 import { mkdtempSync, mkdirSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { checkLocaleDirs, compareLocales } from './i18n-check.mjs';
+import {
+  checkLocaleDirs,
+  checkRegistered,
+  compareLocales,
+  declaredNamespaces,
+} from './i18n-check.mjs';
 
 const fixture = (name) =>
   JSON.parse(readFileSync(fileURLToPath(new URL(`./fixtures/${name}`, import.meta.url)), 'utf8'));
@@ -81,5 +86,50 @@ describe('i18n-check namespaces', () => {
       'admin.json: file present in bn only',
       'mock.json: file present in en only',
     ]);
+  });
+});
+
+describe('i18n-check namespace registration', () => {
+  const index = (list) =>
+    ['export const NAMESPACES = [', ...list.map((n) => `  '${n}',`), '] as const;'].join('\n');
+  function rootWith(names) {
+    const root = mkdtempSync(join(tmpdir(), 'i18n-reg-'));
+    for (const lng of ['en', 'bn']) {
+      mkdirSync(join(root, lng));
+      for (const n of names) writeFileSync(join(root, lng, `${n}.json`), '{}');
+    }
+    return root;
+  }
+
+  it('parses the NAMESPACES list, multi-line or single-line', () => {
+    expect(declaredNamespaces(index(['common', 'kpidetail']))).toEqual(['common', 'kpidetail']);
+    expect(declaredNamespaces("export const NAMESPACES = ['a', 'b'] as const;")).toEqual([
+      'a',
+      'b',
+    ]);
+    expect(declaredNamespaces('nothing here')).toBeNull();
+  });
+
+  it('passes when files and registration agree', () => {
+    expect(
+      checkRegistered(rootWith(['common', 'baypanel']), index(['common', 'baypanel'])),
+    ).toEqual([]);
+  });
+
+  it('reports an unregistered file and a registered namespace without a file', () => {
+    expect(
+      checkRegistered(rootWith(['common', 'kpidetail']), index(['common', 'baypanel'])),
+    ).toEqual([
+      'kpidetail.json: not registered in NAMESPACES',
+      'baypanel: registered in NAMESPACES but has no locale file',
+    ]);
+  });
+
+  it('the real index registers kpidetail and baypanel', () => {
+    const src = readFileSync(
+      fileURLToPath(new URL('../src/i18n/index.ts', import.meta.url)),
+      'utf8',
+    );
+    expect(declaredNamespaces(src)).toEqual(expect.arrayContaining(['kpidetail', 'baypanel']));
   });
 });

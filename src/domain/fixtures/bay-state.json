@@ -40,7 +40,8 @@
     "skuTop": [
       { "sku": "RIN-PB-1KG", "count": 212, "conf": 0.91 },
       { "sku": "UNKNOWN", "count": 9, "conf": 0 }
-    ]
+    ],
+    "skuCount": 1
   },
   "crew": {
     "total": 6,

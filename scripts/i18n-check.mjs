@@ -53,9 +53,36 @@ export function checkLocaleDirs(root) {
   return errors;
 }
 
+/** The `NAMESPACES` list declared in src/i18n/index.ts (parsed from source; no TS loader needed). */
+export function declaredNamespaces(indexSource) {
+  const m = /export const NAMESPACES = \[([^\]]*)\]/.exec(indexSource);
+  if (!m) return null;
+  return [...m[1].matchAll(/'([^']+)'/g)].map((x) => x[1]);
+}
+
+/**
+ * Every locale file must be a registered namespace and every registered namespace must have a file (in en; the
+ * en/bn pairing is checked by checkLocaleDirs). Catches a new namespace that i18next would never load.
+ */
+export function checkRegistered(root, indexSource) {
+  const declared = declaredNamespaces(indexSource);
+  if (declared === null) return ['src/i18n/index.ts: NAMESPACES list not found'];
+  const files = jsonFiles(`${root}/en`).map((f) => f.replace(/\.json$/, ''));
+  const errors = [];
+  for (const f of files)
+    if (!declared.includes(f)) errors.push(`${f}.json: not registered in NAMESPACES`);
+  for (const ns of declared)
+    if (!files.includes(ns)) errors.push(`${ns}: registered in NAMESPACES but has no locale file`);
+  return errors;
+}
+
 function main() {
   const root = fileURLToPath(new URL('../src/i18n/locales', import.meta.url));
-  const errors = checkLocaleDirs(root);
+  const index = readFileSync(
+    fileURLToPath(new URL('../src/i18n/index.ts', import.meta.url)),
+    'utf8',
+  );
+  const errors = [...checkLocaleDirs(root), ...checkRegistered(root, index)];
   if (errors.length > 0) {
     console.error(`i18n:check failed (${errors.length})`);
     for (const e of errors) console.error(`  - ${e}`);

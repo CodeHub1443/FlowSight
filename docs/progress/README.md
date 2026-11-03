@@ -7,8 +7,8 @@ Steps 3 (simulator), 5 (shell) and 6 (static 3D) run in parallel worktrees. To k
 - **Only the main session edits `docs/PROGRESS.md`.** It ticks the step and links to the step file. Parallel sessions never touch it.
 
 ## i18n namespaces
-Locale files are split per namespace: `src/i18n/locales/{en,bn}/{common,live,scene,mock,admin}.json`.
-`pnpm i18n:check` validates every namespace pair: a key missing from either language, an empty Bangla value, or a file present in only one language fails the check.
+Locale files are split per namespace: `src/i18n/locales/{en,bn}/{common,live,scene,mock,admin,kpidetail,baypanel}.json`.
+`pnpm i18n:check` validates every namespace pair: a key missing from either language, an empty Bangla value, or a file present in only one language fails the check. It also fails when a locale file is not listed in `NAMESPACES` (`src/i18n/index.ts`) or a listed namespace has no file.
 
 | Namespace | Owner | Holds |
 |---|---|---|
@@ -16,6 +16,8 @@ Locale files are split per namespace: `src/i18n/locales/{en,bn}/{common,live,sce
 | `live` | shell session (step 5) | top bar, KPI chips, inspector, tray, visit tracker, alert bell |
 | `scene` | 3D session (step 6 onward) | scene labels, pin text, camera and x-ray controls |
 | `admin` | later (step 12) | admin screens |
+| `kpidetail` | Task 19A (KPI chips) | KPI popovers: cartons, turnaround breakdown, PPE compliance, alert groups (`groups.<AlertGroupId>`) |
+| `baypanel` | Task 19B (bay inspector) | bay inspector sections: truck timeline, throughput, workforce, "More details" |
 | `common` | **main session only** | app name, language names, routes, placeholders, 404, debug readout, anything shared |
 
 Rules:

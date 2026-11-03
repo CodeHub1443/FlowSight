@@ -63,6 +63,14 @@ crews, staging, forklifts, truck rears at the doors), because almost nothing hap
 - **3D performance rules** (see architecture §6): no React state updates per frame, instancing for repeated meshes,
   interpolate actors in `useFrame`, store updates ≤ 4 Hz, quality tiers.
 
+## Metric admission rule (standing rule, from Task 19)
+- Every metric in **prime dashboard space** (KPI chips, KPI popovers, the top sections of the bay inspector) must answer a
+  management question and support a management decision. A metric without a row in the metric admission table
+  (`docs/tasks/t19-spec.md` §3) does not ship in prime space. It may live in a collapsed "More details" block or in
+  `/analytics`, never beside the headline numbers.
+- A value that **cannot be measured** at this depot is **hidden**, not shown as a permanent "—". A "—" is for a value that is
+  temporarily unknown, with a tooltip saying why.
+
 ## Stack (do not swap without an ADR in docs/02; see ADR-9, ADR-11)
 Node 22 LTS (≥ 22.12) · pnpm 10 via Corepack · Vite 7 · React 19 · TypeScript 5 (strict, no `any`) ·
 @react-three/fiber 9 · @react-three/drei 10 · three · zustand 5 · @tanstack/react-query 5 · zod 4 ·

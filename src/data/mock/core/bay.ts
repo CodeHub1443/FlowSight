@@ -14,6 +14,7 @@ import { employeeName, skuInfo, UNKNOWN_SKU } from './catalog';
 import { iso, MIN, SEC, type ShiftSlot } from './clock';
 import { BELT_KEY_OF, type SimCtx } from './ctx';
 import { clamp, round } from './rng';
+import type { VisitTimes } from './kpi';
 import { BELT_KEYS, type BeltAcc, type EventRec, type VisitRec } from './types';
 
 // One bay: visit lifecycle, belt segments, crew, forklift, staging. Everything the bay publishes
@@ -115,7 +116,22 @@ export class BaySim {
   slot: ShiftSlot;
   private bizDay: string;
 
-  today = { casesOut: 0, casesIn: 0, trucks: 0, tatSum: 0, tatN: 0, damage: 0, fallOff: 0, ppe: 0 };
+  today = BaySim.emptyToday();
+
+  /** Today's counters; `done` holds the timestamps of the visits completed today (kpi.turnaround sample). */
+  private static emptyToday() {
+    return {
+      casesOut: 0,
+      casesIn: 0,
+      trucks: 0,
+      tatSum: 0,
+      tatN: 0,
+      damage: 0,
+      fallOff: 0,
+      ppe: 0,
+      done: [] as VisitTimes[],
+    };
+  }
 
   private crewArriveAt: number | null = null;
   private crewLeaveAt: number | null = null;
@@ -216,16 +232,7 @@ export class BaySim {
         this.acc = { runningLoaded: 0, runningEmpty: 0, stopped: 0, noTruck: 0, offline: 0 };
         if (this.slot.businessDay !== this.bizDay) {
           this.bizDay = this.slot.businessDay;
-          this.today = {
-            casesOut: 0,
-            casesIn: 0,
-            trucks: 0,
-            tatSum: 0,
-            tatN: 0,
-            damage: 0,
-            fallOff: 0,
-            ppe: 0,
-          };
+          this.today = BaySim.emptyToday();
         }
         this.dirty = true;
       }
@@ -525,6 +532,13 @@ export class BaySim {
     const tat = (t - v.arrivedAt) / MIN;
     this.today.tatSum += tat;
     this.today.tatN += 1;
+    this.today.done.push({
+      arrivedAt: v.arrivedAt,
+      dockedAt: v.dockedAt,
+      startedAt: v.startedAt,
+      finishedAt: v.finishedAt,
+      departedAt: t,
+    });
     this.stage = 'LEAVING';
     this.stageEnd = t + 30 * SEC;
     this.setBelt('NO_TRUCK', t);
@@ -1059,6 +1073,7 @@ export class BaySim {
             tornSack: v.tornSack,
             fallOff: v.fallOff,
             skuTop,
+            skuCount: [...v.sku.keys()].filter((sku) => sku !== UNKNOWN_SKU).length,
           }
         : null,
       crew: {

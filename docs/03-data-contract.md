@@ -1,7 +1,9 @@
-# 03 — Data Contract (v1) — SOURCE OF TRUTH
+# 03 — Data Contract (v1, rev 1.1) — SOURCE OF TRUTH
 
-Shared by the frontend (zod schemas) and the backend (state-engine, wh-api). Any change: bump `v`, update this file
-first, then code. All timestamps are ISO-8601 with offset (`2026-10-24T19:50:45.120+06:00`). Event IDs are ULIDs.
+Shared by the frontend (zod schemas) and the backend (state-engine, wh-api). Any change: update this file first, then code.
+A **breaking** change bumps `v`. An **additive** change (new optional or nullable fields that older clients may ignore and
+newer clients must tolerate being absent) keeps `v` and adds a revision entry to the Changelog (section 6).
+All timestamps are ISO-8601 with offset (`2026-10-24T19:50:45.120+06:00`). Event IDs are ULIDs.
 Every JSON example in this file is a **valid fixture**: no placeholders, internally consistent.
 
 ## 0. Coordinate frames and units
@@ -54,12 +56,38 @@ It is written by the state-engine directly to `people_minutes` and served only b
     "baysRunning": 5, "baysTotal": 7,
     "avgTatMin": 63, "avgTatDeltaMin": -4,
     "complianceScore": 91,
-    "openAlerts": { "info": 4, "warn": 3, "critical": 0 }
+    "openAlerts": { "info": 4, "warn": 3, "critical": 0 },
+    "turnaround": { "n": 41, "occupancyMin": 52, "depotTatMin": 63, "waitForDockMin": 11,
+                    "preOpDelayMin": 9, "activeMin": 38, "postOpDelayMin": 5 }
   }
 }
 ```
 Deltas compare with the same clock time on the previous business day. Nullable: `casesOutDeltaPct`, `casesInDeltaPct`,
 `avgTatMin` (no finished visit yet), `avgTatDeltaMin`, `complianceScore` (nothing evaluated yet).
+
+**`complianceScore`** (rev 1.1 definition): **PPE compliance**, the percentage (0–100) of evaluated person-observations in the
+current business day in which the person wore all mandatory PPE. Only PPE counts: `compliance.on_belt`, `compliance.crowding`
+and `compliance.forklift_proximity` are safety events and do **not** lower this score. `null` until at least one person has been evaluated.
+
+**`kpi.turnaround`** (rev 1.1, optional): the truck-time breakdown behind `avgTatMin`. Absent (or `null`) from backends older
+than rev 1.1; clients must then fall back to `avgTatMin`. Per visit, from the BayState/Visit timestamps:
+
+| Field | Definition (per visit) | Meaning |
+|---|---|---|
+| `depotTatMin` | `departedAt − arrivedAt` | Depot turnaround, what the transporter experiences. Equals `kpi.avgTatMin`. |
+| `waitForDockMin` | `dockedAt − arrivedAt` | Wait before docking. On dhk-depot (no gate camera) `arrivedAt` is the first DOCK-camera read, so this is **not** "wait before bay assignment". |
+| `occupancyMin` | `departedAt − dockedAt` | Bay occupancy: how long the truck holds the dock door. |
+| `preOpDelayMin` | `startedAt − dockedAt` | Pre-operation delay: docked, no carton moved yet. |
+| `activeMin` | `finishedAt − startedAt` | Loading (belt `OUT`) or unloading (belt `IN`) duration. |
+| `postOpDelayMin` | `departedAt − finishedAt` | Post-operation delay: work finished, truck still at the door. |
+
+- The sample is the visits **completed in the current business day**: `departedAt` set and inside the business day (the same
+  sample as `avgTatMin`, which this file calls "finished visits"). `n` is the number of visits in the sample.
+- Each field is the mean, in minutes, over the sample visits where both of its timestamps are present; `null` when there is none.
+  When `n` = 0 every field except `n` is `null`.
+- Identities (per visit, and for the means when every sample visit has all five timestamps, up to rounding):
+  `occupancyMin = preOpDelayMin + activeMin + postOpDelayMin` and `depotTatMin = waitForDockMin + occupancyMin`.
+- `depotTatMin` must equal `avgTatMin` (same sample, same rounding).
 
 ### 3.2 BayState
 ```json
@@ -82,7 +110,8 @@ Deltas compare with the same clock time on the previous business day. Nullable: 
     "startedAt": "2026-10-24T19:31:02+06:00", "finishedAt": null, "departedAt": null,
     "casesIn": 0, "casesOut": 412, "expected": null, "etaMin": 13, "etaSource": "HISTORICAL",
     "damage": 1, "openTape": 0, "tornSack": 0, "fallOff": 0,
-    "skuTop": [ { "sku": "RIN-PB-1KG", "count": 212, "conf": 0.91 }, { "sku": "UNKNOWN", "count": 9, "conf": 0 } ]
+    "skuTop": [ { "sku": "RIN-PB-1KG", "count": 212, "conf": 0.91 }, { "sku": "UNKNOWN", "count": 9, "conf": 0 } ],
+    "skuCount": 1
   },
   "crew": {
     "total": 6, "captains": 1, "workers": 4, "forkliftOps": 1,
@@ -107,6 +136,9 @@ the bay's `visit` (phase `ARRIVED`, i.e. reversing to the door); `slot` is the 1
 **`arrivedAt` semantics:** the first plate read by this site's cameras. On dhk-depot (no gate camera) that is the first DOCK-camera read;
 the mock simulator models a gate read, so its detention includes yard wait. Nullable inside `visit`: `agency`, all timestamps after `arrivedAt`, `expected`,
 `etaMin` (must be `null` when `etaSource` = `NONE`). Nullable inside `today`: `avgTatMin`. `alerts.maxSev` is `null` when `alerts.open` = 0.
+**`visit.skuCount`** (rev 1.1, optional, nullable integer): the number of distinct SKU codes recognised on this visit so far, not counting
+`UNKNOWN`. `skuTop` stays the top list and may be shorter than `skuCount`; `skuCount` is never less than the number of non-`UNKNOWN`
+entries in `skuTop`. `null` when the BELT camera has not evaluated the visit; absent from backends older than rev 1.1.
 `crew.captain` is `null` when no captain is assigned or detected; inside it, `trackId` is `null` when `present` = false and
 `employeeId` is `null` when `idSource` = `UNCONFIRMED`; `name` is `null` for users not permitted to see names (wh-api/NATS
 publish names only if the site setting `showCaptainNames` is true; default **false** until the client confirms).
@@ -244,12 +276,22 @@ type Visit = {
   plate: { bn: string; en: string; conf: number }; agency: Lang | null;
   dir: 'OUT' | 'IN' | 'MIXED'; phase: string;            // BayState.visit.phase enum
   arrivedAt: string; dockedAt: string | null; startedAt: string | null; finishedAt: string | null; departedAt: string | null;
-  dwell: { waitToStartMin: number | null; activeMin: number | null; postLoadMin: number | null; totalMin: number | null };
+  dwell: { waitToStartMin: number | null; activeMin: number | null; postLoadMin: number | null; totalMin: number | null;
+           // rev 1.1, optional (absent from older backends):
+           waitForDockMin?: number | null; preOpMin?: number | null; occupancyMin?: number | null };
   casesOut: number; casesIn: number; expected: number | null;
   hygiene: { damaged: number; openTape: number; tornSack: number; wetStained: number; fallOff: number };
   sku: { sku: string; name: Lang | null; pack: 'CASE' | 'SACK' | 'SHRINK'; count: number; conf: number }[];
   captain: { employeeId: string; name: Lang | null } | null;
   eventIds: string[]; detention: boolean };
+// Visit.dwell, minutes; each null while either of its timestamps is null:
+//   waitToStartMin = startedAt − arrivedAt   (yard + dock wait until the first carton moves; docs/01 "wait-to-start")
+//   activeMin      = finishedAt − startedAt  (loading/unloading)
+//   postLoadMin    = departedAt − finishedAt (post-operation delay)
+//   totalMin       = departedAt − arrivedAt  (depot turnaround)
+//   waitForDockMin = dockedAt − arrivedAt    (rev 1.1; wait before docking)
+//   preOpMin       = startedAt − dockedAt    (rev 1.1; pre-operation delay)
+//   occupancyMin   = departedAt − dockedAt   (rev 1.1; bay occupancy = preOpMin + activeMin + postLoadMin)
 type Period = 'shift' | 'day' | 'week' | 'month';
 type LeaderboardRow = { rank: number; employeeId: string; name: Lang | null; bays: string[];
   metrics: { casesOut: number; casesIn: number; trucks: number; casesPerHour: number; avgTatMin: number | null;
@@ -319,3 +361,29 @@ type AdminUser = User & { active: boolean; lastLoginAt: string | null };        
 `bay_state_5s` (jsonb, replay) · `actors_1s` (replay, compressed) · `people_minutes (site,bay,shift,track,role,idle_min,phone_min)` ·
 `camera_health` · `roster_assignments` · `employees` · `skus` · `shifts` · `users` · `alert_rules` · `notifications_log` · `audit_log`.
 Continuous aggregates: hourly and daily by bay, SKU, captain and agency.
+
+## 6. Changelog
+
+### rev 1.1 (2026-11-03): additive, payloads keep `v: 1`
+Every new field is optional or nullable. A client that knows rev 1.1 must still accept payloads without the new fields and show
+"—" (or fall back, see below). A client from before rev 1.1 strips the new keys.
+
+| Where | Change | Definition |
+|---|---|---|
+| `SiteState.kpi.turnaround` | **new**, optional object `{ n, depotTatMin, waitForDockMin, occupancyMin, preOpDelayMin, activeMin, postOpDelayMin }` | Section 3.1. `n` is an integer ≥ 0; the other fields are minutes or `null` (all `null` when `n` = 0); `depotTatMin` = `avgTatMin`. Without it the client shows `avgTatMin` as "Avg turnaround". |
+| `SiteState.kpi.complianceScore` | **definition changed**, same type | Section 3.1: PPE-only, % of evaluated person-observations with all mandatory PPE present; excludes `compliance.on_belt`, `compliance.crowding`, `compliance.forklift_proximity`. |
+| `BayState.visit.skuCount` | **new**, optional, integer or `null` | Section 3.2: distinct recognised SKU codes on this visit, excluding `UNKNOWN`. |
+| `Visit.dwell.waitForDockMin` | **new**, optional, number or `null` | `dockedAt − arrivedAt`. |
+| `Visit.dwell.preOpMin` | **new**, optional, number or `null` | `startedAt − dockedAt`. Added because the existing `waitToStartMin` is `startedAt − arrivedAt` (it includes the wait before docking), so it cannot serve as the pre-operation delay. |
+| `Visit.dwell.occupancyMin` | **new**, optional, number or `null` | `departedAt − dockedAt`. |
+| `Visit.dwell.*` (existing) | **documented**, unchanged | Section 4.1 now states the formulas of `waitToStartMin`, `activeMin`, `postLoadMin`, `totalMin`. |
+
+Backend work (wh-api / state-engine) to implement rev 1.1: publish `kpi.turnaround` on `wh.{site}.state.site`, with the same
+sample and rounding as `avgTatMin`; publish `visit.skuCount` on `wh.{site}.state.bay.{bay}`; return the three new `dwell` fields
+from `GET /visits` and `GET /visits/{visitId}` (and so inside `Report.visits`); compute `complianceScore` with the PPE-only definition
+(also inside `Report.kpi`). `Report.kpi` shares the `SiteState.kpi` shape, so it may carry `turnaround` too.
+
+**Proposal to backend, not implemented** (no new event type in rev 1.1; not in the section 3.5 catalogue, the frontend rejects it):
+`belt.low_throughput`, default sev `warn`, raised when a bay's belt is `RUNNING_*` and its cartons/min stays abnormally low against the
+bay's own recent rate (for example below 50 % of the 30-minute median for 5 minutes). Suggested data:
+`{ rateCpm: number, baselineCpm: number, minutes: number }`. It would join the "Throughput & staging" alert group.

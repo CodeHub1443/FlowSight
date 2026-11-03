@@ -17,6 +17,15 @@
     "avgTatMin": 63,
     "avgTatDeltaMin": -4,
     "complianceScore": 91,
-    "openAlerts": { "info": 4, "warn": 3, "critical": 0 }
+    "openAlerts": { "info": 4, "warn": 3, "critical": 0 },
+    "turnaround": {
+      "n": 41,
+      "occupancyMin": 52,
+      "depotTatMin": 63,
+      "waitForDockMin": 11,
+      "preOpDelayMin": 9,
+      "activeMin": 38,
+      "postOpDelayMin": 5
+    }
   }
 }

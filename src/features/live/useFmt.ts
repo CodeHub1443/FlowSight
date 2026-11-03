@@ -1,7 +1,13 @@
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { UiLang } from '@/domain';
-import { formatDuration, formatNumber, formatPercent, type DigitMode } from '@/lib/format';
+import {
+  formatDuration,
+  formatDurationMin,
+  formatNumber,
+  formatPercent,
+  type DigitMode,
+} from '@/lib/format';
 import { formatClock } from '@/lib/time';
 
 /** Language-aware formatters bound to the active UI language (Bangla digits in bn). All times are Asia/Dhaka. */
@@ -27,6 +33,8 @@ export function useFmt() {
       pctAbs1: (n: number) =>
         formatPercent(Math.abs(n), { lang, digits, fractionDigits: 1, signed: false }),
       durMin: (min: number) => formatDuration(min * 60, lang, digits),
+      /** Minutes -> "1h 05m" / "১ ঘ ০৫ মি", rounded to the nearest minute; null -> "—". (durMin truncates.) */
+      durHM: (min: number | null | undefined) => formatDurationMin(min, lang, digits),
     };
   }, [lang]);
 }

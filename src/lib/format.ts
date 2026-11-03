@@ -88,6 +88,20 @@ export function formatDuration(sec: number, lang: UiLang, digits?: DigitMode): s
   return `${plain(hours)}${sep}${units.h} ${plain(minutes, 2)}${sep}${units.m}`;
 }
 
+/**
+ * Minutes as hours and minutes, rounded to the nearest whole minute: 65 -> "1h 05m" / "১ ঘ ০৫ মি", 44.6 -> "45m".
+ * For averages and timeline spans (an elapsed counter that must not run ahead should floor before calling).
+ * `null`, `undefined` or a non-finite value -> "—" (temporarily unknown); negative -> "0m".
+ */
+export function formatDurationMin(
+  min: number | null | undefined,
+  lang: UiLang,
+  digits?: DigitMode,
+): string {
+  if (min === null || min === undefined || !Number.isFinite(min)) return '—';
+  return formatDuration(Math.max(0, Math.round(min)) * 60, lang, digits);
+}
+
 export type PlateText = { bn: string; en: string };
 
 /**

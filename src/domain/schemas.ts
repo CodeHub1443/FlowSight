@@ -61,6 +61,33 @@ export { WhEventSchema, WhEventWithStatusSchema } from './events';
 // ---------------------------------------------------------------------------
 
 // 3.1 SiteState
+// rev 1.1: the truck-time breakdown behind avgTatMin (docs/03 section 3.1). Means in minutes over the visits completed
+// in the business day; each null when no sample visit has both of its timestamps; all null when n = 0.
+const turnaroundMinSchema = NonNegSchema.nullable();
+export const TurnaroundSchema = z
+  .object({
+    n: CountSchema,
+    occupancyMin: turnaroundMinSchema,
+    depotTatMin: turnaroundMinSchema,
+    waitForDockMin: turnaroundMinSchema,
+    preOpDelayMin: turnaroundMinSchema,
+    activeMin: turnaroundMinSchema,
+    postOpDelayMin: turnaroundMinSchema,
+  })
+  .refine(
+    (t) =>
+      t.n > 0 ||
+      [
+        t.occupancyMin,
+        t.depotTatMin,
+        t.waitForDockMin,
+        t.preOpDelayMin,
+        t.activeMin,
+        t.postOpDelayMin,
+      ].every((v) => v === null),
+    { message: 'every turnaround mean must be null when n is 0', path: ['n'] },
+  );
+
 export const SiteStateSchema = z.object({
   v: VersionSchema,
   ts: IsoTsSchema,
@@ -81,9 +108,12 @@ export const SiteStateSchema = z.object({
     // null until a visit has finished
     avgTatMin: NonNegSchema.nullable(),
     avgTatDeltaMin: z.number().nullable(),
-    // null until something has been evaluated
+    // PPE compliance (rev 1.1 definition): % of evaluated person-observations with all mandatory PPE present.
+    // Safety events (on_belt, crowding, forklift_proximity) do not count. null until something has been evaluated.
     complianceScore: PctSchema.nullable(),
     openAlerts: z.object({ info: CountSchema, warn: CountSchema, critical: CountSchema }),
+    // rev 1.1, optional: absent (or null) from older backends; the UI then falls back to avgTatMin.
+    turnaround: TurnaroundSchema.nullish(),
   }),
 });
 
@@ -118,6 +148,8 @@ const bayVisitSchema = z
     tornSack: CountSchema,
     fallOff: CountSchema,
     skuTop: z.array(z.object({ sku: SkuCodeSchema, count: CountSchema, conf: ConfSchema })),
+    // rev 1.1, optional: distinct recognised SKU codes on this visit (UNKNOWN excluded); null = not evaluated.
+    skuCount: CountSchema.nullish(),
   })
   .refine((v) => v.etaSource !== 'NONE' || v.etaMin === null, {
     message: 'etaMin must be null when etaSource is NONE',
@@ -332,11 +364,16 @@ export const VisitSchema = z.object({
   startedAt: IsoTsSchema.nullable(),
   finishedAt: IsoTsSchema.nullable(),
   departedAt: IsoTsSchema.nullable(),
+  // Minutes; formulas in docs/03 section 4.1. waitToStartMin is startedAt - arrivedAt (includes the wait to dock).
   dwell: z.object({
     waitToStartMin: NonNegSchema.nullable(),
     activeMin: NonNegSchema.nullable(),
     postLoadMin: NonNegSchema.nullable(),
     totalMin: NonNegSchema.nullable(),
+    // rev 1.1, optional (absent from older backends)
+    waitForDockMin: NonNegSchema.nullish(),
+    preOpMin: NonNegSchema.nullish(),
+    occupancyMin: NonNegSchema.nullish(),
   }),
   casesOut: CountSchema,
   casesIn: CountSchema,

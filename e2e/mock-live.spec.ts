@@ -48,7 +48,7 @@ test('the simulated depot runs on /live at 60x (evening peak, seed 1)', async ({
     .toBe(true);
 
   // KPI chips carry a real (non-null) SiteState: cases and the truck split are numbers.
-  await expect(page.getByTestId('kpi-cases')).toHaveText(/Cases today\D*\d/);
+  await expect(page.getByTestId('kpi-cases')).toHaveText(/Cartons today\D*\d/);
   // "Trucks n" in the tray counts docked + queued trucks, so it matches the KPI chip (no step-05 mismatch).
   await expect
     .poll(

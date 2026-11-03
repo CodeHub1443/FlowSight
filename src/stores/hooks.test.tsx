@@ -4,7 +4,15 @@ import { subscribeBay, subscribeActors, getBay, getActors } from './accessors';
 import { alertStore } from './alertStore';
 import { liveStore } from './liveStore';
 import { sessionStore } from './sessionStore';
-import { useBay, useBays, useBayStale, useConnStatus, useOpenAlerts, useSiteKpi } from './hooks';
+import {
+  useBay,
+  useBays,
+  useBayStale,
+  useConnStatus,
+  useNow1Hz,
+  useOpenAlerts,
+  useSiteKpi,
+} from './hooks';
 import { makeBay, makeEvent, makeSite, ulid } from './testUtils';
 
 const T0 = '2026-10-24T19:50:00+06:00';
@@ -156,5 +164,40 @@ describe('non-React accessors for the 3D', () => {
     push(() => liveStore.getState().ingest({ kind: 'actors', value: frame('B02', T0) }));
     expect(seen).toEqual([T0]);
     expect(getActors('B02')?.ts).toBe(T0);
+  });
+});
+
+describe('useNow1Hz', () => {
+  it('falls back to the 1 Hz wall clock before any message, floored to the second', () => {
+    vi.setSystemTime(new Date('2026-10-24T14:00:00.700Z'));
+    const { result } = renderHook(() => useNow1Hz());
+    expect(result.current).toBe(Date.parse('2026-10-24T14:00:00Z'));
+    act(() => {
+      vi.advanceTimersByTime(1000);
+    });
+    expect(result.current).toBe(Date.parse('2026-10-24T14:00:01Z'));
+  });
+
+  it('follows stream time once messages flow and re-renders at most once per second', () => {
+    let renders = 0;
+    const { result } = renderHook(() => {
+      renders += 1;
+      return useNow1Hz();
+    });
+    push(() => liveStore.getState().ingest({ kind: 'siteState', value: makeSite(T0) }));
+    expect(result.current).toBe(Date.parse(T0));
+    const before = renders;
+    // same second: no re-render from the clock value
+    push(() =>
+      liveStore
+        .getState()
+        .ingest({ kind: 'siteState', value: makeSite('2026-10-24T19:50:00.400+06:00') }),
+    );
+    act(() => {
+      vi.advanceTimersByTime(3000);
+    });
+    expect(renders).toBe(before);
+    push(() => liveStore.getState().ingest({ kind: 'siteState', value: makeSite(T1) }));
+    expect(result.current).toBe(Date.parse(T1));
   });
 });
