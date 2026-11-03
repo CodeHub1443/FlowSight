@@ -5,7 +5,7 @@ import { useModel } from './assets/loader';
 import { LIVE_MODELS, type ModelName } from './assets/models';
 import { TierGovernor } from './tierGovernor';
 import type { QualityTier } from './quality';
-import { QUALITY_DEBUG, qualityProbe } from './qualityProbe';
+import { MAX_PROBE_STEPS, QUALITY_DEBUG, qualityProbe } from './qualityProbe';
 
 function ModelSettled({ name, onSettled }: { name: ModelName; onSettled: (n: ModelName) => void }) {
   useModel(name);
@@ -60,6 +60,7 @@ export function AutoQuality({
     if (!step) return;
     if (QUALITY_DEBUG) {
       qualityProbe.steps.push(step);
+      if (qualityProbe.steps.length > MAX_PROBE_STEPS) qualityProbe.steps.shift();
       console.info(
         `[quality] ${step.from} -> ${step.to}: ${step.reason} (${step.fps.toFixed(0)} fps) at ${Math.round(step.at)} ms`,
       );

@@ -14,6 +14,7 @@ export function ThemeToggle() {
       variant="ghost"
       size="icon"
       className="rounded-full"
+      data-testid="theme-toggle"
       aria-label={dark ? t('topbar.themeLight') : t('topbar.themeDark')}
       aria-pressed={dark}
       onClick={() => uiStore.getState().setTheme(dark ? 'light' : 'dark')}

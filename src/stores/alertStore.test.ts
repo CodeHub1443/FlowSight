@@ -3,6 +3,9 @@ import {
   applyLifecycleTo,
   createAlertStore,
   MAX_EVENTS,
+  MAX_NOTES_PER_EVENT,
+  MAX_PENDING,
+  MAX_PENDING_PER_EVENT,
   selectOpenAlerts,
   selectUnreadCount,
   type AlertStore,
@@ -153,5 +156,77 @@ describe('open set and unread', () => {
   it('is bounded', () => {
     for (let i = 0; i < MAX_EVENTS + 5; i++) s().ingestEvent(makeEvent(ulid(i % 1024)));
     expect(Object.keys(s().events).length).toBeLessThanOrEqual(MAX_EVENTS);
+  });
+});
+
+describe('retention on a long-running wall', () => {
+  const ACK_AT = '2026-10-24T19:52:10+06:00';
+
+  it('forgets unread flags and lifecycle times together with the evicted events', () => {
+    // nobody ever opens the bell: every event stays unread until it is evicted
+    for (let i = 0; i < MAX_EVENTS + 200; i++) {
+      s().ingestEvent(makeEvent(ulid(i)));
+      s().applyLifecycle(makeLifecycle(ulid(i), 'ACK', ACK_AT));
+    }
+    const held = Object.keys(s().events);
+    expect(held).toHaveLength(MAX_EVENTS);
+    expect(Object.keys(s().unreadIds).length).toBeLessThanOrEqual(MAX_EVENTS);
+    expect(Object.keys(s().lifecycleAt).length).toBeLessThanOrEqual(MAX_EVENTS);
+    for (const id of Object.keys(s().unreadIds)) expect(s().events[id]).toBeDefined();
+    for (const id of Object.keys(s().lifecycleAt)) expect(s().events[id]).toBeDefined();
+    expect(selectUnreadCount(s())).toBe(Object.keys(s().unreadIds).length);
+  });
+
+  it('does the same when a backfill evicts', () => {
+    s().ingestEvent(makeEvent(ulid(0)));
+    s().applyLifecycle(makeLifecycle(ulid(0), 'ACK', ACK_AT));
+    const newer = Array.from({ length: MAX_EVENTS + 1 }, (_, i) => ({
+      ...open(ulid(i + 1)),
+      ts: '2030-01-01T00:00:00+06:00',
+    }));
+    s().mergeEvents(newer);
+    expect(s().events[ulid(0)]).toBeUndefined();
+    expect(s().unreadIds[ulid(0)]).toBeUndefined();
+    expect(s().lifecycleAt[ulid(0)]).toBeUndefined();
+  });
+
+  it('keeps the flags of events that stay', () => {
+    s().ingestEvent(makeEvent(ulid(1)));
+    s().applyLifecycle(makeLifecycle(ulid(1), 'ACK', ACK_AT));
+    s().ingestEvent(makeEvent(ulid(2)));
+    expect(s().unreadIds[ulid(1)]).toBe(true);
+    expect(s().lifecycleAt[ulid(1)]).toBe(Date.parse(ACK_AT));
+  });
+
+  it('parks at most MAX_PENDING events and drops the oldest, so an orphan cannot block a new update', () => {
+    for (let i = 0; i < MAX_PENDING + 10; i++) {
+      s().applyLifecycle(makeLifecycle(ulid(i), 'ACK', ACK_AT));
+    }
+    expect(Object.keys(s().pending)).toHaveLength(MAX_PENDING);
+    expect(s().pending[ulid(0)]).toBeUndefined();
+    const newest = ulid(MAX_PENDING + 9);
+    expect(s().pending[newest]).toHaveLength(1);
+    s().ingestEvent(makeEvent(newest));
+    expect(s().events[newest]?.status).toBe('ACK');
+  });
+
+  it('parks at most MAX_PENDING_PER_EVENT updates per event, the newest', () => {
+    for (let i = 0; i < MAX_PENDING_PER_EVENT + 5; i++) {
+      s().applyLifecycle(makeLifecycle(ulid(1), 'ACK', ACK_AT, `note ${i}`));
+    }
+    const parked = s().pending[ulid(1)] ?? [];
+    expect(parked).toHaveLength(MAX_PENDING_PER_EVENT);
+    expect(parked.at(-1)?.note).toBe(`note ${MAX_PENDING_PER_EVENT + 4}`);
+  });
+
+  it('keeps the newest MAX_NOTES_PER_EVENT notes of an event', () => {
+    s().ingestEvent(makeEvent(ulid(1)));
+    s().applyLifecycle(makeLifecycle(ulid(1), 'ACK', ACK_AT));
+    for (let i = 0; i < MAX_NOTES_PER_EVENT + 5; i++) {
+      s().applyLifecycle(makeLifecycle(ulid(1), 'ACK', ACK_AT, `note ${i}`));
+    }
+    const notes = s().events[ulid(1)]?.notes ?? [];
+    expect(notes).toHaveLength(MAX_NOTES_PER_EVENT);
+    expect(notes.at(-1)?.text).toBe(`note ${MAX_NOTES_PER_EVENT + 4}`);
   });
 });

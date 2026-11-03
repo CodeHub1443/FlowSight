@@ -20,7 +20,7 @@ import {
 import { DAY, HOUR, hourOfDay, iso, MIN, ShiftClock, dateOf } from './clock';
 import type { SimCtx } from './ctx';
 import { buildEvent, type EventSpec } from './eventFactory';
-import { CURVE_SLOT_MS, HistoryStore } from './history';
+import { CURVE_SLOT_MS, HISTORY_RETENTION_DAYS, HistoryStore } from './history';
 import { hashSeed, Rng, round } from './rng';
 import type { EventRec, SimMessage, VisitRec } from './types';
 
@@ -75,6 +75,7 @@ export class Depot implements SimCtx {
   private trackSeq = 0;
   private trackDay = '';
   private readonly visitSeq = new Map<string, number>();
+  private lastPruneAt: number;
   private day = { key: '', ppe: 0, critical: 0, evaluated: false };
   private shiftStart = 0;
   /** True while a manual trigger runs: events then draw ids from the trigger stream. */
@@ -94,6 +95,7 @@ export class Depot implements SimCtx {
     const days = opts.historyDays ?? 7;
     this.historyStartMs = this.clock.at(this.liveStartMs - days * DAY).start;
     this.now = this.historyStartMs;
+    this.lastPruneAt = this.liveStartMs;
     const face = opts.cfg.dockFaces[0];
     if (!face) throw new Error('site config has no dock face');
     this.bays = face.bays.map((b) => new BaySim(this, b.id, this.historyStartMs));
@@ -115,6 +117,22 @@ export class Depot implements SimCtx {
   /** Runs fixed live steps until `target`. Determinism does not depend on how calls are batched. */
   advanceTo(target: number): void {
     while (this.now + LIVE_STEP_MS <= target) this.step(LIVE_STEP_MS);
+    if (this.now - this.lastPruneAt >= DAY) this.pruneHistory();
+  }
+
+  /** Applies the retention of HistoryStore and of the per-day keys held here, relative to `now`. No random draws. */
+  pruneHistory(): void {
+    this.lastPruneAt = this.now;
+    const cutoff = this.now - HISTORY_RETENTION_DAYS * DAY;
+    const cutoffDay = this.clock.businessDay(cutoff);
+    this.store.prune(cutoff, cutoffDay);
+    const cutoffCompact = cutoffDay.replaceAll('-', '');
+    for (const k of this.visitSeq.keys()) {
+      if ((k.split('|')[0] ?? '') < cutoffCompact) this.visitSeq.delete(k);
+    }
+    for (const k of this.rosterOverrides.keys()) {
+      if ((k.split('|')[0] ?? '') < cutoffDay) this.rosterOverrides.delete(k);
+    }
   }
 
   drain(): SimMessage[] {

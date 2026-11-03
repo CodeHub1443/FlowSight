@@ -17,6 +17,7 @@ export function LanguageToggle() {
             key={lng}
             type="button"
             aria-pressed={active}
+            data-testid={`language-${lng}`}
             onClick={() => void i18n.changeLanguage(lng)}
             className={cn(
               'soft-transition focus-visible:ring-ring/50 h-7 min-w-9 rounded-full px-2.5 text-[12.5px] font-medium focus-visible:ring-[3px] focus-visible:outline-none',

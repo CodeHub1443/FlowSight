@@ -113,6 +113,7 @@ REST via react-query hooks in `data/api/queries.ts`; MSW handlers in mock mode r
   3. Cases on belts, pallets, crates, trees and fence posts use `InstancedMesh`.
   4. `frameloop="demand"` when the tab is hidden; the tier governor (`src/scene/tierGovernor.ts`, driven by `AutoQuality.tsx`) auto-steps quality: warm-up, then 1 s fps windows with hold times and a retry backoff
      (`High`: soft shadows + contact shadows, 2× DPR; `Med`: contact shadows only, 1.5× DPR; `Low`: no shadows, 1× DPR). N8AO on High/Med (ADR-11).
+     **Pixel budget** (`MAX_PIXELS` in `src/scene/quality.ts`, Task 17): the renderer's ratio is the device ratio clamped to the tier's range, lowered only as far as the tier's maximum rendered pixels demand (Low and Med 2.1 MP, High 3.7 MP). The canvas keeps its CSS size and the browser upscales it; DOM labels stay sharp. A 4K wall costs the GPU about what 1080p does.
   5. Labels via drei `Html` only for selected or hovered objects plus pins; otherwise use `Text` (SDF) or sprites.
   6. Charts: ECharts with `useDirtyRect`, data decimation for > 2k points.
 - Video-wall PC: dedicated `/wall` route, fixed "Med" quality, auto-cycle every 30 s (site → each active bay → KPIs).

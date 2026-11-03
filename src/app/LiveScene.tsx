@@ -32,6 +32,7 @@ import {
 } from '@/stores';
 import { MapControls } from './MapControls';
 import { QualityBadge } from './QualityBadge';
+import { installSoakProbe } from './soakProbe';
 import { bayOfSelection, flyTargetFor, type SceneTargetContext } from './sceneTarget';
 import { hasWebGL } from './webgl';
 
@@ -41,6 +42,8 @@ declare global {
     __sceneCamera?: ReturnType<typeof useSceneCamera>;
   }
 }
+
+if (QUALITY_DEBUG) installSoakProbe();
 
 const SceneRoot = lazy(() => import('@/scene').then((m) => ({ default: m.SceneRoot })));
 

@@ -43,7 +43,7 @@
     "back": "Back to live view"
   },
   "debug": {
-    "quality": "Tier {{tier}} · {{state}} · {{fps}} fps",
+    "quality": "Tier {{tier}} · {{state}} · {{fps}} fps · {{width}}×{{height}} @ {{ratio}}",
     "title": "Data pipe (dev)",
     "status": "Status",
     "mode": "Data mode",

@@ -59,8 +59,8 @@ export function SceneLights({ layout }: { layout: SiteLayout }) {
   return (
     <>
       <Environment
-        // rebaked per theme: the lightformers carry the theme's light colours
-        key={theme}
+        // No key: a re-render rebakes this one target with the theme's light colours. A key per theme would make a new
+        // target on every switch, and three.js never frees the PMREM map it derives from a render-target texture.
         resolution={128}
         frames={1}
         environmentIntensity={dark ? DARK_RIG.env : ENV_INTENSITY}

@@ -10,6 +10,16 @@ const SLOTS_PER_DAY = 144;
 
 export type Curve = { out: Int32Array; in: Int32Array };
 
+/** Trailing history the simulator keeps. One day over the 7 it starts with, so a 7-day report stays complete. */
+export const HISTORY_RETENTION_DAYS = 8;
+
+/** In place, keeping the order. */
+function removeWhere<T>(list: T[], drop: (item: T) => boolean): void {
+  let kept = 0;
+  for (const item of list) if (!drop(item)) list[kept++] = item;
+  list.length = kept;
+}
+
 /**
  * Everything the simulator remembers for REST: events, visits, belt intervals, hourly counts, camera incidents.
  * Written by the bays; read by the API router. Nothing here is ever published on a live channel.
@@ -155,6 +165,48 @@ export class HistoryStore implements HistoryLike {
 
   hasCurve(businessDay: string): boolean {
     return this.curves.has(businessDay);
+  }
+
+  /**
+   * Forget what ended before `cutoff` (the database's retention, in the simulator's memory). Anything still in progress
+   * stays, whatever its age: open events and alerts, visits that have not departed, camera incidents without an end.
+   */
+  prune(cutoff: number, cutoffDay: string): void {
+    removeWhere(this.events, (e) => {
+      const drop = e.status === 'CLOSED' && Date.parse(e.ts) < cutoff;
+      if (drop) this.eventById.delete(e.id);
+      return drop;
+    });
+    removeWhere(this.visits, (v) => {
+      const drop = v.departedAt !== null && v.departedAt < cutoff;
+      if (drop) this.visitById.delete(v.visitId);
+      return drop;
+    });
+    for (const list of this.belt.values()) removeWhere(list, (i) => i.end < cutoff);
+    removeWhere(this.incidents, (i) => i.to !== null && i.to < cutoff);
+    const cutoffHour = Math.floor(cutoff / HOUR);
+    for (const k of this.hourCounts.keys()) {
+      if (Number(k.slice(k.lastIndexOf('|') + 1)) < cutoffHour) this.hourCounts.delete(k);
+    }
+    for (const k of this.skuHour.keys()) {
+      if (Number(k.slice(0, k.indexOf('|'))) < cutoffHour) this.skuHour.delete(k);
+    }
+    for (const day of this.curves.keys()) if (day < cutoffDay) this.curves.delete(day);
+  }
+
+  /** Counts of what prune bounds, for the soak report. */
+  sizes(): Record<string, number> {
+    let belt = 0;
+    for (const list of this.belt.values()) belt += list.length;
+    return {
+      events: this.events.length,
+      visits: this.visits.length,
+      belt,
+      incidents: this.incidents.length,
+      hourCounts: this.hourCounts.size,
+      skuHour: this.skuHour.size,
+      curves: this.curves.size,
+    };
   }
 
   /** Events in [from, to) by ts, ascending. */

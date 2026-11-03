@@ -1,3 +1,4 @@
+import type { WebGLRenderer } from 'three';
 import type { GovernorState, TierStep } from './tierGovernor';
 
 // Readout of the automatic quality mode for the dev badge and the e2e run. Tiny and three-free: /live imports it
@@ -10,11 +11,15 @@ export interface QualityProbe {
   /** 'pinned' while a fixed tier is in force. */
   state: GovernorState | 'pinned';
   fps: number | null;
-  /** Every automatic step since the page loaded. */
+  /** The automatic steps since the page loaded, newest last, at most MAX_PROBE_STEPS. */
   steps: TierStep[];
+  /** The live renderer: drawing-buffer size and pixel ratio for the badge, `info` for the soak run. */
+  renderer: WebGLRenderer | null;
 }
 
-export const qualityProbe: QualityProbe = { state: 'pinned', fps: null, steps: [] };
+export const MAX_PROBE_STEPS = 200;
+
+export const qualityProbe: QualityProbe = { state: 'pinned', fps: null, steps: [], renderer: null };
 
 declare global {
   interface Window {

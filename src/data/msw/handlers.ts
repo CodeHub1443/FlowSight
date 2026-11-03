@@ -86,6 +86,9 @@ async function bodyOf(request: Request): Promise<unknown> {
   }
 }
 
+/** Placeholder images kept alive for the presign mock. */
+const MAX_EVIDENCE_BLOBS = 200;
+
 /** Handlers for every endpoint of docs/03 section 4. The REST data comes from the simulator's 7-day history. */
 export function createHandlers(opts: MockApiOptions = {}): HttpHandler[] {
   const base = opts.apiBase ?? '/api';
@@ -190,6 +193,12 @@ export function createHandlers(opts: MockApiOptions = {}): HttpHandler[] {
       });
       url = URL.createObjectURL(blob);
       blobUrls.set(key, url);
+      // insertion order: the oldest placeholder goes first
+      const oldest = blobUrls.size > MAX_EVIDENCE_BLOBS ? blobUrls.entries().next().value : null;
+      if (oldest) {
+        URL.revokeObjectURL(oldest[1]);
+        blobUrls.delete(oldest[0]);
+      }
     }
     return HttpResponse.json({ url, expiresAt: iso(Date.now() + 15 * MIN) });
   });

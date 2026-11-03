@@ -24,6 +24,7 @@ import {
   type SceneTheme,
 } from './materials';
 import { AUTO_START_TIER, autoStartTier, QUALITY, type QualityTier } from './quality';
+import { QUALITY_DEBUG, qualityProbe } from './qualityProbe';
 import { SceneLights } from './SceneLights';
 import { ScenePost } from './ScenePost';
 import { SceneEnvContext, type SceneEnv } from './sceneEnv';
@@ -38,6 +39,7 @@ import { ExteriorContext } from './site/ExteriorContext';
 import { FaceContents } from './site/FaceContents';
 import { buildSiteLayout } from './site/layout';
 import { applySoftShadows } from './softShadows';
+import { useRenderPixelRatio } from './useRenderPixelRatio';
 
 // 16-tap PCF for the key light (docs/06 section 2 soft shadow without grain); before any material compiles
 applySoftShadows();
@@ -120,9 +122,17 @@ export function SceneRoot({
   const [autoTier, setAutoTier] = useState<QualityTier>(AUTO_START_TIER);
   const tier = quality ?? autoTier;
   const settings = QUALITY[tier];
+  const [frame, setFrame] = useState<HTMLDivElement | null>(null);
+  const pixelRatio = useRenderPixelRatio(frame, settings);
   // before the first frame, so the props are usually there when the bays mount; Low never downloads them
   if (tier !== 'low') preloadLiveModels();
   useEffect(() => onTierChange?.(tier), [tier, onTierChange]);
+  useEffect(
+    () => () => {
+      if (QUALITY_DEBUG) qualityProbe.renderer = null;
+    },
+    [],
+  );
 
   const [visible, setVisible] = useState(() => document.visibilityState !== 'hidden');
   useEffect(() => {
@@ -177,9 +187,10 @@ export function SceneRoot({
   );
 
   return (
-    <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+    <div ref={setFrame} style={{ position: 'relative', width: '100%', height: '100%' }}>
       <Canvas
-        dpr={settings.dpr}
+        // a number, not the tier's range: the budget is already in it. The composer follows the renderer's ratio by itself.
+        dpr={pixelRatio}
         shadows={env.shadows ? 'percentage' : false}
         frameloop={visible ? 'always' : 'demand'}
         camera={{ fov: CAMERA_FOV, near: 1, far: 700, position: [0, 60, 80] }}
@@ -198,6 +209,7 @@ export function SceneRoot({
             info ? String(ctx.getParameter(info.UNMASKED_RENDERER_WEBGL)) : null,
           );
           if (start !== AUTO_START_TIER) setAutoTier(start);
+          if (QUALITY_DEBUG) qualityProbe.renderer = gl;
           onReady?.(gl, scene);
         }}
       >

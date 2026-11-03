@@ -199,6 +199,10 @@ export function handleApi(depot: Depot, req: ApiRequest): ApiResponse {
           return notFound(`route ${path}`);
       }
     }
+    if (path === '/__mock/history-sizes') {
+      // Internal: the soak run watches the simulator's own memory (scripts/soak).
+      return ok(depot.store.sizes());
+    }
     if (path === '/__mock/presence') {
       // Internal: crew presence per worker track for the manager-only people report (built in the MSW layer).
       const { from, to } = timeWindow(depot, q);

@@ -16,7 +16,10 @@ import { filterAlerts, type AlertFilter } from './alertFilter';
 //  - Ack actions are optimistic in the UI and confirmed by REST (later step); this store only applies messages.
 
 export const MAX_EVENTS = 500;
-const MAX_PENDING = 200;
+/** Events with parked lifecycle updates: when full the oldest is dropped, so a stale orphan cannot block a new one. */
+export const MAX_PENDING = 200;
+export const MAX_PENDING_PER_EVENT = 8;
+export const MAX_NOTES_PER_EVENT = 100;
 
 const RANK: Record<EventStatus, number> = { OPEN: 0, ACK: 1, CLOSED: 2 };
 const ms = (ts: string) => Date.parse(ts);
@@ -57,6 +60,15 @@ function withStatus(e: WhEvent): WhEventWithStatus {
   return { ...e, status: 'OPEN', ack: null, closed: null, notes: [] };
 }
 
+function appendNote(
+  e: WhEventWithStatus,
+  by: string,
+  at: string,
+  text: string,
+): WhEventWithStatus['notes'] {
+  return [...e.notes, { by, at, text }].slice(-MAX_NOTES_PER_EVENT);
+}
+
 /** Pure: apply one lifecycle update to one event. Returns the same object when nothing changes. */
 export function applyLifecycleTo(e: WhEventWithStatus, u: EventLifecycleUpdate): WhEventWithStatus {
   const by = u.by.name || u.by.userId;
@@ -70,10 +82,10 @@ export function applyLifecycleTo(e: WhEventWithStatus, u: EventLifecycleUpdate):
       if (e.ack === null) fields.ack = { by, at: u.at };
     }
     if (u.note !== null && u.status === 'ACK') {
-      fields.notes = [...e.notes, { by, at: u.at, text: u.note }];
+      fields.notes = appendNote(e, by, u.at, u.note);
     }
   } else if (u.status === e.status && u.note !== null) {
-    fields.notes = [...e.notes, { by, at: u.at, text: u.note }];
+    fields.notes = appendNote(e, by, u.at, u.note);
   } else {
     return e; // duplicate or backwards transition
   }
@@ -98,6 +110,13 @@ function evict(events: Record<string, WhEventWithStatus>): Record<string, WhEven
   return Object.fromEntries(Object.entries(events).filter(([id]) => !drop.has(id)));
 }
 
+/** Keeps only the entries of events still held: what is kept per event must leave with it. */
+function pickHeld<T>(rec: Record<string, T>, events: Record<string, unknown>): Record<string, T> {
+  return Object.keys(rec).every((id) => id in events)
+    ? rec
+    : Object.fromEntries(Object.entries(rec).filter(([id]) => id in events));
+}
+
 export function createAlertStore(): AlertStore {
   return createStore<AlertState>()((set, get) => ({
     ...initialData(),
@@ -119,12 +138,15 @@ export function createAlertStore(): AlertStore {
         };
       }
       const pending = omit(s.pending, incoming.id);
+      const events = evict({ ...s.events, [incoming.id]: event });
       set({
-        events: evict({ ...s.events, [incoming.id]: event }),
-        lifecycleAt,
+        events,
+        lifecycleAt: pickHeld(lifecycleAt, events),
         pending,
-        unreadIds:
+        unreadIds: pickHeld(
           event.status === 'CLOSED' ? s.unreadIds : { ...s.unreadIds, [incoming.id]: true },
+          events,
+        ),
       });
     },
 
@@ -141,7 +163,13 @@ export function createAlertStore(): AlertStore {
           events = { ...events, [e.id]: e };
         }
       }
-      if (events !== s.events) set({ events: evict(events) });
+      if (events === s.events) return;
+      const held = evict(events);
+      set({
+        events: held,
+        lifecycleAt: pickHeld(s.lifecycleAt, held),
+        unreadIds: pickHeld(s.unreadIds, held),
+      });
     },
 
     applyLifecycle: (u) => {
@@ -149,8 +177,14 @@ export function createAlertStore(): AlertStore {
       const cur = s.events[u.id];
       if (!cur) {
         const parked = s.pending[u.id] ?? [];
-        if (Object.keys(s.pending).length >= MAX_PENDING && parked.length === 0) return;
-        set({ pending: { ...s.pending, [u.id]: [...parked, u] } });
+        let pending = s.pending;
+        if (parked.length === 0) {
+          // insertion order: event ids are ULIDs, never integer-like keys
+          const keys = Object.keys(pending);
+          const oldest = keys[0];
+          if (keys.length >= MAX_PENDING && oldest !== undefined) pending = omit(pending, oldest);
+        }
+        set({ pending: { ...pending, [u.id]: [...parked, u].slice(-MAX_PENDING_PER_EVENT) } });
         return;
       }
       if (ms(u.at) < (s.lifecycleAt[u.id] ?? 0)) return;

@@ -746,3 +746,91 @@ Any camera motion costs 2-5 s per frame on SwiftShader at 1366x768: 24 frames in
 
 ### Not tested
 A headed browser and a real keyboard: all key input is Playwright-synthesised and headless, and motion was checked by samples and still frames, not by eye. The foreground window was not sampled during the e2e runs, only during the fps runs. The focus ring is checked by computed style, not in a screenshot. Non-US keyboard layouts for `+` and `-`.
+
+## Task 17: pixel budget for big screens, long-running soak test (uncommitted)
+
+### Status
+Built and passing. The 60-minute soak passes. Camera, presets, `SCENE_SAFE_AREA`, keyboard controls, layout and data contract are unchanged. **Owner decision open: the Low budget (below).**
+
+### Pixel budget
+`src/scene/quality.ts`: `MAX_PIXELS` Low 2.1 MP, Med 2.1 MP, High 3.7 MP; `renderPixelRatio()` is pure. `src/scene/useRenderPixelRatio.ts` recomputes on resize, device-ratio change (browser zoom included) and tier change, with no React state per frame. R3F applies the ratio; the composer follows it through its own size check (seen in a GL trace). CSS size and DOM are untouched. Debug builds only: `?pixels=<MP>`, and the tier badge shows render size and ratio.
+
+Deviations from the brief:
+- **Low is 2.1 MP, not about 1.0 MP.** 1.0 MP would change Low at 1920x1080 and 1366x768, which the brief freezes. Cost on RTX 3050: Low at 1080p 1.19 ms at 2.1 MP against 0.61 ms at 1.0 MP. One constant to change; `?pixels=1` previews it.
+- **Formula.** Read literally, "tier dpr range value x device dpr" (1.5 x 1) changes 1080p. Implemented as the device ratio clamped to the tier's range, which is what R3F did before, then capped by the budget.
+
+### Results (RTX 3050, EXT_disjoint_timer_query_webgl2, uncapped, static scene, peak)
+| Viewport, device scale | Tier | Buffer before -> after | GPU ms before -> after | Fps before -> after |
+|---|---|---|---|---|
+| 1920x1080 @1 | Low | 1920x1031 unchanged | 1.19 -> 1.20 | 798 -> 795 |
+| 1920x1080 @1 | Med | 1920x1031 unchanged | 3.24 -> 3.17 | 302 -> 307 |
+| 1920x1080 @1 | High | 1920x1031 unchanged | 7.58 -> 7.59 | 133 -> 133 |
+| 3840x2160 @1 | Low | 3840x2111 -> 1954x1074 | 4.41 -> 1.34 | 227 -> 697 |
+| 3840x2160 @1 | Med | 3840x2111 -> 1954x1074 | 11.53 -> 3.45 | 90 -> 281 |
+| 3840x2160 @1 | High | 3840x2111 -> 2594x1426 | 28.26 -> 13.51 | 37 -> 76 |
+| 3840x2160 @2 | Low | 3840x2111 -> 1954x1074 | 4.27 -> 1.38 | 227 -> 690 |
+| 3840x2160 @2 | Med | 5760x3166 -> 1954x1074 | 25.47 -> 3.48 | 42 -> 280 |
+| 3840x2160 @2 | High | 7680x4222 -> 2594x1426 | 111.85 -> 13.62 | 11 -> 75 |
+
+Budget sweep at 4K: Med 1 MP 1.94 ms, 2.1 MP 3.45, 3.7 MP 5.62, 5 MP 7.32, native 11.49. High 1 MP 4.71, 2.1 MP 8.13, 3.7 MP 13.40, 5 MP 17.63, native 27.95. Estimate for the GTX 1050 Ti at 2.5-3x (inference, not measured): Med at 4K about 9-10 ms, fine; High about 35-40 ms, so the governor would step down.
+
+Softness: at a 100 % crop, 4K Med is visibly softer (box seams, pallet slats, thin forklift bars, belt ribs). The whole frame reads well, and DOM labels and cards stay sharp. A fair trade at this cost.
+
+### 1080p identity (old build against new, simulator stubbed, static scene)
+- Med and High, 1920x1080 and 1366x768, light and dark: every row identical in the canvas and on the whole page, final run and 4 controls (40 rows).
+- Low: the settled canvas hash is the same in both builds in every run, but the tier is noisy. Same build against itself gives the same differences as old against new: whole-page differences of delta 1 (2, 3, 30 or 31 pixels), about 940 pixels of delta 6 on the site pill, and an occasional canvas that differs between two reads (`96b801d8` in place of `82e1a3ab`, seen in both builds). Canvas mismatches: 1 of 32 rows old against new, 3 of 72 same build. The cause of the noise is not established. No difference was found that belongs to the new build.
+- `compare.mjs --check=identity` exits 1 on any row that differs, so it exits 1 on this noise. Use `--control=1`, or `--before` and `--after` naming the same build, for the noise floor.
+- Theme cycle at 1366x768, each tier: both builds give the same hash at every step. Toggled Med and High differ from a fresh load in both builds; not from this task.
+- Correction to a note made during the task: the `96b801d8` frame is not specific to the old build.
+
+### Leak found by the soak and fixed
+`key={theme}` on `<Environment>` in `SceneLights.tsx` added one GPU texture per theme toggle (48 -> 53 in 4 minutes, about 1.5 MB VRAM each): three's `WebGLEnvironments` keeps a PMREM target for each new cube target, with no dispose listener. Removing the key rebakes in place. Lighting is frozen, so the identity and theme-cycle checks above are the evidence that it did not change. Restoring the key makes the e2e guard fail (expected 49, received 55).
+
+### Soak: `docs/soak/t17-60min/` (50 min 1x, 10 min 60x, 1920x1080, auto quality, seed 1, RTX 3050, vsync 164 Hz)
+PASS, 120 samples, 80 actions with 0 failures, Chrome in front in all 120 samples.
+
+| Measure | Result | Limit |
+|---|---|---|
+| Heap after GC, after warm-up | +2.28 MB/h (24.1 -> 26.4 MB) | < 5 MB/h |
+| Geometries | peak 170 -> 170 | flat |
+| Textures | 47 -> 47, slope 0 | flat |
+| DOM nodes after GC | peak 1200 -> 1203 | flat, 5 % room |
+| Listeners after GC | peak 371 -> 371 | flat, 5 % room |
+| Fps | 164 -> 164, drop 0 % (pinned at vsync) | < 5 % |
+| GPU ms / script ms per frame | 6.9 -> 6.7 / 4.4 -> 4.0 | no limit |
+| Tier steps after warm-up | 0 (med -> high inside warm-up) | 0 |
+| Errors, lost contexts, non-local requests | 0, 0, 0 | 0 |
+
+Limits of this result: an hour cannot tell a slow leak from filling caches, and alertStore reached its 500 cap only at 0.93 h, in the 60x phase, so +2.28 MB/h is not yet a proven plateau. The heap slope in the 60x phase alone is 7.79 MB/h, from few post-GC samples. Fps is pinned at the panel rate, so it would not show a small decline; the GPU and script panels are the better signal. Simulated time stayed well under the 8-day retention window, so simulator pruning is proven by unit tests, not by this run. The 12-hour run decides these: `pnpm soak --hours=12` (`docs/soak/README.md`).
+
+### Retention of every collection
+| Collection | Rule |
+|---|---|
+| liveStore bays, bayRxAt, actors | keyed by the site's 7 bays; each frame replaces the last |
+| liveStore visits | cap 60 |
+| liveStore queue | flushed every 250 ms |
+| alertStore events | cap 500, oldest closed first |
+| alertStore lifecycleAt, unreadIds | only events held (**fixed: were unbounded**) |
+| alertStore pending | cap 200, oldest out; 8 per event (**fixed: refused new ones when full**) |
+| alertStore notes | 100 per event (**new**) |
+| caseBus | no retention |
+| TierGovernor samples, qualityProbe steps | 10; 200 (debug only) |
+| ActorTracks, TruckSim, plate slots | removed after the unseen fade or the truck leaves |
+| BeltItems | 24 per bay |
+| Label and geometry caches | keyed by constant sizes and static text |
+| Simulator history (events, visits, belt, incidents, hourly, SKU, curves, visitSeq, rosterOverrides) | 8 days, open items stay (**new**, mock only) |
+| Simulator itemTimes, SimRuntime pending | 40; removed on response |
+| MSW evidence blobs | 200, revoked on eviction (**new**, mock only) |
+| React Query | no QueryClient in the app yet |
+
+### Other additions
+`data-testid` on the theme and language toggles (soak and e2e). `src/app/soakProbe.ts`, debug builds only. `/__mock/history-sizes` in the mock API; it ships in the production bundle like `/__mock/presence`, because the simulator does. The soak foreground column holds a process name, never a window title. The simulator worker's heap cannot be read from Chrome; the `sim*` columns count its collections instead.
+
+### Screenshots
+`docs/screens/t17-4k-{light,dark}-dpr{1,2}-{before,after}-crop.png`, dpr1 `-full.png`; `t17-1080p-{light,dark}-{before,after}.png`; `t17-badge-{1920x1080,3840x2160}.png`. Soak chart: `docs/soak/t17-60min/chart.png`.
+
+### Checks on the final code
+`pnpm typecheck`, `lint`, `format:check`, `i18n:check`, `contract:check`, `build`: exit 0. `pnpm test`: 62 files, 1273 tests passed. `pnpm e2e`: 59 passed in 36.4 min, one run, IDE in front in all 73 samples. Production bundle: 0 files with `__soakProbe`, `__qualityProbe` or `quality-badge`. The 40 older tracked screenshots e2e rewrote were restored from HEAD.
+
+### Not tested
+The GTX 1050 Ti itself; a real 4K panel or video wall (4K is a viewport on a laptop panel); browser zoom by a real user (device scale is emulated); Intel UHD at Low; a soak at 3840x2160; a soak longer than 60 minutes; the simulator worker's heap; live NATS traffic; Bangla at 4K crops (Bangla covered only by the soak's language toggles and earlier e2e).

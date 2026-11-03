@@ -13,6 +13,7 @@ import { shiftOf } from '@/lib/time';
 import { CAPTAINS, makePlate } from './catalog';
 import { DAY, HOUR, hourOfDay, MIN } from './clock';
 import { Depot } from './depot';
+import { HISTORY_RETENTION_DAYS } from './history';
 import { Rng } from './rng';
 import { CFG, makeDepot, PEAK, stream } from './testing';
 import type { SimMessage } from './types';
@@ -661,5 +662,62 @@ describe('privacy and configuration', { timeout: 60_000 }, () => {
     );
     // the brief targets < 3 s on a normal desktop; the hard limit here leaves room for a loaded CI box
     expect(ms).toBeLessThan(10_000);
+  });
+});
+
+describe('history retention', () => {
+  it('forgets what ended before the window and keeps what is still in progress', () => {
+    const d = makeDepot(3, PEAK, 12);
+    const { store } = d;
+    const before = store.sizes();
+    const cutoff = d.now - HISTORY_RETENTION_DAYS * DAY;
+    expect(Date.parse(store.events[0]?.ts ?? '')).toBeLessThan(cutoff);
+    const openBefore = store.openIds().length;
+    const eventsInWindow = store.events.filter(
+      (e) => e.status !== 'CLOSED' || Date.parse(e.ts) >= cutoff,
+    ).length;
+
+    d.pruneHistory();
+
+    const after = store.sizes();
+    expect(after.events).toBe(eventsInWindow);
+    expect(after.events).toBeLessThan(before.events ?? 0);
+    expect(after.visits).toBeLessThan(before.visits ?? 0);
+    expect(after.belt).toBeLessThan(before.belt ?? 0);
+    expect(after.hourCounts).toBeLessThan(before.hourCounts ?? 0);
+    expect(after.skuHour).toBeLessThan(before.skuHour ?? 0);
+    expect(after.curves).toBeLessThan(before.curves ?? 0);
+    expect(store.eventById.size).toBe(after.events);
+    expect(store.visitById.size).toBe(after.visits);
+    // open alerts stay, whatever their age
+    expect(store.openIds()).toHaveLength(openBefore);
+    expect(store.events.every((e, i, a) => i === 0 || e.ts >= (a[i - 1]?.ts ?? ''))).toBe(true);
+    for (const v of store.visits) {
+      expect(v.departedAt === null || v.departedAt >= cutoff).toBe(true);
+    }
+  });
+
+  it('keeps a full 7-day report and changes nothing the simulation draws', () => {
+    const a = makeDepot(5, PEAK, 9);
+    const b = makeDepot(5, PEAK, 9);
+    const weekAgo = a.now - 7 * DAY;
+    const week = a.store.eventsBetween(weekAgo, a.now).length;
+    a.pruneHistory();
+    expect(a.store.eventsBetween(weekAgo, a.now)).toHaveLength(week);
+    a.advanceTo(a.now + 30 * MIN);
+    b.advanceTo(b.now + 30 * MIN);
+    expect(a.drain()).toEqual(b.drain());
+  });
+
+  it('prunes by itself once per simulated day, in live mode only', () => {
+    const d = makeDepot(6, PEAK, 9);
+    const size = () => d.store.sizes().events ?? 0;
+    const start = size();
+    d.advanceTo(d.now + 10 * MIN);
+    expect(size()).toBeGreaterThanOrEqual(start);
+    // jump the day counter instead of simulating a day
+    (d as unknown as { lastPruneAt: number }).lastPruneAt = d.now - DAY;
+    d.advanceTo(d.now + MIN);
+    expect(size()).toBeLessThan(start);
   });
 });

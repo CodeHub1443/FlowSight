@@ -22,6 +22,7 @@
     "format:check": "prettier --check .",
     "test": "vitest run",
     "e2e": "playwright test",
+    "soak": "node scripts/soak/soak.mjs",
     "i18n:check": "node scripts/i18n-check.mjs",
     "contract:check": "node scripts/contract-check.mjs",
     "assets:build": "node scripts/assets/build.mjs",
