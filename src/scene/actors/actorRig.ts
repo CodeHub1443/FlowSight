@@ -24,7 +24,10 @@ import type { BayLayout, FaceLayout, SiteLayout } from '../site/layout';
 import { bayToSite, headingToRotationY } from '../site/transforms';
 import {
   beltSpan,
-  ITEM_SIZE,
+  CARTON_DIMS,
+  CARTON_TONE_FACTOR,
+  cartonSizeOf,
+  cartonToneOf,
   itemScale,
   itemY,
   MAX_ITEMS_PER_BAY,
@@ -163,7 +166,7 @@ function createStores(layout: SiteLayout): ActorStores {
         (people + bays * 2) + // heads
         (people * 4 + bays * (FORKLIFT_BOXES.length + 5)) + // boxes
         people * 2 + // rings, blobs
-        MAX_ITEMS_PER_BAY * bays * 5 + // two rows for a case or a shrink block, one for a sack
+        MAX_ITEMS_PER_BAY * bays * 2 + // a carton and its tape
         bays * MAX_FORKLIFTS_PER_BAY * GLB_PARTS_MAX,
     ),
     standing: new InstanceStore(trucks * (TRUCK_PARTS.length + TRUCK_WHEELS.length * 2 + 1)),
@@ -191,8 +194,7 @@ export class ActorRig {
   private readonly wheels: InstancePool;
   private readonly truckBlobs: InstancePool;
   private readonly itemCase: InstancePool | null;
-  private readonly itemSack: InstancePool | null;
-  private readonly itemShrink: InstancePool | null;
+  private readonly kraft: Record<'light' | 'medium', Color>;
   private readonly materials: MeshBasicMaterial[];
 
   constructor(
@@ -257,13 +259,14 @@ export class ActorRig {
     this.truckBlobs = this.pool(UNIT_PLANE, blobMaterial, trucks, st);
     if (quality.actors.animated) {
       this.itemCase = this.pool(lo, ACTOR_BOX_MATERIAL, itemCap * 2, mv, boxOpts);
-      this.itemSack = this.pool(sphereGeo, ACTOR_SOLID_MATERIAL, itemCap, mv, solidOpts);
-      this.itemShrink = this.pool(lo, ACTOR_BOX_MATERIAL, itemCap * 2, mv, boxOpts);
     } else {
       this.itemCase = null;
-      this.itemSack = null;
-      this.itemShrink = null;
     }
+    const kraftBase = new Color(palette.carton);
+    this.kraft = {
+      light: kraftBase.clone().multiplyScalar(CARTON_TONE_FACTOR.light),
+      medium: kraftBase.clone().multiplyScalar(CARTON_TONE_FACTOR.medium),
+    };
   }
 
   private pool(
@@ -745,11 +748,11 @@ export class ActorRig {
   // ---- belt items --------------------------------------------------------------------------------------------------
 
   drawItems(items: readonly BeltItem[]): void {
-    const { itemCase, itemSack, itemShrink } = this;
-    if (!itemCase || !itemSack || !itemShrink) return;
+    const { itemCase } = this;
+    if (!itemCase) return;
+    const carton = finishOf('carton');
+    const tape = this.color('cartonTape');
     itemCase.begin();
-    itemSack.begin();
-    itemShrink.begin();
     for (const it of items) {
       const bay = this.maps.bay.get(it.bay);
       if (!bay) continue;
@@ -757,7 +760,7 @@ export class ActorRig {
       const y = itemY(it, beltSpan(c));
       const s = itemScale(it.k);
       if (s <= 0) continue;
-      const size = ITEM_SIZE[it.pack];
+      const size = CARTON_DIMS[cartonSizeOf(it.variant)];
       const top = beltTop(c, y);
       const p = bayToSite(bay.face, bay.door, { x: it.x, y, z: top }, this.layout.floorLevel);
       _base.makeRotationY(headingToRotationY(bay.face, 0));
@@ -768,18 +771,11 @@ export class ActorRig {
       const h = size[2] * s;
       const w = size[0] * s;
       const d = size[1] * s;
-      if (it.pack === 'CASE') {
-        this.box(itemCase, _base, 0, h / 2, 0, _q, w, h, d, it.tone, 1);
-        // tape along the top (docs/06 section 2)
-        this.box(itemCase, _base, 0, h, 0, _q, w * 0.18, 0.012, d + 0.01, 'cartonTape', 1, 0);
-      } else if (it.pack === 'SACK') {
-        // a pillow: a squashed sphere, sitting on the belt
-        this.box(itemSack, _base, 0, h / 2, 0, _q, w / 2, h / 2, d / 2, it.tone, 1, 0);
-      } else {
-        this.box(itemShrink, _base, 0, h / 2, 0, _q, w, h, d, it.tone, 1, 0.2);
-        // the wrap's seam
-        this.box(itemShrink, _base, 0, h / 2, 0, _q, w + 0.01, h * 0.12, d + 0.01, 'metal', 1, 0.2);
-      }
+      // kraft body, rounded like the pallet cartons, with a lighter tape strip across the top (docs/06 section 2)
+      _m.compose(_v.set(0, h / 2, 0), _q, _s.set(w, h, d)).premultiply(_base);
+      itemCase.add(_m, this.kraft[cartonToneOf(it.variant)], carton, ROUND, 1);
+      _m.compose(_v.set(0, h, 0), _q, _s.set(w * 0.18, 0.012, d + 0.01)).premultiply(_base);
+      itemCase.add(_m, tape, carton, 0, 1);
       if (it.flagged) {
         // a small pin above a flagged item (docs/04 section 3)
         this.box(
@@ -801,7 +797,5 @@ export class ActorRig {
       }
     }
     itemCase.end();
-    itemSack.end();
-    itemShrink.end();
   }
 }

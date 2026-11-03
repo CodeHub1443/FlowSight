@@ -9,13 +9,17 @@ import {
   beltMoves,
   BeltItems,
   BELT_SPEED,
-  ITEM_SIZE,
+  CARTON_DIMS,
+  CARTON_SIZES,
+  CARTON_TONES,
+  CARTON_VARIANTS,
+  pickCartonVariant,
   MIN_ITEM_GAP_M,
   itemScale,
   itemY,
   MAX_ITEMS_PER_BAY,
 } from './beltItems';
-import { itemTone, LIVERIES, liveryOf } from './livery';
+import { LIVERIES, liveryOf } from './livery';
 import { personPose } from './personPose';
 import { clearOfWall, MIN_PLATE_PX, plateLines, plateShown, type WallView } from './plateView';
 import {
@@ -132,7 +136,9 @@ describe('items on belts', () => {
       () => 'RUNNING_LOADED',
     );
     expect(b.spawn(tick, 0.1)).toBe(true);
-    expect(MIN_ITEM_GAP_M).toBeGreaterThan(Math.max(...Object.values(ITEM_SIZE).map((s) => s[0])));
+    expect(MIN_ITEM_GAP_M).toBeGreaterThan(
+      Math.max(...Object.values(CARTON_DIMS).map((s) => s[0])),
+    );
   });
 
   it('frees the slot when an item leaves the belt', () => {
@@ -171,22 +177,35 @@ describe('items on belts', () => {
     expect(itemScale(1)).toBe(0);
   });
 
-  it('colours by SKU, red when flagged, neutral when unknown', () => {
-    expect(itemTone(tick)).toBe(itemTone(tick));
-    expect(itemTone({ ...tick, flag: 'DAMAGED' })).toBe('statusCritical');
-    expect(itemTone({ ...tick, flag: 'TORN_SACK', pack: 'SACK' })).toBe('statusCritical');
-    expect(itemTone({ ...tick, sku: 'UNKNOWN' })).toBe('statusNeutral');
-    const tones = new Set(
+  it('has only carton variants: 3 sizes x 2 kraft tones, picked deterministically', () => {
+    expect(CARTON_SIZES).toHaveLength(3);
+    expect(CARTON_TONES).toHaveLength(2);
+    expect([...CARTON_VARIANTS].sort()).toEqual(
       [
-        'RIN-PB-1KG',
-        'LUX-SOAP-100',
-        'SURF-EXCEL-1KG',
-        'VIM-BAR-300',
-        'CLOSEUP-100',
-        'PONDS-50',
-      ].map((sku) => itemTone({ ...tick, sku })),
+        'large-light',
+        'large-medium',
+        'medium-light',
+        'medium-medium',
+        'small-light',
+        'small-medium',
+      ].sort(),
     );
-    expect(tones.size).toBeGreaterThan(1);
+    expect(Object.keys(CARTON_DIMS).sort()).toEqual([...CARTON_SIZES].sort());
+    for (let i = 0; i < 200; i++) expect(pickCartonVariant(i)).toBe(pickCartonVariant(i));
+    expect(new Set(Array.from({ length: 200 }, (_, i) => pickCartonVariant(i * 7919))).size).toBe(
+      CARTON_VARIANTS.length,
+    );
+    // whatever the pack, SKU or flag of the tick, a spawned item is one of the carton variants
+    const b = new BeltItems();
+    for (const pack of ['CASE', 'SACK', 'SHRINK'] as const) {
+      for (const flag of [null, 'DAMAGED'] as const) {
+        b.spawn({ ...tick, bay: `B0${b.items.length}`, pack, flag } as unknown as typeof tick);
+      }
+    }
+    for (const it of b.items) {
+      expect(CARTON_VARIANTS).toContain(it.variant);
+      expect(Math.abs(it.yaw)).toBeLessThan(0.07);
+    }
     expect(hashString('a')).toBe(hashString('a'));
   });
 });

@@ -834,3 +834,18 @@ Limits of this result: an hour cannot tell a slow leak from filling caches, and 
 
 ### Not tested
 The GTX 1050 Ti itself; a real 4K panel or video wall (4K is a viewport on a laptop panel); browser zoom by a real user (device scale is emulated); Intel UHD at Low; a soak at 3840x2160; a soak longer than 60 minutes; the simulator worker's heap; live NATS traffic; Bangla at 4K crops (Bangla covered only by the soak's language toggles and earlier e2e).
+
+## Task 18 - Belt items: cartons only
+
+Every belt item is now a kraft carton drawn like the pallet cartons (`--carton` body, `--carton-tape` strip on top, rounded). Variation: 3 sizes (small/medium/large) x 2 kraft tones (light = carton colour, medium = x0.9), picked deterministically from the item's seed; yaw jitter at most ~3.4 degrees (was ~8.6). Rule recorded in docs/06 section 7.6.
+
+**Changed:** `src/scene/actors/beltItems.ts` (`CARTON_*` variants, `pickCartonVariant`, `BeltItem.variant` replaces `pack`/`tone`; `ITEM_SIZE` removed), `actorRig.ts` (one carton pool; sack and shrink pools, their sphere/wrap drawing removed; store capacity 5 to 2 per item), `livery.ts` (`itemTone` and `PACK_TONES` removed), `ActorsLayer.tsx` + `actorProbe.ts` (`itemVariants` per bay, debug only), `actors.test.ts`, new `e2e/t18-belt-cartons.spec.ts`, new opt-in `e2e/t18-shots.spec.ts` (`T18_SHOTS=1`), docs/06. No GLB was used by the removed variants; the manifest is untouched.
+
+**Look:** reused the pallet carton palette tokens, procedural (no belt GLB exists). Note: in the palette the tape token is *darker* than the carton token (as on the pallets); kept identical to the pallets rather than lightening it. The red pin above a flagged item is unchanged.
+
+**Draw calls:** 2 fewer instanced pools (sack, shrink) than HEAD, so 2 fewer draw calls on Med/High; not measured in a browser (headless SwiftShader numbers are not representative, no GPU session was run). GPU ms before/after: not measured.
+
+**Screenshots:** `docs/screens/t18-belt-{high,med,low}-{light,dark}.png`. Only cartons on belts in High and Med. Low draws no belt items by design (static actors, unchanged), so its shots show empty belts.
+
+**Checks:** typecheck, lint, format:check, i18n:check, contract:check, build: pass. `pnpm test`: 4 files timed out at the 5 s default under 62 parallel workers (App, alertStore, LiveOverlay.flicker, obstacles perf, simulation history; the set varied per run, none import belt code); those files pass when rerun alone (simulation.test with `--testTimeout=60000`). e2e run: t18 cartons spec (60x: all 7 bays; 1x: at least 3 bays carried items, since belts idle at 1x), t14 actors: pass (t14 Low flaked once after a long test, passes alone). Full e2e not run, per brief.
+

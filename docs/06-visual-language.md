@@ -177,7 +177,7 @@ Trucks, people and forklifts follow docs/04 section 4. New tokens, because the b
 | `--truck-interior` | `#8491B0` | `#33426E` | inside of the box: pale, so it is never a dark hole (D4) |
 | `--plate-green` / `--plate-fg` | `#1B7F4E` / `#FFFFFF` | same | rear plate; 5:1, enforced by `scripts/contrast.test.mjs` |
 
-The forklift GLB's `brand` parts are drawn in `--pallet-yellow` (docs/04 section 4: yellow counterbalance forklift); the GLB is not rebuilt. Items on belts take their colour from existing prop tokens, by SKU within the pack family: there is no SKU colour on any subject all roles can read (`Sku.color` is only in `GET /admin/skus`, an admin endpoint). Flagged items use `--critical`, UNKNOWN `--status-neutral`.
+The forklift GLB's `brand` parts are drawn in `--pallet-yellow` (docs/04 section 4: yellow counterbalance forklift); the GLB is not rebuilt. **Belt items (Task 18, replaces the SKU-by-pack colouring that stood here): cartons only.** Every item on every belt is a kraft carton drawn like the pallet cartons (`--carton` body, `--carton-tape` strip across the top, rounded). The only variation is 3 sizes (small, medium, large) and 2 kraft tones (light = `--carton`, medium = `--carton` x 0.9), picked from the item's seed, and a yaw jitter of at most ~3.4 degrees. No other shape, colour or material appears on a belt, whatever the pack, SKU or flag of the case tick. A flagged item keeps the red pin above it (docs/04 section 3); the carton itself is not recoloured.
 
 ## 8. Dark theme — "night shift" design (binding)
 Goal: a night-shift control room, **not** a black screen. Readability comes from **value layering** (each layer clearly lighter than

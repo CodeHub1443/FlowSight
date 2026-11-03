@@ -16,6 +16,8 @@ export interface ActorProbe {
   crewBays: string[];
   /** Bays with an item on the belt. */
   itemBays: string[];
+  /** Per bay, the carton variant ids of the items on its belt (only cartons exist: docs/06 section 7.6). */
+  itemVariants: Record<string, string[]>;
   /** Running counts over every sampled person: how often the data, and the drawn figure, stood inside a prop's footprint. */
   personSamples: number;
   dataInProps: number;
@@ -32,6 +34,7 @@ export const actorProbe: ActorProbe = {
   dockedBays: [],
   crewBays: [],
   itemBays: [],
+  itemVariants: {},
   personSamples: 0,
   dataInProps: 0,
   drawnInProps: 0,

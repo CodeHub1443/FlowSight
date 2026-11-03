@@ -314,6 +314,12 @@ export function ActorsLayer({
       actorProbe.dockedBays = dockedBays;
       actorProbe.crewBays = crewBays;
       actorProbe.itemBays = [...new Set(items.items.map((i) => i.bay))];
+      const variants: Record<string, string[]> = {};
+      for (const i of items.items) {
+        const list = (variants[i.bay] ??= []);
+        if (!list.includes(i.variant)) list.push(i.variant);
+      }
+      actorProbe.itemVariants = variants;
     }
   });
 

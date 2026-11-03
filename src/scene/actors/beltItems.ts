@@ -1,7 +1,5 @@
-import type { BeltStatus, CaseTick, PackType } from '@/domain';
-import type { PaletteKey } from '../materials';
+import type { BeltStatus, CaseTick } from '@/domain';
 import { hashString } from '../site/random';
-import { itemTone } from './livery';
 
 // Items on the belts (docs/04 section 3): one per CaseTick, travelling boom tip <-> belt mouth in the item's direction.
 // Representative, not physically exact. Pure and three-free. The cap keeps 60x mock speed from flooding a belt: a tick
@@ -15,21 +13,47 @@ export const END_RAMP = 0.04;
 /** Least distance between two items on a belt, metres. */
 export const MIN_ITEM_GAP_M = 0.78;
 
-export const ITEM_SIZE: Record<PackType, readonly [number, number, number]> = {
-  CASE: [0.52, 0.42, 0.32],
-  SACK: [0.66, 0.44, 0.26],
-  SHRINK: [0.58, 0.48, 0.42],
+// Belt items are cartons and nothing else (docs/06 section 7.6): kraft body, lighter tape strip. The only variation is
+// the size and a light/medium kraft tone, both picked from the item's seed.
+export const CARTON_SIZES = ['small', 'medium', 'large'] as const;
+export const CARTON_TONES = ['light', 'medium'] as const;
+export type CartonSize = (typeof CARTON_SIZES)[number];
+export type CartonTone = (typeof CARTON_TONES)[number];
+export type CartonVariant = `${CartonSize}-${CartonTone}`;
+
+export const CARTON_VARIANTS: readonly CartonVariant[] = CARTON_SIZES.flatMap((z) =>
+  CARTON_TONES.map((t): CartonVariant => `${z}-${t}`),
+);
+
+/** Width (across the belt), length (along it) and height in metres. */
+export const CARTON_DIMS: Record<CartonSize, readonly [number, number, number]> = {
+  small: [0.4, 0.32, 0.26],
+  medium: [0.52, 0.42, 0.32],
+  large: [0.62, 0.48, 0.4],
 };
+/** The kraft body colour is the palette's carton colour times this: the pallet cartons' look, a touch darker. */
+export const CARTON_TONE_FACTOR: Record<CartonTone, number> = { light: 1, medium: 0.9 };
+
+export function cartonSizeOf(variant: CartonVariant): CartonSize {
+  return variant.split('-')[0] as CartonSize;
+}
+export function cartonToneOf(variant: CartonVariant): CartonTone {
+  return variant.split('-')[1] as CartonTone;
+}
+
+/** Deterministic: the same seed always gives the same carton. */
+export function pickCartonVariant(seed: number): CartonVariant {
+  return CARTON_VARIANTS[(seed >>> 4) % CARTON_VARIANTS.length] as CartonVariant;
+}
 
 export interface BeltItem {
   bay: string;
   dir: CaseTick['dir'];
-  pack: PackType;
-  tone: PaletteKey;
+  variant: CartonVariant;
   flagged: boolean;
   /** Progress along the trip, 0..1. */
   k: number;
-  /** Across the belt, metres; yaw, radians: a little untidy, by a per-item seed. */
+  /** Across the belt, metres; yaw, radians (at most ~3.4 degrees): a little untidy, by a per-item seed. */
   x: number;
   yaw: number;
 }
@@ -75,7 +99,7 @@ export class BeltItems {
    * False when the bay's belt already carries MAX_ITEMS_PER_BAY, or when its newest item has not yet travelled `gapK` of
    * the trip: items never overlap, whatever the mock's speed.
    */
-  spawn(tick: Pick<CaseTick, 'bay' | 'dir' | 'pack' | 'sku' | 'flag'>, gapK = 0): boolean {
+  spawn(tick: Pick<CaseTick, 'bay' | 'dir' | 'flag'>, gapK = 0): boolean {
     const n = this.perBay.get(tick.bay) ?? 0;
     if (n >= MAX_ITEMS_PER_BAY) return false;
     if (gapK > 0 && (this.newest.get(tick.bay)?.k ?? 1) < gapK) return false;
@@ -83,12 +107,11 @@ export class BeltItems {
     const item: BeltItem = {
       bay: tick.bay,
       dir: tick.dir,
-      pack: tick.pack,
-      tone: itemTone(tick),
+      variant: pickCartonVariant(seed),
       flagged: tick.flag !== null,
       k: 0,
       x: (((seed >>> 8) % 1000) / 1000 - 0.5) * 0.24,
-      yaw: (((seed >>> 18) % 1000) / 1000 - 0.5) * 0.3,
+      yaw: (((seed >>> 18) % 1000) / 1000 - 0.5) * 0.12,
     };
     this.items.push(item);
     this.newest.set(tick.bay, item);
