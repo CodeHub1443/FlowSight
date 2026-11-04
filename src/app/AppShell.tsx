@@ -2,20 +2,23 @@ import { Outlet } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { Toaster } from '@/components/ui/sonner';
+import { QueryProvider } from './QueryProvider';
 import { TopBar } from './shell/TopBar';
 
-/** App chrome: the top bar on every route, then the page filling the rest of the viewport. */
+/** App chrome: the top bar on every route, then the page filling the rest of the viewport. Owns the REST query client. */
 export function AppShell() {
   return (
-    <TooltipProvider>
-      <div className="flex h-screen min-h-0 flex-col">
-        <TopBar />
-        <main className="relative min-h-0 flex-1">
-          <Outlet />
-        </main>
-      </div>
-      <Toaster />
-    </TooltipProvider>
+    <QueryProvider>
+      <TooltipProvider>
+        <div className="flex h-screen min-h-0 flex-col">
+          <TopBar />
+          <main className="relative min-h-0 flex-1">
+            <Outlet />
+          </main>
+        </div>
+        <Toaster />
+      </TooltipProvider>
+    </QueryProvider>
   );
 }
 

@@ -1,4 +1,4 @@
-# 03 — Data Contract (v1, rev 1.1) — SOURCE OF TRUTH
+# 03 — Data Contract (v1, rev 1.2) — SOURCE OF TRUTH
 
 Shared by the frontend (zod schemas) and the backend (state-engine, wh-api). Any change: update this file first, then code.
 A **breaking** change bumps `v`. An **additive** change (new optional or nullable fields that older clients may ignore and
@@ -332,6 +332,7 @@ type Report = { kind: 'shift' | 'daily'; site: string; businessDay: string; shif
 | `GET /analytics/productivity?site&from&to` | `{ rows: { bay: string; shift: string; casesPerManHour: number; avgCrew: number; palletWaitP50Sec: number; palletWaitP90Sec: number }[] }` |
 | `GET /analytics/people?site&from&to&bay` | **DC_MANAGER, ADMIN only.** `{ rows: { bay: string; shift: string; trackId: string; role: string; idleMin: number; phoneMin: number }[] }` |
 | `GET /analytics/camera-uptime?site&from&to` | `{ cams: { cam: string; uptimePct: number; incidents: number }[] }` |
+| `GET /analytics/bay-performance?site&from&to` (rev 1.2) | `BayPerformance` (§4.4). Every role that may view analytics (all except `KIOSK`); bay level only, no person-level data |
 | `GET /leaderboard?site&period=shift\|day\|week\|month&date&shift` | `{ period: Period, from: ISO datetime, to: ISO datetime, rows: LeaderboardRow[], weights: Record<'throughput'\|'tat'\|'damage'\|'compliance'\|'idle', number> }` |
 | `GET /reports/shift?site&date&shift` · `GET /reports/daily?site&date` | `Report` (§4.1) |
 | `GET /reports/{shift\|daily}/export?…&fmt=pdf\|xlsx\|csv` | file (server-side export; the frontend also offers client-side export) |
@@ -356,6 +357,107 @@ type AdminUser = User & { active: boolean; lastLoginAt: string | null };        
 // POST /admin/alert-rules/{id}/test → 204 (sends a test Telegram message)
 ```
 
+### 4.4 Bay performance (rev 1.2)
+`GET /analytics/bay-performance?site&from&to` compares each bay with trucks of the same kind at this depot, so a bay that gets
+large or slow-to-handle loads is not marked slow for it. The backend computes everything below; the frontend only renders it.
+```ts
+type BayPerfRow = {
+  bay: string;                                   // B01..B07: one row per configured bay, in bay order, even with no visits
+  visits: number;                                // finished visits in range
+  included: number;                              // visits used in the index (≤ visits)
+  cartonsOut: number; cartonsIn: number;         // sums over the bay's finished visits
+  cartonsPerLoadingHour: number | null;          // cartons / active hours
+  minPer100Cartons: number | null;               // active minutes per 100 cartons
+  avgCrew: number | null;                        // mean people detected in the bay while loading/unloading
+  cartonsPerCrewHour: number | null;             // cartons / (avgCrew × active hours): "per crew member present", never per worker
+  mean: { occupancyMin: number | null; waitForDockMin: number | null; preOpMin: number | null;
+          activeMin: number | null; postOpMin: number | null };
+  detentions: number;                            // finished visits over the detention threshold (≤ visits)
+  index: number | null;                          // 100 = as fast as comparable trucks; higher is faster
+  confidence: 'OK' | 'LOW' | 'NONE';
+};
+type BayPerformance = {
+  from: string; to: string; minIncluded: number;
+  site: { visits: number; medianOccupancyMin: number | null; medianPreOpMin: number | null; medianPostOpMin: number | null };
+  cohorts: { key: string; dir: 'OUT' | 'IN'; pack: 'CASE' | 'SACK' | 'SHRINK' | 'MIXED'; band: 1 | 2 | 3 | null;
+             n: number; medianMinPer100: number }[];
+  rows: BayPerfRow[];
+};
+```
+**Definitions** (the state-engine and the simulator compute exactly this):
+1. **Visits in range** are the visits with `finishedAt` in `[from, to)`. They make `visits`, `cartonsOut`, `cartonsIn`, `detentions`,
+   the means and the site block. Active time is `activeMin` = `finishedAt − startedAt` (§4.1).
+2. **Index unit**: a visit in range with `startedAt` and `finishedAt` set, `activeMin > 0`, `dir` `OUT` or `IN`, and cartons > 0, where
+   cartons = `casesOut` for `OUT` and `casesIn` for `IN`. `MIXED`-direction visits count in `visits` but never in the index.
+3. **Dominant pack**: sum `sku[].count` by `pack`; the pack holding **more than half** of the counted cartons is dominant (`UNKNOWN`
+   SKUs count with the pack the belt camera gave them). No pack over half, or an empty `sku[]`, gives `MIXED`.
+4. **Volume band**, per range and per `dir × pack` group of index units: `q1`, `q2` = the 1/3 and 2/3 quantiles of the group's cartons
+   with linear interpolation (Postgres `percentile_cont`). Band 1: cartons ≤ `q1`; band 2: `q1` < cartons ≤ `q2`; band 3: cartons > `q2`.
+5. **Cohort** = `dir × pack × band`. If any non-empty band of a group has fewer than 6 units, the group's bands merge into one cohort
+   with `band: null`. If the merged cohort still has fewer than 6 units, its units are excluded from the index (the cohort is not listed).
+   `key` = `{dir}.{pack}.{band}`, or `{dir}.{pack}.all` for a merged cohort. `cohorts[]` lists only the cohorts used, ordered by `key`.
+6. **Cohort speed** `medianMinPer100` = median (`percentile_cont(0.5)`) over the cohort's units of `activeMin / cartons × 100`.
+7. **Expected active minutes** of a unit = `cartons / 100 × medianMinPer100` of its cohort.
+8. **Index** of a bay = `100 × Σ expected / Σ activeMin` over the bay's included units (`included` = their count).
+9. **Confidence**: `included ≥ minIncluded` (default 8) → `OK`; 4 to `minIncluded − 1` → `LOW` (index shown muted); under 4 → `NONE`
+   and `index: null`.
+10. **Means** (`mean.*`): each field's mean over the bay's visits in range that have both of its timestamps (§4.1 formulas; `postOpMin`
+    is `postLoadMin`). Pre- and post-operation delay are **not** volume-normalised; each bay's mean is read against the site median.
+11. **Site block**: `visits` = all visits in range; `medianOccupancyMin`, `medianPreOpMin`, `medianPostOpMin` = medians over the
+    visits in range that have the field.
+12. **Rates** over the bay's visits in range with an active time > 0 (`A` = their Σ `activeMin`, `C` = their Σ (`casesOut + casesIn`)):
+    `cartonsPerLoadingHour` = `C / (A / 60)`; `minPer100Cartons` = `A / C × 100` (null when `C` = 0).
+    `avgCrew` = loading-time-weighted mean crew = `Σ (crew × activeMin) / Σ activeMin` over those visits with a crew count;
+    `cartonsPerCrewHour` = their `C / (avgCrew × A / 60)` = cartons per crew-hour. Crew size is context, never part of the index.
+13. **Detention**: a visit whose `totalMin` exceeded `thresholds.detentionMin` (the `Visit.detention` flag).
+14. Values are computed unrounded and rounded on output: `index`, means, medians, rates and `avgCrew` to 1 decimal,
+    `medianMinPer100` to 2 decimals. A bay with `visits = 0` has every rate, mean and `index` `null`, `included = 0`, `confidence: 'NONE'`.
+
+```json
+{
+  "from": "2026-10-24T06:00:00+06:00", "to": "2026-10-24T19:50:00+06:00", "minIncluded": 8,
+  "site": { "visits": 47, "medianOccupancyMin": 124.0, "medianPreOpMin": 10.9, "medianPostOpMin": 6.6 },
+  "cohorts": [
+    { "key": "IN.CASE.all", "dir": "IN", "pack": "CASE", "band": null, "n": 6, "medianMinPer100": 15.9 },
+    { "key": "OUT.CASE.1", "dir": "OUT", "pack": "CASE", "band": 1, "n": 8, "medianMinPer100": 13.4 },
+    { "key": "OUT.CASE.2", "dir": "OUT", "pack": "CASE", "band": 2, "n": 9, "medianMinPer100": 12.6 },
+    { "key": "OUT.CASE.3", "dir": "OUT", "pack": "CASE", "band": 3, "n": 8, "medianMinPer100": 12.1 },
+    { "key": "OUT.MIXED.all", "dir": "OUT", "pack": "MIXED", "band": null, "n": 6, "medianMinPer100": 13.9 },
+    { "key": "OUT.SACK.all", "dir": "OUT", "pack": "SACK", "band": null, "n": 7, "medianMinPer100": 14.8 }
+  ],
+  "rows": [
+    { "bay": "B01", "visits": 11, "included": 10, "cartonsOut": 9200, "cartonsIn": 0,
+      "cartonsPerLoadingHour": 480.0, "minPer100Cartons": 12.5, "avgCrew": 6.5, "cartonsPerCrewHour": 73.8,
+      "mean": { "occupancyMin": 120.1, "waitForDockMin": 14.2, "preOpMin": 9.5, "activeMin": 104.5, "postOpMin": 6.1 },
+      "detentions": 1, "index": 104.2, "confidence": "OK" },
+    { "bay": "B02", "visits": 9, "included": 9, "cartonsOut": 5400, "cartonsIn": 1800,
+      "cartonsPerLoadingHour": 400.0, "minPer100Cartons": 15.0, "avgCrew": 6.0, "cartonsPerCrewHour": 66.7,
+      "mean": { "occupancyMin": 140.4, "waitForDockMin": 18.3, "preOpMin": 12.0, "activeMin": 120.0, "postOpMin": 8.4 },
+      "detentions": 2, "index": 88.6, "confidence": "OK" },
+    { "bay": "B03", "visits": 6, "included": 5, "cartonsOut": 4800, "cartonsIn": 0,
+      "cartonsPerLoadingHour": 461.5, "minPer100Cartons": 13.0, "avgCrew": 5.5, "cartonsPerCrewHour": 83.9,
+      "mean": { "occupancyMin": 120.0, "waitForDockMin": 11.0, "preOpMin": 10.8, "activeMin": 104.0, "postOpMin": 5.2 },
+      "detentions": 0, "index": 97.3, "confidence": "LOW" },
+    { "bay": "B04", "visits": 3, "included": 2, "cartonsOut": 0, "cartonsIn": 2100,
+      "cartonsPerLoadingHour": 375.0, "minPer100Cartons": 16.0, "avgCrew": 5.0, "cartonsPerCrewHour": 75.0,
+      "mean": { "occupancyMin": 136.5, "waitForDockMin": 20.1, "preOpMin": 15.5, "activeMin": 112.0, "postOpMin": 9.0 },
+      "detentions": 1, "index": null, "confidence": "NONE" },
+    { "bay": "B05", "visits": 0, "included": 0, "cartonsOut": 0, "cartonsIn": 0,
+      "cartonsPerLoadingHour": null, "minPer100Cartons": null, "avgCrew": null, "cartonsPerCrewHour": null,
+      "mean": { "occupancyMin": null, "waitForDockMin": null, "preOpMin": null, "activeMin": null, "postOpMin": null },
+      "detentions": 0, "index": null, "confidence": "NONE" },
+    { "bay": "B06", "visits": 10, "included": 10, "cartonsOut": 8000, "cartonsIn": 0,
+      "cartonsPerLoadingHour": 500.0, "minPer100Cartons": 12.0, "avgCrew": 7.0, "cartonsPerCrewHour": 71.4,
+      "mean": { "occupancyMin": 109.1, "waitForDockMin": 9.4, "preOpMin": 8.2, "activeMin": 96.0, "postOpMin": 4.9 },
+      "detentions": 0, "index": 109.6, "confidence": "OK" },
+    { "bay": "B07", "visits": 8, "included": 8, "cartonsOut": 3600, "cartonsIn": 2400,
+      "cartonsPerLoadingHour": 428.6, "minPer100Cartons": 14.0, "avgCrew": 6.0, "cartonsPerCrewHour": 71.4,
+      "mean": { "occupancyMin": 124.1, "waitForDockMin": 15.0, "preOpMin": 11.4, "activeMin": 105.0, "postOpMin": 7.7 },
+      "detentions": 1, "index": 101.0, "confidence": "OK" }
+  ]
+}
+```
+
 ## 5. Timescale tables (backend-owned; listed so reports line up)
 `events` · `event_status_log` · `visits` · `counts_1m (site,bay,dir,sku,pack,count,ts)` · `belt_intervals (bay,status,start,end)` ·
 `bay_state_5s` (jsonb, replay) · `actors_1s` (replay, compressed) · `people_minutes (site,bay,shift,track,role,idle_min,phone_min)` ·
@@ -363,6 +465,18 @@ type AdminUser = User & { active: boolean; lastLoginAt: string | null };        
 Continuous aggregates: hourly and daily by bay, SKU, captain and agency.
 
 ## 6. Changelog
+
+### rev 1.2 (2026-11-04): additive, payloads keep `v: 1`
+One new REST endpoint; no NATS subject, message, event type or existing field changes. A backend without it answers `404`, and the
+frontend shows the Performance widgets' error state.
+
+| Where | Change | Definition |
+|---|---|---|
+| `GET /analytics/bay-performance?site&from&to` | **new** endpoint, returns `BayPerformance` | Section 4.4: fair per-bay comparison (index vs comparable trucks), phase means, site medians, workload and crew context, detentions. |
+
+Backend work (wh-api / state-engine) to implement rev 1.2: serve the endpoint from the `visits` table (plus the crew count while
+loading/unloading per visit), with definitions 1 to 14 of section 4.4 exactly, `minIncluded` = 8; one row per configured bay in bay order;
+permitted for every role except `KIOSK`. Bay level only: no track IDs, employee IDs or names.
 
 ### rev 1.1 (2026-11-03): additive, payloads keep `v: 1`
 Every new field is optional or nullable. A client that knows rev 1.1 must still accept payloads without the new fields and show

@@ -70,5 +70,15 @@ Spec: `docs/06-visual-language.md`. Evidence: `docs/screens/step-merge-02-live-1
 - [ ] T19 · `pnpm e2e:fast` (tag scene-heavy specs; see the Task 05 P2 line); also: Radix exit animations start seconds late under SwiftShader after a canvas click, so e2e waits up to 20 s for a closed popover to unmount
 - [x] T19 · "Trucks on site" and "Bays running" chips have no row in the metric admission table (t19-spec section 3) → done 19.9b (D4): rows added, plus Bay: PPE violations now and Bay: today cartons / trucks / avg TAT
 
+## Task 20 follow-ups (base 20.0, 2026-11-04)
+- [ ] Soak harness · geometry criterion compares the **baseline (minimum) per third** of the run instead of the peak
+- [ ] Soak harness · mark a run **INVALID** (not FAIL) when samples are throttled (median fps under 10, or the foreground process is not chrome) or when sample gaps exceed 5 minutes
+- [ ] Soak harness · the fps-drop criterion uses valid windows only
+- [ ] Soak harness · regenerate `chart.png` on Ctrl+C
+- [ ] Soak harness · simulated-user actions "open a KPI popover" and "open the Performance tab"
+- [ ] Soak harness · then a 100-minute run mostly at 60x (`--phases=10m@1,90m@60`) to reach the alert-store cap
+- [ ] T19 · "No truck" is shown three times in the empty bay inspector → once
+- [ ] T20 · backend (wh-api / state-engine) must implement contract rev 1.2 (`GET /analytics/bay-performance`, docs/03 section 4.4) with the same definitions; until then the Performance widgets show their error state against a live backend
+
 ## Client open items (docs/01 §9)
 - [ ] Shift timings · [ ] mandatory PPE · [ ] SKU class list · [ ] roster source · [ ] real door pitch / bay order · [ ] brand kit · [ ] Telegram egress · [ ] transporter list

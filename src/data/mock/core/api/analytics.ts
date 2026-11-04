@@ -1,4 +1,5 @@
 import type {
+  BayPerformance,
   BeltUtilisationResponse,
   CameraUptimeResponse,
   ComplianceResponse,
@@ -14,6 +15,7 @@ import { AGENCIES, skuInfo, skuName, UNKNOWN_SKU } from '../catalog';
 import { DAY, HOUR, hourOfDay, iso, MIN } from '../clock';
 import type { Depot } from '../depot';
 import { complianceScoreOf } from '../kpi';
+import { computeBayPerformance, type PerfVisit } from '../perf';
 import { round } from '../rng';
 import { BELT_KEYS, type BeltAcc } from '../types';
 import { BELT_KEY_OF } from '../ctx';
@@ -394,4 +396,28 @@ export function cameraUptime(depot: Depot, from: number, to: number): CameraUpti
     }
   }
   return { cams };
+}
+
+/** GET /analytics/bay-performance (contract rev 1.2) from the simulator's own visits. */
+export function bayPerformance(depot: Depot, from: number, to: number): BayPerformance {
+  const visits: PerfVisit[] = [];
+  for (const v of depot.store.visits) {
+    if (v.finishedAt === null || v.finishedAt < from || v.finishedAt >= to) continue;
+    visits.push({
+      bay: v.bay,
+      dir: v.dir,
+      arrivedAt: v.arrivedAt,
+      dockedAt: v.dockedAt,
+      startedAt: v.startedAt,
+      finishedAt: v.finishedAt,
+      departedAt: v.departedAt,
+      casesOut: v.casesOut,
+      casesIn: v.casesIn,
+      packs: [...v.sku.values()].map((t) => ({ pack: t.pack, count: t.count })),
+      // every person the CREW camera sees in the bay while loading: workers, captain and forklift operator
+      crew: v.crewTotal > 0 ? v.crewTotal : null,
+      detention: v.detention,
+    });
+  }
+  return computeBayPerformance(visits, { bays: depot.bays.map((b) => b.id), from, to });
 }

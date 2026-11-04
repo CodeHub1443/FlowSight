@@ -81,3 +81,12 @@ export function visibleCategories(role: Role): EventCategory[] {
 export function canSeeCaptainNames(role: Role): boolean {
   return role !== 'KIOSK' && role !== 'HQ_VIEWER';
 }
+
+// ---------------------------------------------------------------------------
+// Routes
+// ---------------------------------------------------------------------------
+
+/** `/analytics` (docs/01 section 3): every role except the video-wall account. Bay level only. */
+export function canViewAnalytics(role: Role): boolean {
+  return role !== 'KIOSK';
+}

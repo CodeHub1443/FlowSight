@@ -1,0 +1,45 @@
+{
+  "title": "Analytics",
+  "tabsLabel": "Analytics sections",
+  "tabs": {
+    "performance": "Performance",
+    "throughput": "Throughput",
+    "dwell": "Trucks & Dwell",
+    "productivity": "Productivity",
+    "compliance": "Compliance",
+    "hygiene": "Hygiene",
+    "sku": "SKU",
+    "equipment": "Equipment"
+  },
+  "range": {
+    "label": "Period",
+    "shift": "This shift",
+    "day": "Today",
+    "week": "Last 7 days"
+  },
+  "simulated": "Simulated data",
+  "simulatedHint": "Mock mode: every number on this page comes from the in-browser simulator.",
+  "state": {
+    "loading": "Loading…",
+    "error": "Could not load this data.",
+    "retry": "Retry",
+    "empty": "No finished trucks in this range",
+    "insufficient": "Not enough comparable trucks"
+  },
+  "confidence": {
+    "few": "Few trucks ({{n}} of {{min}})",
+    "none": "Not enough comparable trucks"
+  },
+  "band": {
+    "slower": "Slower than comparable trucks",
+    "comparable": "Comparable",
+    "faster": "Faster"
+  },
+  "visits_one": "{{n}} visit",
+  "visits_other": "{{n}} visits",
+  "siteMedian": "Site median",
+  "forbidden": "Analytics are not available for this account.",
+  "chart": {
+    "dataTable": "Data table"
+  }
+}

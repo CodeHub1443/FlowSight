@@ -125,11 +125,13 @@ describe('i18n-check namespace registration', () => {
     ]);
   });
 
-  it('the real index registers kpidetail and baypanel', () => {
+  it('the real index registers the task namespaces (T19 kpidetail, baypanel; T20 analytics, perfindex, perftrend)', () => {
     const src = readFileSync(
       fileURLToPath(new URL('../src/i18n/index.ts', import.meta.url)),
       'utf8',
     );
-    expect(declaredNamespaces(src)).toEqual(expect.arrayContaining(['kpidetail', 'baypanel']));
+    expect(declaredNamespaces(src)).toEqual(
+      expect.arrayContaining(['kpidetail', 'baypanel', 'analytics', 'perfindex', 'perftrend']),
+    );
   });
 });

@@ -2,18 +2,24 @@ import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 import { PREF_KEYS, readPref } from '@/stores/prefs';
 import bnAdmin from './locales/bn/admin.json';
+import bnAnalytics from './locales/bn/analytics.json';
 import bnBaypanel from './locales/bn/baypanel.json';
 import bnCommon from './locales/bn/common.json';
 import bnKpidetail from './locales/bn/kpidetail.json';
 import bnLive from './locales/bn/live.json';
 import bnMock from './locales/bn/mock.json';
+import bnPerfindex from './locales/bn/perfindex.json';
+import bnPerftrend from './locales/bn/perftrend.json';
 import bnScene from './locales/bn/scene.json';
 import enAdmin from './locales/en/admin.json';
+import enAnalytics from './locales/en/analytics.json';
 import enBaypanel from './locales/en/baypanel.json';
 import enCommon from './locales/en/common.json';
 import enKpidetail from './locales/en/kpidetail.json';
 import enLive from './locales/en/live.json';
 import enMock from './locales/en/mock.json';
+import enPerfindex from './locales/en/perfindex.json';
+import enPerftrend from './locales/en/perftrend.json';
 import enScene from './locales/en/scene.json';
 
 export const LANGUAGES = ['en', 'bn'] as const;
@@ -29,6 +35,9 @@ export const NAMESPACES = [
   'admin',
   'kpidetail',
   'baypanel',
+  'analytics',
+  'perfindex',
+  'perftrend',
 ] as const;
 export type Namespace = (typeof NAMESPACES)[number];
 
@@ -47,6 +56,9 @@ void i18n.use(initReactI18next).init({
       admin: enAdmin,
       kpidetail: enKpidetail,
       baypanel: enBaypanel,
+      analytics: enAnalytics,
+      perfindex: enPerfindex,
+      perftrend: enPerftrend,
     },
     bn: {
       common: bnCommon,
@@ -56,6 +68,9 @@ void i18n.use(initReactI18next).init({
       admin: bnAdmin,
       kpidetail: bnKpidetail,
       baypanel: bnBaypanel,
+      analytics: bnAnalytics,
+      perfindex: bnPerfindex,
+      perftrend: bnPerftrend,
     },
   },
   ns: NAMESPACES,

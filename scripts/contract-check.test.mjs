@@ -45,10 +45,11 @@ describe('extractJsonBlocks', () => {
     ]);
   });
 
-  it('finds the 7 examples in docs/03, all under section 3', () => {
+  it('finds the 8 examples in docs/03: 7 messages under section 3, bay performance under 4.4 (rev 1.2)', () => {
     const blocks = extractJsonBlocks(doc);
-    expect(blocks).toHaveLength(7);
-    expect(blocks.every((b) => /^3\.\d /.test(b.heading))).toBe(true);
+    expect(blocks).toHaveLength(8);
+    expect(blocks.slice(0, 7).every((b) => /^3\.\d /.test(b.heading))).toBe(true);
+    expect(blocks[7]?.heading).toMatch(/^4\.4 Bay performance/);
   });
 });
 
@@ -75,7 +76,7 @@ describe('pnpm contract:check', () => {
   it('passes on docs/03-data-contract.md with 0 unmapped blocks', () => {
     const r = run();
     expect(r.status, r.stderr).toBe(0);
-    expect(r.stdout).toContain('7 json blocks, 0 unmapped');
+    expect(r.stdout).toContain('8 json blocks, 0 unmapped');
   }, 60_000);
 
   it('exits non-zero on an unmapped json block', () => {

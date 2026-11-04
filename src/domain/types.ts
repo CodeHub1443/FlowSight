@@ -80,6 +80,12 @@ export type ProductivityResponse = z.infer<typeof S.ProductivityResponseSchema>;
 export type PeopleResponse = z.infer<typeof S.PeopleResponseSchema>;
 export type CameraUptimeResponse = z.infer<typeof S.CameraUptimeResponseSchema>;
 export type LeaderboardResponse = z.infer<typeof S.LeaderboardResponseSchema>;
+// rev 1.2
+export type BayPerformance = z.infer<typeof S.BayPerformanceSchema>;
+export type BayPerfRow = z.infer<typeof S.BayPerfRowSchema>;
+export type PerfCohort = z.infer<typeof S.PerfCohortSchema>;
+export type PerfPack = z.infer<typeof S.PerfPackSchema>;
+export type PerfConfidence = z.infer<typeof S.PerfConfidenceSchema>;
 export type Report = z.infer<typeof S.ReportSchema>;
 export type ReportBayRow = z.infer<typeof S.ReportBayRowSchema>;
 export type SkuRow = z.infer<typeof S.SkuRowSchema>;

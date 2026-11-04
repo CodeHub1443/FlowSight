@@ -542,6 +542,87 @@ export const CameraUptimeResponseSchema = z.object({
   cams: z.array(z.object({ cam: CameraIdSchema, uptimePct: PctSchema, incidents: CountSchema })),
 });
 
+// rev 1.2: GET /analytics/bay-performance (docs/03 section 4.4). Bay level only; computed by the backend.
+export const PerfDirSchema = CaseDirSchema;
+export const PerfPackSchema = z.enum(['CASE', 'SACK', 'SHRINK', 'MIXED']);
+export const PerfConfidenceSchema = z.enum(['OK', 'LOW', 'NONE']);
+const perfMinSchema = NonNegSchema.nullable();
+
+export const BayPerfRowSchema = z
+  .object({
+    bay: BayIdSchema,
+    visits: CountSchema,
+    included: CountSchema,
+    cartonsOut: CountSchema,
+    cartonsIn: CountSchema,
+    cartonsPerLoadingHour: NonNegSchema.nullable(),
+    minPer100Cartons: NonNegSchema.nullable(),
+    avgCrew: NonNegSchema.nullable(),
+    cartonsPerCrewHour: NonNegSchema.nullable(),
+    mean: z.object({
+      occupancyMin: perfMinSchema,
+      waitForDockMin: perfMinSchema,
+      preOpMin: perfMinSchema,
+      activeMin: perfMinSchema,
+      postOpMin: perfMinSchema,
+    }),
+    detentions: CountSchema,
+    index: NonNegSchema.nullable(),
+    confidence: PerfConfidenceSchema,
+  })
+  .refine((r) => r.included <= r.visits, {
+    message: 'included must not exceed visits',
+    path: ['included'],
+  })
+  .refine((r) => r.detentions <= r.visits, {
+    message: 'detentions must not exceed visits',
+    path: ['detentions'],
+  })
+  .refine((r) => (r.confidence === 'NONE') === (r.index === null), {
+    message: 'index is null exactly when confidence is NONE',
+    path: ['index'],
+  });
+
+export const PerfCohortSchema = z.object({
+  key: z.string().min(1),
+  dir: PerfDirSchema,
+  pack: PerfPackSchema,
+  band: z.union([z.literal(1), z.literal(2), z.literal(3)]).nullable(),
+  n: z.number().int().positive(),
+  medianMinPer100: NonNegSchema,
+});
+
+/** Confidence from the included count (docs/03 section 4.4 definition 9). */
+export function perfConfidenceOf(
+  included: number,
+  minIncluded: number,
+): z.infer<typeof PerfConfidenceSchema> {
+  if (included >= minIncluded) return 'OK';
+  return included >= 4 ? 'LOW' : 'NONE';
+}
+
+export const BayPerformanceSchema = z
+  .object({
+    from: IsoTsSchema,
+    to: IsoTsSchema,
+    minIncluded: z.number().int().positive(),
+    site: z.object({
+      visits: CountSchema,
+      medianOccupancyMin: perfMinSchema,
+      medianPreOpMin: perfMinSchema,
+      medianPostOpMin: perfMinSchema,
+    }),
+    cohorts: z.array(PerfCohortSchema),
+    rows: z.array(BayPerfRowSchema),
+  })
+  .refine(
+    (p) => p.rows.every((r) => r.confidence === perfConfidenceOf(r.included, p.minIncluded)),
+    {
+      message: 'row confidence must follow included and minIncluded',
+      path: ['rows'],
+    },
+  );
+
 export const LeaderboardResponseSchema = z.object({
   period: LeaderboardPeriodSchema,
   from: IsoTsSchema,

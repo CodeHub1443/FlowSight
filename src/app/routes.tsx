@@ -9,6 +9,8 @@ import { Placeholder } from './Placeholder';
 
 // Dev only: `import.meta.env.DEV` is false at build time, so neither the route nor its chunk reaches production.
 const AssetPreview = import.meta.env.DEV ? lazy(() => import('./dev/AssetPreview')) : null;
+// Analytics (and ECharts with it) is its own chunk: never in the /live entry (docs/02 section 6, t20 spec section 4).
+const AnalyticsPage = lazy(() => import('@/features/analytics/AnalyticsPage'));
 
 const page = (titleKey: string) => <Placeholder titleKey={titleKey} />;
 
@@ -21,7 +23,14 @@ export function AppRoutes() {
         <Route element={<PageLayout />}>
           <Route path="bays/:bayId" element={page('routes.bays')} />
           <Route path="trucks" element={page('routes.trucks')} />
-          <Route path="analytics" element={page('routes.analytics')} />
+          <Route
+            path="analytics/*"
+            element={
+              <Suspense>
+                <AnalyticsPage />
+              </Suspense>
+            }
+          />
           <Route path="leaderboard" element={page('routes.leaderboard')} />
           <Route path="events" element={page('routes.events')} />
           <Route path="events/:id" element={page('routes.event')} />

@@ -50,6 +50,7 @@ const CORE_ROUTES: readonly (readonly ['get' | 'post' | 'put', string])[] = [
   ['get', '/analytics/hygiene'],
   ['get', '/analytics/productivity'],
   ['get', '/analytics/camera-uptime'],
+  ['get', '/analytics/bay-performance'],
   ['get', '/leaderboard'],
   ['get', '/reports/shift'],
   ['get', '/reports/daily'],

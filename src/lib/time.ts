@@ -63,6 +63,11 @@ export function businessDayOf(input: TimeInput, businessDayStart: string): strin
   return localMinutes(input) < parseHHmm(businessDayStart) ? addDays(date, -1) : date;
 }
 
+/** The instant a business day ("yyyy-MM-dd") starts, `days` business days later (negative: earlier). */
+export function businessDayStart(date: string, businessDayStart: string, days = 0): Date {
+  return instantAt(addDays(date, days), parseHHmm(businessDayStart));
+}
+
 export type ShiftInstance = { id: string; businessDay: string; start: Date; end: Date };
 
 function durationMin(shift: ShiftWindow): number {

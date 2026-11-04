@@ -6,7 +6,7 @@ import {
   CaseTickSchema,
   EventLifecycleUpdateSchema,
 } from './schemas';
-import { HealthFrameSchema, SiteStateSchema } from './schemas';
+import { BayPerformanceSchema, HealthFrameSchema, SiteStateSchema } from './schemas';
 import { issuesOf, type ParseIssue } from './result';
 
 // Maps each JSON example in docs/03-data-contract.md to the schema that must accept it, by section heading.
@@ -57,6 +57,11 @@ export const CONTRACT_BLOCKS: readonly ContractBlockSpec[] = [
     heading: '3.7 HealthFrame',
     fixture: 'health-frame.json',
     validate: viaSchema(HealthFrameSchema),
+  },
+  {
+    heading: '4.4 Bay performance',
+    fixture: 'bay-performance.json',
+    validate: viaSchema(BayPerformanceSchema),
   },
 ];
 

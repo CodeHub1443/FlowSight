@@ -2,6 +2,7 @@ import type { Role, SiteSummary, Snapshot, WhEventWithStatus } from '@/domain';
 import type { Depot } from '../depot';
 import { adminRoute } from './admin';
 import {
+  bayPerformance,
   beltUtilisation,
   cameraUptime,
   compliance,
@@ -195,6 +196,11 @@ export function handleApi(depot: Depot, req: ApiRequest): ApiResponse {
           return ok(productivity(depot, from, to));
         case 'camera-uptime':
           return ok(cameraUptime(depot, from, to));
+        case 'bay-performance':
+          // contract rev 1.2: every role that may view analytics, i.e. all but the video-wall account
+          if (role === 'KIOSK')
+            return err(403, 'FORBIDDEN', 'analytics are not available to KIOSK');
+          return ok(bayPerformance(depot, from, to));
         default:
           return notFound(`route ${path}`);
       }

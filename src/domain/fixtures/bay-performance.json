@@ -1,0 +1,210 @@
+{
+  "from": "2026-10-24T06:00:00+06:00",
+  "to": "2026-10-24T19:50:00+06:00",
+  "minIncluded": 8,
+  "site": {
+    "visits": 47,
+    "medianOccupancyMin": 124,
+    "medianPreOpMin": 10.9,
+    "medianPostOpMin": 6.6
+  },
+  "cohorts": [
+    {
+      "key": "IN.CASE.all",
+      "dir": "IN",
+      "pack": "CASE",
+      "band": null,
+      "n": 6,
+      "medianMinPer100": 15.9
+    },
+    {
+      "key": "OUT.CASE.1",
+      "dir": "OUT",
+      "pack": "CASE",
+      "band": 1,
+      "n": 8,
+      "medianMinPer100": 13.4
+    },
+    {
+      "key": "OUT.CASE.2",
+      "dir": "OUT",
+      "pack": "CASE",
+      "band": 2,
+      "n": 9,
+      "medianMinPer100": 12.6
+    },
+    {
+      "key": "OUT.CASE.3",
+      "dir": "OUT",
+      "pack": "CASE",
+      "band": 3,
+      "n": 8,
+      "medianMinPer100": 12.1
+    },
+    {
+      "key": "OUT.MIXED.all",
+      "dir": "OUT",
+      "pack": "MIXED",
+      "band": null,
+      "n": 6,
+      "medianMinPer100": 13.9
+    },
+    {
+      "key": "OUT.SACK.all",
+      "dir": "OUT",
+      "pack": "SACK",
+      "band": null,
+      "n": 7,
+      "medianMinPer100": 14.8
+    }
+  ],
+  "rows": [
+    {
+      "bay": "B01",
+      "visits": 11,
+      "included": 10,
+      "cartonsOut": 9200,
+      "cartonsIn": 0,
+      "cartonsPerLoadingHour": 480,
+      "minPer100Cartons": 12.5,
+      "avgCrew": 6.5,
+      "cartonsPerCrewHour": 73.8,
+      "mean": {
+        "occupancyMin": 120.1,
+        "waitForDockMin": 14.2,
+        "preOpMin": 9.5,
+        "activeMin": 104.5,
+        "postOpMin": 6.1
+      },
+      "detentions": 1,
+      "index": 104.2,
+      "confidence": "OK"
+    },
+    {
+      "bay": "B02",
+      "visits": 9,
+      "included": 9,
+      "cartonsOut": 5400,
+      "cartonsIn": 1800,
+      "cartonsPerLoadingHour": 400,
+      "minPer100Cartons": 15,
+      "avgCrew": 6,
+      "cartonsPerCrewHour": 66.7,
+      "mean": {
+        "occupancyMin": 140.4,
+        "waitForDockMin": 18.3,
+        "preOpMin": 12,
+        "activeMin": 120,
+        "postOpMin": 8.4
+      },
+      "detentions": 2,
+      "index": 88.6,
+      "confidence": "OK"
+    },
+    {
+      "bay": "B03",
+      "visits": 6,
+      "included": 5,
+      "cartonsOut": 4800,
+      "cartonsIn": 0,
+      "cartonsPerLoadingHour": 461.5,
+      "minPer100Cartons": 13,
+      "avgCrew": 5.5,
+      "cartonsPerCrewHour": 83.9,
+      "mean": {
+        "occupancyMin": 120,
+        "waitForDockMin": 11,
+        "preOpMin": 10.8,
+        "activeMin": 104,
+        "postOpMin": 5.2
+      },
+      "detentions": 0,
+      "index": 97.3,
+      "confidence": "LOW"
+    },
+    {
+      "bay": "B04",
+      "visits": 3,
+      "included": 2,
+      "cartonsOut": 0,
+      "cartonsIn": 2100,
+      "cartonsPerLoadingHour": 375,
+      "minPer100Cartons": 16,
+      "avgCrew": 5,
+      "cartonsPerCrewHour": 75,
+      "mean": {
+        "occupancyMin": 136.5,
+        "waitForDockMin": 20.1,
+        "preOpMin": 15.5,
+        "activeMin": 112,
+        "postOpMin": 9
+      },
+      "detentions": 1,
+      "index": null,
+      "confidence": "NONE"
+    },
+    {
+      "bay": "B05",
+      "visits": 0,
+      "included": 0,
+      "cartonsOut": 0,
+      "cartonsIn": 0,
+      "cartonsPerLoadingHour": null,
+      "minPer100Cartons": null,
+      "avgCrew": null,
+      "cartonsPerCrewHour": null,
+      "mean": {
+        "occupancyMin": null,
+        "waitForDockMin": null,
+        "preOpMin": null,
+        "activeMin": null,
+        "postOpMin": null
+      },
+      "detentions": 0,
+      "index": null,
+      "confidence": "NONE"
+    },
+    {
+      "bay": "B06",
+      "visits": 10,
+      "included": 10,
+      "cartonsOut": 8000,
+      "cartonsIn": 0,
+      "cartonsPerLoadingHour": 500,
+      "minPer100Cartons": 12,
+      "avgCrew": 7,
+      "cartonsPerCrewHour": 71.4,
+      "mean": {
+        "occupancyMin": 109.1,
+        "waitForDockMin": 9.4,
+        "preOpMin": 8.2,
+        "activeMin": 96,
+        "postOpMin": 4.9
+      },
+      "detentions": 0,
+      "index": 109.6,
+      "confidence": "OK"
+    },
+    {
+      "bay": "B07",
+      "visits": 8,
+      "included": 8,
+      "cartonsOut": 3600,
+      "cartonsIn": 2400,
+      "cartonsPerLoadingHour": 428.6,
+      "minPer100Cartons": 14,
+      "avgCrew": 6,
+      "cartonsPerCrewHour": 71.4,
+      "mean": {
+        "occupancyMin": 124.1,
+        "waitForDockMin": 15,
+        "preOpMin": 11.4,
+        "activeMin": 105,
+        "postOpMin": 7.7
+      },
+      "detentions": 1,
+      "index": 101,
+      "confidence": "OK"
+    }
+  ]
+}

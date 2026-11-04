@@ -7,6 +7,7 @@ import {
   AlertRuleSchema,
   ApiErrorSchema,
   BayCfgSchema,
+  BayPerformanceSchema,
   BeltUtilisationResponseSchema,
   CameraCfgSchema,
   CameraUptimeResponseSchema,
@@ -275,6 +276,21 @@ describe('read endpoints return contract-valid data', { timeout: 60_000 }, () =>
     );
     expect(cams.cams).toHaveLength(21);
     expect(cams.cams.some((c) => c.incidents > 0)).toBe(true);
+  });
+
+  it('GET /analytics/bay-performance (rev 1.2): one row per bay, refused for KIOSK', async () => {
+    asManager();
+    const perf = await getJson(
+      `/analytics/bay-performance?site=dhk-depot&from=${encodeURIComponent('2026-10-18T06:00:00+06:00')}&to=${encodeURIComponent('2026-10-24T19:20:00+06:00')}`,
+      BayPerformanceSchema,
+    );
+    expect(perf.rows.map((r) => r.bay)).toEqual(['B01', 'B02', 'B03', 'B04', 'B05', 'B06', 'B07']);
+    expect(perf.minIncluded).toBe(8);
+    expect(perf.cohorts.length).toBeGreaterThan(0);
+    expect(perf.rows.some((r) => r.index !== null)).toBe(true);
+    loginAs(session, 'kiosk', 'x');
+    await getJson('/analytics/bay-performance', ApiErrorSchema, 403);
+    asManager();
   });
 
   it('GET /leaderboard for every period, with names gated by role', async () => {

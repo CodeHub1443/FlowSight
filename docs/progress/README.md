@@ -7,7 +7,7 @@ Steps 3 (simulator), 5 (shell) and 6 (static 3D) run in parallel worktrees. To k
 - **Only the main session edits `docs/PROGRESS.md`.** It ticks the step and links to the step file. Parallel sessions never touch it.
 
 ## i18n namespaces
-Locale files are split per namespace: `src/i18n/locales/{en,bn}/{common,live,scene,mock,admin,kpidetail,baypanel}.json`.
+Locale files are split per namespace: `src/i18n/locales/{en,bn}/{common,live,scene,mock,admin,kpidetail,baypanel,analytics,perfindex,perftrend}.json`.
 `pnpm i18n:check` validates every namespace pair: a key missing from either language, an empty Bangla value, or a file present in only one language fails the check. It also fails when a locale file is not listed in `NAMESPACES` (`src/i18n/index.ts`) or a listed namespace has no file.
 
 | Namespace | Owner | Holds |
@@ -18,6 +18,9 @@ Locale files are split per namespace: `src/i18n/locales/{en,bn}/{common,live,sce
 | `admin` | later (step 12) | admin screens |
 | `kpidetail` | Task 19A (KPI chips) | KPI popovers: cartons, turnaround breakdown, PPE compliance, alert groups (`groups.<AlertGroupId>`) |
 | `baypanel` | Task 19B (bay inspector) | bay inspector sections: truck timeline, throughput, workforce, "More details" |
+| `analytics` | Task 20.0 (base; shared, read-only for 20A and 20B) | /analytics title, tab names, range labels, shared widget states, confidence notes, index bands, simulated-data marker, chart data-table caption |
+| `perfindex` | Task 20A (comparison) | Performance widgets W1 bay index, W2 where the time goes, W3 workload context |
+| `perftrend` | Task 20B (trend) | Performance widgets W4 throughput vs the previous period, W5 detentions per bay |
 | `common` | **main session only** | app name, language names, routes, placeholders, 404, debug readout, anything shared |
 
 Rules:

@@ -5,12 +5,18 @@ import { afterEach } from 'vitest';
 import { App } from './App';
 import { InlineHost, setSimRuntime, SimRuntime } from '@/data/mock';
 import { alertStore, liveStore, sessionStore } from '@/stores';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import i18n from '@/i18n';
 import bn from '@/i18n/locales/bn/common.json';
 import en from '@/i18n/locales/en/common.json';
 import { ADMIN_CHILDREN } from './adminRoutes';
 import { AppRoutes } from './routes';
+
+// the Performance tab preloads the ECharts chunk; loading the real one in jsdom only slows these tests
+vi.mock('@/features/analytics/chart/load', () => ({
+  loadChartCanvas: vi.fn(),
+  preloadChart: vi.fn(),
+}));
 
 function renderAt(path: string) {
   return render(
@@ -57,7 +63,6 @@ describe('App shell', () => {
   it.each([
     '/bays/B01',
     '/trucks',
-    '/analytics',
     '/leaderboard',
     '/events',
     '/events/evt-1',
@@ -71,6 +76,24 @@ describe('App shell', () => {
     renderAt(path);
     expect(screen.queryByTestId('not-found-title')).not.toBeInTheDocument();
     expect(screen.getAllByTestId('placeholder-title').length).toBeGreaterThan(0);
+  });
+
+  it('opens /analytics on the Performance tab (lazy chunk), with the range from the URL', async () => {
+    renderAt('/analytics?range=week');
+    expect(await screen.findByTestId('analytics-page')).toBeInTheDocument();
+    expect(screen.getByTestId('perf-tab')).toBeInTheDocument();
+    expect(screen.getByTestId('perf-index-section')).toHaveAttribute('data-range', 'week');
+    expect(screen.getByTestId('perf-trend-section')).toHaveAttribute('data-range', 'week');
+    expect(screen.getByRole('radio', { name: 'Last 7 days' })).toHaveAttribute(
+      'aria-checked',
+      'true',
+    );
+  });
+
+  it('keeps the placeholder on the other analytics tabs', async () => {
+    renderAt('/analytics/throughput');
+    expect(await screen.findByTestId('placeholder-title')).toHaveTextContent('Throughput');
+    expect(screen.queryByTestId('perf-tab')).not.toBeInTheDocument();
   });
 
   it('shows 404 for an unknown path', () => {
