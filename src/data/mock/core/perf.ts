@@ -11,6 +11,7 @@ import { iso, MIN } from './clock';
 import { round } from './rng';
 
 // GET /analytics/bay-performance (contract rev 1.2, docs/03 section 4.4), computed from the simulator's own visits.
+// Index (definition 8): a bay's expected/actual minutes ratio over the depot's own ratio, so 100 = typical for this depot.
 // Pure: hand-built visits in, the response out. The numbered comments refer to the definitions in docs/03 section 4.4.
 
 /** Default `minIncluded` (definition 9). */
@@ -197,23 +198,38 @@ export function computeBayPerformance(
     else byBay.set(v.bay, [v]);
   }
 
+  // 8. expected and actual active minutes of the included units, per bay and for the whole depot
+  const totals = new Map<string, { expected: number; actual: number; included: number }>();
+  let depotExpected = 0;
+  let depotActual = 0;
+  for (const u of units) {
+    if (u.cohort === null) continue;
+    const med = speed.get(u.cohort);
+    if (med === undefined) continue;
+    const expected = (u.cartons / 100) * med;
+    const t = totals.get(u.bay) ?? { expected: 0, actual: 0, included: 0 };
+    t.expected += expected;
+    t.actual += u.activeMin;
+    t.included += 1;
+    totals.set(u.bay, t);
+    depotExpected += expected;
+    depotActual += u.activeMin;
+  }
+
   const rows = opts.bays.map((bay): BayPerfRow => {
     const list = byBay.get(bay) ?? [];
     if (list.length === 0) return emptyRow(bay);
-    // 8-9. index and confidence
-    let expected = 0;
-    let actual = 0;
-    let included = 0;
-    for (const u of units) {
-      if (u.bay !== bay || u.cohort === null) continue;
-      const med = speed.get(u.cohort);
-      if (med === undefined) continue;
-      expected += (u.cartons / 100) * med;
-      actual += u.activeMin;
-      included += 1;
-    }
+    // 8-9. index (relative to the depot's own typical ratio) and confidence
+    const { expected, actual, included } = totals.get(bay) ?? {
+      expected: 0,
+      actual: 0,
+      included: 0,
+    };
     const confidence: PerfConfidence = perfConfidenceOf(included, minIncluded);
-    const index = confidence === 'NONE' || actual <= 0 ? null : round((100 * expected) / actual, 1);
+    const index =
+      confidence === 'NONE' || actual <= 0 || depotExpected <= 0 || depotActual <= 0
+        ? null
+        : round((100 * (expected / actual)) / (depotExpected / depotActual), 1);
 
     // 12. rates over visits with an active time
     let a = 0;

@@ -2,7 +2,7 @@ import type { Tone } from '@/components/common';
 
 // The one place for the Performance tab's display constants (docs/tasks/t20-spec.md section 2).
 
-/** The index every bay is compared with: 100 = as fast as comparable trucks. */
+/** The index every bay is compared with: 100 = typical for this depot's comparable trucks (docs/03 section 4.4, definition 8). */
 export const INDEX_CENTER = 100;
 /** Display band, inclusive: 90 to 110 reads "comparable"; under is "slower", over is "faster". */
 export const INDEX_BAND = { low: 90, high: 110 } as const;

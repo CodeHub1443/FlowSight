@@ -29,11 +29,14 @@ Not shipped on this tab: raw throughput ranking, SKU tables (later SKU tab), any
   fewer than 6 visits merges its bands; if still fewer than 6, its visits are excluded from the index.
 - Cohort speed: `medianMinPer100` = median over the cohort's visits of (active minutes / cartons x 100).
 - Expected active minutes of a visit = cartons / 100 x its cohort's `medianMinPer100`.
-- Bay index = 100 x (sum of expected) / (sum of actual active minutes) over the bay's included visits.
-  100 = as fast as comparable trucks; higher is faster; lower is slower.
+- Bay index = 100 x (sum expected_b / sum actual_b) / (sum expected_all / sum actual_all), where `_b` sums the bay's included visits and
+  `_all` sums every included visit of the site in the range. Null if a denominator is 0 or "all" has no included visits.
+  100 = typical for this depot's comparable trucks; higher is faster; lower is slower. (Added in 20.0b: durations are right-skewed, so a
+  median-based expected time sits below the mean actual time and an uncalibrated index reads under 100 for almost every bay. Dividing by the
+  depot's own ratio centres it: the bay indices weighted by their actual active minutes average exactly 100.)
 - Confidence: included >= `minIncluded` (default 8) = OK; 4 to `minIncluded - 1` = LOW (shown muted, "few trucks"); under 4 = NONE (index null,
   "Not enough comparable trucks").
-- Display bands (constants in one file): index 90 to 110 = "comparable" (neutral); under 90 = "slower than comparable trucks" (attention tone);
+- Display bands (constants in one file): index 90 to 110 = "comparable" (neutral); under 90 = "slower than comparable trucks" (attention tone; 20.0b: relative to this depot's typical);
   over 110 = "faster". Never red/green shouting; use the existing tone tokens.
 - Pre-operation and post-operation delay are NOT volume-normalised (they do not depend on carton count); each bay's mean is
   compared with the site median of the same range.
@@ -61,7 +64,7 @@ type BayPerfRow = {
 type BayPerformance = {
   from: string; to: string; minIncluded: number;
   site: { visits: number; medianOccupancyMin: number | null; medianPreOpMin: number | null; medianPostOpMin: number | null };
-  cohorts: { key: string; dir: 'OUT' | 'IN'; pack: 'CASE' | 'SACK' | 'SHRINK' | 'MIXED'; band: 1 | 2 | 3;
+  cohorts: { key: string; dir: 'OUT' | 'IN'; pack: 'CASE' | 'SACK' | 'SHRINK' | 'MIXED'; band: 1 | 2 | 3 | null;   // null = merged cohort, key ends ".all"
              n: number; medianMinPer100: number }[];
   rows: BayPerfRow[];
 };
@@ -85,11 +88,13 @@ type BayPerformance = {
   (Inter / Noto Sans Bengali), Bangla digits through formatter callbacks, resize handling, `prefers-reduced-motion`, and disposal on unmount.
 - Every chart has a text alternative: an `aria-label` summary plus a visually hidden data table.
 - Widgets: W1 seven rows in bay order, each with bay label, index number, a bar centred on 100 with the 90 to 110 band shaded, "n visits" and the
-  confidence note; a short "How this is calculated" popover with one sentence ("compared with trucks of the same direction, pack type and similar
-  volume at this depot"). W2 stacked horizontal bars (pre-op / work / post-op, tones from segmentTone.ts) with the occupancy value at the end and a
+  confidence note; a short "How this is calculated" popover with one sentence ("compared with this depot's typical comparable trucks: same
+  direction, pack type and similar volume"). W2 stacked horizontal bars (pre-op / work / post-op, tones from segmentTone.ts) with the occupancy value at the end and a
   vertical line for the site median occupancy. W3 a compact table in bay order (no sorting). W4 a line chart of cartons per hour for the period and the previous
   period, with an optional bay filter. W5 a strip with detentions and their share of trucks per bay.
 - Every widget has all four states: loading skeleton, error with retry, empty ("No finished trucks in this range"), insufficient data.
+  W1's insufficient state (no bay has an index) reads "n of <minIncluded> comparable trucks in this range" (n = the highest `included` of any
+  bay) and carries a button "Show last 7 days" that sets the shared range to `week`; the button is hidden when the range is already `week`.
 - In mock mode the page header carries the existing simulated-data marker; no new "illustrative" captions.
 - All strings EN + BN, Bangla digits, lakh grouping. i18n namespaces: `analytics` (20.0: tab names, range labels, shared states), `perfindex` (20A), `perftrend` (20B).
 

@@ -304,6 +304,96 @@ describe('computeBayPerformance', () => {
   });
 });
 
+describe('index calibration (definition 8: relative to the depot, 100 = typical)', () => {
+  // The bay indices weighted by each bay's actual active minutes average exactly 100, because every index is
+  // (E_b / A_b) / (E / A) and sum(A_b x index_b / 100) = sum(E_b) / (E / A) = A. Each index is rounded to one decimal.
+  const weightedMean = (res: ReturnType<typeof run>, minutesOf: Record<string, number>): number => {
+    const rows = res.rows.filter((r) => r.index !== null);
+    const total = rows.reduce((s, r) => s + (minutesOf[r.bay] ?? 0), 0);
+    return rows.reduce((s, r) => s + (r.index ?? 0) * (minutesOf[r.bay] ?? 0), 0) / total;
+  };
+  const near100 = (x: number) => expect(Math.abs(x - 100)).toBeLessThanOrEqual(0.05);
+
+  it('identical bays are exactly 100 each', () => {
+    const res = run([
+      ...many(8, { bay: 'B01', activeMin: 14 }),
+      ...many(8, { bay: 'B02', activeMin: 14 }),
+      ...many(8, { bay: 'B03', activeMin: 14 }),
+    ]);
+    for (const b of ['B01', 'B02', 'B03']) expect(row(res, b).index).toBe(100);
+  });
+
+  it('two bays, one 25 % slower: the ratio matches the arithmetic and the minute-weighted mean is 100', () => {
+    // 8 x 10 min and 8 x 12.5 min for 100 cartons: median 11.25, depot ratio E / A = 180 / 180 = 1
+    const res = run([
+      ...many(8, { bay: 'B01', activeMin: 10 }),
+      ...many(8, { bay: 'B02', activeMin: 12.5 }),
+    ]);
+    expect(row(res, 'B01').index).toBe(112.5);
+    expect(row(res, 'B02').index).toBe(90);
+    expect((row(res, 'B01').index ?? 0) / (row(res, 'B02').index ?? 1)).toBeCloseTo(1.25, 9);
+    near100(weightedMean(res, { B01: 80, B02: 100 }));
+  });
+
+  it('a depot that is slow overall is still centred on 100 (the old definition read 60 to 80 here)', () => {
+    // every bay is slower than the cohort median would suggest: one long visit drags the mean above the median
+    const res = run([
+      ...many(7, { bay: 'B01', activeMin: 10 }),
+      visit({ bay: 'B01', activeMin: 100 }),
+      ...many(8, { bay: 'B02', activeMin: 10 }),
+    ]);
+    // cohort median 10; B01 expected 80 / actual 170, B02 expected 80 / actual 80; depot 160 / 250
+    expect(row(res, 'B01').index).toBe(73.5);
+    expect(row(res, 'B02').index).toBe(156.3);
+    near100(weightedMean(res, { B01: 170, B02: 80 }));
+  });
+
+  it('a right-skewed set keeps the depot average at 100 with several bays', () => {
+    const skew = (bay: string, longMin: number) => [
+      ...many(7, { bay, activeMin: 10 }),
+      visit({ bay, activeMin: longMin }),
+    ];
+    const res = run([
+      ...skew('B01', 90),
+      ...skew('B02', 40),
+      ...skew('B03', 20),
+      ...skew('B04', 10),
+    ]);
+    const minutes = { B01: 160, B02: 110, B03: 90, B04: 80 };
+    expect(res.rows.filter((r) => r.index !== null)).toHaveLength(4);
+    near100(weightedMean(res, minutes));
+  });
+
+  it('a single-bay depot is 100', () => {
+    const res = run([
+      ...many(7, { bay: 'B05', activeMin: 10 }),
+      visit({ bay: 'B05', activeMin: 60 }),
+    ]);
+    expect(row(res, 'B05').index).toBe(100);
+  });
+
+  it('visits of a bay with too few trucks still count in the depot baseline', () => {
+    // B03 has 3 included visits (confidence NONE, index null) but their expected and actual minutes are in "all"
+    const res = run([
+      ...many(8, { bay: 'B01', activeMin: 10 }),
+      ...many(8, { bay: 'B02', activeMin: 20 }),
+      ...many(3, { bay: 'B03', activeMin: 30 }),
+    ]);
+    expect(row(res, 'B03').index).toBeNull();
+    expect(row(res, 'B03').included).toBe(3);
+    // median 20; E = 19 x 20 = 380, A = 80 + 160 + 90 = 330; B01: (160 / 80) / (380 / 330) x 100
+    expect(row(res, 'B01').index).toBe(173.7);
+    expect(row(res, 'B02').index).toBe(86.8);
+  });
+
+  it('no included visits: every index is null', () => {
+    const mixed: PerfVisit = { ...visit({ bay: 'B01' }), dir: 'MIXED', casesOut: 50, casesIn: 50 };
+    const res = run([mixed, ...many(5, { bay: 'B02', dir: 'IN' })]);
+    expect(res.rows.every((r) => r.index === null)).toBe(true);
+    expect(row(res, 'B01').visits).toBe(1);
+  });
+});
+
 describe('simulator bay-performance', () => {
   it('a simulated day is contract-valid, one row per configured bay, cohort n = included', () => {
     const d = makeDepot(3, PEAK, 2);

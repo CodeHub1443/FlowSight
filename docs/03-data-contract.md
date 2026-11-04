@@ -373,7 +373,7 @@ type BayPerfRow = {
   mean: { occupancyMin: number | null; waitForDockMin: number | null; preOpMin: number | null;
           activeMin: number | null; postOpMin: number | null };
   detentions: number;                            // finished visits over the detention threshold (≤ visits)
-  index: number | null;                          // 100 = as fast as comparable trucks; higher is faster
+  index: number | null;                          // 100 = typical for this depot's comparable trucks; higher is faster
   confidence: 'OK' | 'LOW' | 'NONE';
 };
 type BayPerformance = {
@@ -398,7 +398,13 @@ type BayPerformance = {
    `key` = `{dir}.{pack}.{band}`, or `{dir}.{pack}.all` for a merged cohort. `cohorts[]` lists only the cohorts used, ordered by `key`.
 6. **Cohort speed** `medianMinPer100` = median (`percentile_cont(0.5)`) over the cohort's units of `activeMin / cartons × 100`.
 7. **Expected active minutes** of a unit = `cartons / 100 × medianMinPer100` of its cohort.
-8. **Index** of a bay = `100 × Σ expected / Σ activeMin` over the bay's included units (`included` = their count).
+8. **Index** of a bay = `100 × (Σ expected_b / Σ activeMin_b) / (Σ expected_all / Σ activeMin_all)`, where `_b` sums the bay's included
+   units (`included` = their count) and `_all` sums every included unit of the site in the range, whatever its bay or confidence. `index`
+   is `null` when `Σ activeMin_b`, `Σ expected_all` or `Σ activeMin_all` is 0, or when there are no included units. 100 = typical for
+   this depot's comparable trucks; higher is faster, lower is slower. *Why relative to the depot:* active durations are right-skewed
+   (a few long visits), so a median-based expected time sits below the mean actual time and an uncalibrated index would read under 100
+   for almost every bay. Dividing by the depot's own ratio removes that bias: the bay indices weighted by each bay's actual active
+   minutes average exactly 100 (before rounding), and a depot with one bay scores 100.
 9. **Confidence**: `included ≥ minIncluded` (default 8) → `OK`; 4 to `minIncluded − 1` → `LOW` (index shown muted); under 4 → `NONE`
    and `index: null`.
 10. **Means** (`mean.*`): each field's mean over the bay's visits in range that have both of its timestamps (§4.1 formulas; `postOpMin`
