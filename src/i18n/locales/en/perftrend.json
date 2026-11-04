@@ -1,3 +1,42 @@
 {
-  "title": "Throughput and detentions"
+  "title": "Throughput and detentions",
+  "throughput": {
+    "title": {
+      "hour": "Cartons per hour",
+      "day": "Cartons per day"
+    },
+    "bayFilter": "Bay",
+    "allBays": "All bays",
+    "series": {
+      "current": {
+        "shift": "This shift",
+        "day": "Today",
+        "week": "Last 7 days"
+      },
+      "previous": {
+        "shift": "Previous shift",
+        "day": "Yesterday",
+        "week": "The 7 days before"
+      }
+    },
+    "aria": "{{title}}: {{current}} compared with {{previous}}",
+    "table": {
+      "hour": "Time",
+      "day": "Day"
+    },
+    "cartons": "{{n}} cartons",
+    "caption": {
+      "current": "{{label}}: {{value}}",
+      "previous": "{{label}} by the same time: {{value}}",
+      "delta": "{{pct}} compared with the previous period"
+    },
+    "insufficient": "This period has only just started."
+  },
+  "detention": {
+    "title": "Trucks over the expected time",
+    "ofTrucks": "of {{total}} trucks",
+    "cell": "{{bay}}: {{n}} of {{total}} trucks over the expected time ({{pct}})",
+    "noVisits": "No finished trucks",
+    "caption": "Finished trucks that stayed longer than the depot's expected time, with their share of that bay's trucks."
+  }
 }
