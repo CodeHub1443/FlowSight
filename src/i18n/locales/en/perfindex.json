@@ -1,3 +1,48 @@
 {
-  "title": "Bay comparison"
+  "bay": "Bay",
+  "title": "Bay comparison",
+  "how": {
+    "open": "How this is calculated",
+    "close": "Close"
+  },
+  "w1": {
+    "title": "Bay efficiency vs comparable trucks",
+    "how": "Each bay's loading time is compared with this depot's typical comparable trucks: same direction, pack type and similar volume ({{center}} = typical, higher is faster).",
+    "listLabel": "Efficiency index by bay, in bay order",
+    "scale": {
+      "slower": "Slower",
+      "typical": "{{center}} = typical",
+      "faster": "Faster"
+    },
+    "insufficient": "{{n}} of {{min}} comparable trucks in this range",
+    "showWeek": "Show last 7 days"
+  },
+  "w2": {
+    "title": "Where the time goes",
+    "preOp": "Pre-operation delay",
+    "work": "Loading / unloading",
+    "loading": "Loading",
+    "unloading": "Unloading",
+    "postOp": "Post-operation delay",
+    "occupancy": "Bay occupancy",
+    "axis": "min",
+    "medianLine": "{{label}} {{value}}",
+    "aria": "Mean minutes per truck at each bay, split into pre-operation delay, loading or unloading and post-operation delay, with the site median bay occupancy ({{median}}) as a dashed line.",
+    "caption": "Mean time per truck by bay, in bay order",
+    "insufficient": "No complete truck timelines in this range"
+  },
+  "w3": {
+    "title": "Workload context",
+    "caption": "Workload and crew by bay, in bay order",
+    "cols": {
+      "rate": "Cartons per loading hour",
+      "outIn": "Cartons out / in",
+      "trucks": "Trucks",
+      "crew": "Average crew",
+      "perCrew": "Cartons per hour, per crew member present"
+    },
+    "noVisits": "No finished trucks at this bay in this range",
+    "notMeasured": "Not measured for these trucks",
+    "insufficient": "Not enough loading data to compare workload in this range"
+  }
 }
