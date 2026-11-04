@@ -34,8 +34,10 @@
   },
   "detention": {
     "title": "Trucks over the expected time",
-    "ofTrucks": "of {{total}} trucks",
-    "cell": "{{bay}}: {{n}} of {{total}} trucks over the expected time ({{pct}})",
+    "ofTrucks_one": "of {{total}} truck",
+    "ofTrucks_other": "of {{total}} trucks",
+    "cell_one": "{{bay}}: {{n}} of {{total}} truck over the expected time ({{pct}})",
+    "cell_other": "{{bay}}: {{n}} of {{total}} trucks over the expected time ({{pct}})",
     "noVisits": "No finished trucks",
     "caption": "Finished trucks that stayed longer than the depot's expected time, with their share of that bay's trucks."
   }

@@ -60,7 +60,7 @@ Spec: `docs/06-visual-language.md`. Evidence: `docs/screens/step-merge-02-live-1
 - [ ] Task 04B · captain-name visibility per role pending client answer (docs/01 §9 item 4)
 
 ## Task 19 follow-ups (integration 19.9, 2026-11-03)
-- [ ] T19 · **P0 Task 20: Performance tab in `/analytics`**: compare bays against comparable operations (direction, carton volume, crew size, shift length), with sample sizes and "insufficient data" states; no chart library before Task 20 (spec section 7)
+- [x] T19 · **P0 Task 20: Performance tab in `/analytics`** (done 20.9; crew size is context in W3, not part of the index): compare bays against comparable operations (direction, carton volume, crew size, shift length), with sample sizes and "insufficient data" states; no chart library before Task 20 (spec section 7)
 - [ ] T19 · turnaround chip shows from 1700 px and PPE chip from 2000 px, so at 1366 and 1920 px some popovers are unreachable → consider a "More KPIs" overflow chip
 - [ ] T19 · KPI popovers may overlap bays while open (decision D1, accepted); if users object: a camera offset while a popover is open (scene change, out of T19)
 - [x] T19 · alert groups vs KPI "Needs attention": groups 40 vs 74 at peak start in 19.9 → done 19.9b (D3): mock backfill sends every open alert; e2e asserts groups = `kpi.openAlerts` per severity. Open: the bell counts *unread* alerts, so it equals the open count only until someone reads one; the real backend must also deliver all open events on connect
@@ -78,7 +78,19 @@ Spec: `docs/06-visual-language.md`. Evidence: `docs/screens/step-merge-02-live-1
 - [ ] Soak harness · simulated-user actions "open a KPI popover" and "open the Performance tab"
 - [ ] Soak harness · then a 100-minute run mostly at 60x (`--phases=10m@1,90m@60`) to reach the alert-store cap
 - [ ] T19 · "No truck" is shown three times in the empty bay inspector → once
-- [ ] T20 · backend (wh-api / state-engine) must implement contract rev 1.2 (`GET /analytics/bay-performance`, docs/03 section 4.4) with the same definitions; until then the Performance widgets show their error state against a live backend
+- [ ] T20 · backend (wh-api / state-engine) must implement contract rev 1.2 (`GET /analytics/bay-performance`, docs/03 section 4.4) with the same definitions, and the rev 1.1 items (T19 line above); until then the Performance widgets show their error state against a live backend
+
+## Task 20 follow-ups (integration 20.9, 2026-11-04)
+- [ ] T20 · remove the unused `echarts-for-react` dependency (the `<Chart>` wrapper uses `echarts/core` directly; 20.0 decision 17)
+- [ ] T20 · **W4 previous period reads 0 where the simulator has no history**: the mock keeps 7 days, so on `week` "The 7 days before" is a flat 0 line until its last day and the caption says "+2,933 %". The simulator should answer `v: null` (unknown) for buckets before its history starts, or keep 14 days; W4 should then not draw or total unknown buckets (decision for the trend owner)
+- [ ] T20 · **W4 slot in progress** (the current hour, or today on `week`) is drawn as a full point, so the week looks as if it collapsed on the last day (Sat 24 Oct, 19:20: ~11,000 against ~26,000). Design decision: hollow/faded last point with "so far" in the tooltip, or a dashed last segment
+- [ ] T20 · mock `day` and `shift` are sparse (about 3 finished trucks per bay by 19:20 on the peak day): W1 is LOW/NONE for most bays outside `week`. A "busy demo" simulator scenario would show the populated states on `day`
+- [ ] T20 · entry chunk +18.3 kB raw / +5.3 kB gzip at 20.9 (897.6 -> 915.9 kB): i18n namespaces perfindex + perftrend ~6.8 kB raw (~2.1 kB gzip, under the 5 kB rule, not lazy-loaded); the rest (~11 kB raw, ~3 kB gzip) is React Query's observer, the REST client and `lib/period.ts`, pulled into the entry because `src/data/api/queries.ts` (hooks) is imported by the entry. Split the hooks into a module only the lazy routes import
+- [ ] T20 · `/live` remount retains ~980 DOM nodes, ~25 listeners and 1 canvas per visit (after GC; WebGL geometries and textures are freed). Same with `/trucks` or a placeholder analytics tab as the other route, so not caused by the Performance tab (20.9 leak check). Find the detached tree (scene/overlay); out of scope for T20 (no scene changes)
+- [ ] T20 · `obstacles.test.ts` speed threshold (about 73 against 300 calls per ms under load) is load-sensitive: make it relative to a baseline measured in the same run, or move it out of the default suite
+- [ ] T20 · `src/app/App.test.tsx` analytics tests use `findByTestId` with the default 1 s wait; the lazy analytics chunk is larger since 20A/20B and misses it under full-suite load (pass alone). Give them an explicit timeout
+- [ ] T20 · minor look: W4 legend icons are filled rectangles, so the dashed previous line is not shown as dashed in the legend; W2's axis rounds up to 100 min and leaves a quarter of the plot empty; W2's "min" axis name sits low beside the last tick; W4 empty state reuses "No finished trucks in this range" for a cartons chart
+- [x] T20 · document `pnpm test <file>` in CLAUDE.md (`pnpm exec vitest run <file>` fails on `vitest.setup.ts`) → done 20.9
 
 ## Client open items (docs/01 §9)
 - [ ] Shift timings · [ ] mandatory PPE · [ ] SKU class list · [ ] roster source · [ ] real door pitch / bay order · [ ] brand kit · [ ] Telegram egress · [ ] transporter list

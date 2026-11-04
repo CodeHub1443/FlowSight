@@ -114,6 +114,17 @@ Shared files nobody edits in the parallel phase: `src/domain/**`, `src/data/**`,
 the shell and chart wrapper, `docs/03`, `docs/PROGRESS.md`, `package.json`, the lockfile, `playwright.config.ts`, `e2e/fixtures.ts`.
 The parallel phase runs NO browser, NO Playwright, NO screenshots: allowed are typecheck, lint, format:check, i18n:check, `pnpm test` (`--testTimeout=60000` if needed), build.
 
+## 7a. Integration notes and deviations (20.9)
+- Section order on the Performance tab: trend first (W4, W5: "are we ahead or behind"), comparison second (W1 to W3: "which bay and why").
+  Section 4 does not fix an order; this is the 20.9 brief's.
+- W4 tooltip values carry their unit ("n cartons"), like the caption and W2's tooltip; W2's site-median label sits at the top of the line
+  (the inverted category axis put it on the x-axis ticks); W2's occupancy labels sit on the card colour above the median line.
+- W5 "of n trucks" and its accessible label are pluralised (`_one` / `_other`).
+- The 20.9 screenshots force loading, error and empty states with a page-level `fetch` override of the two analytics endpoints
+  (`e2e/t20-shots.spec.ts`), not an MSW handler override: the MSW worker is not exposed to the page and `src/data/msw` is shared.
+- Open (BACKLOG, Task 20 follow-ups, 20.9): W4 draws the slot in progress as a full point; W4's previous period reads 0 where the mock has no
+  history. Both need a decision by the trend owner, not a seam fix.
+
 ## 7. Global prohibitions
 No scene, lighting, camera, quality, actor or asset changes. No new dependencies. No `/analytics/people`. No per-worker data. No hard-coded numbers.
 No pushes. No destructive git operations. No full e2e suite.

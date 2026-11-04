@@ -39,11 +39,16 @@ export function timeSplitOption({
   const categories = rows.map((r) => bayLabel(r.bay, fmt.lang));
   const totals = rows.map((r) => Math.max(phaseTotal(r) ?? 0, r.mean.occupancyMin ?? 0));
   const max = niceCeil(axisMaxWith(totals, median));
-  const medianLine = siteMedianLine(median, {
+  const shared = siteMedianLine(median, {
     label: t('w2.medianLine', { label: t('analytics:siteMedian'), value: fmt.durHM(median) }),
     color: tokens.ink600,
     labelColor: tokens.ink600,
   });
+  // the category axis is inverted (bay 1 on top), so the line's `end` is at the bottom, on the x-axis ticks; `start` puts
+  // the label at the top, in the grid's top margin (20.9 seam fix)
+  const medianLine = shared
+    ? { ...shared, label: { ...shared.label, position: 'start' as const } }
+    : null;
 
   // unknown phases draw as nothing (0) so the stack stays aligned; the tooltip and the table show "—"
   const phase = (
@@ -121,11 +126,15 @@ export function timeSplitOption({
         silent: true,
         tooltip: { show: false },
         itemStyle: { color: 'transparent' },
+        // above the median line, on the card colour, so the dashed line never runs through the value
+        z: 3,
         label: {
           show: true,
           position: 'right',
           color: tokens.ink900,
           fontWeight: 600,
+          backgroundColor: tokens.card,
+          padding: [1, 3],
           formatter: (p: { dataIndex: number }) =>
             fmt.durHM(rows[p.dataIndex]?.mean.occupancyMin ?? null),
         },

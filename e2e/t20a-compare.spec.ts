@@ -1,5 +1,5 @@
 import { expect, test } from './fixtures';
-import { settle } from './mockSim';
+import { settle, startPeak } from './mockSim';
 
 // Task 20A: bay comparison widgets W1, W2, W3 (docs/tasks/t20-spec.md section 4). Written in the parallel phase, NOT run
 // there (no browser in 20A); 20.9 runs it first. Mock mode: the data is simulated, so the checks are structural
@@ -47,7 +47,8 @@ test('W3 never says "per worker" and is not sortable', async ({ page }) => {
   const text = (await page.getByTestId('w3-table').textContent()) ?? '';
   expect(text).toContain('per crew member present');
   expect(text.toLowerCase()).not.toContain('per worker');
-  await page.getByRole('columnheader').first().click();
+  // a value column of W3 itself (20.9: the trend section is now above, and its charts' hidden data tables come first)
+  await page.getByTestId('w3-table').getByRole('columnheader').nth(1).click();
   const order = await page
     .locator('[data-testid^="w3-row-B"]')
     .evaluateAll((els) => els.map((e) => e.getAttribute('data-testid')?.slice(-3)));
@@ -57,18 +58,27 @@ test('W3 never says "per worker" and is not sortable', async ({ page }) => {
 test('insufficient W1 offers "Show last 7 days", which sets the range to week', async ({
   page,
 }) => {
+  // Deterministic sparse range (20.9): the peak day (seed 1, 2026-10-24 19:20) has fewer than 4 comparable trucks per
+  // bay on the 14:00 shift, so every bay is NONE (docs/progress/t20-0.md). The simulator restarts from a placeholder tab
+  // that runs no analytics query; Performance then opens by a client-side click, so its query runs on the peak data.
   await page.setViewportSize({ width: 1366, height: 768 });
-  await page.goto('/analytics?range=shift');
+  await page.goto('/analytics/throughput?range=shift');
+  const perfTab = page.locator('a[data-tab="performance"]');
+  await expect(perfTab).toBeVisible({ timeout: 60_000 });
+  await startPeak(page);
+  await perfTab.click();
+  const w1 = page.getByTestId('perf-w1');
+  await expect(w1.getByTestId('widget-insufficient')).toContainText(
+    'comparable trucks in this range',
+    { timeout: 60_000 },
+  );
   const button = page.getByTestId('w1-show-week');
-  // the mock has too few finished trucks per bay on shift/day; when it has enough this branch is skipped
-  if (await button.isVisible({ timeout: 60_000 }).catch(() => false)) {
-    await button.click();
-    await expect(page).toHaveURL(/range=week/);
-    await expect(page.getByTestId('w1-rows')).toBeVisible({ timeout: 60_000 });
-    await expect(page.getByTestId('w1-show-week')).toHaveCount(0);
-  } else {
-    await expect(page.getByTestId('w1-rows')).toBeVisible();
-  }
+  await expect(button).toBeVisible();
+  await button.click();
+  await expect(page).toHaveURL(/range=week/);
+  await expect(page.getByTestId('w1-rows')).toBeVisible({ timeout: 60_000 });
+  // hidden when the range is already week
+  await expect(page.getByTestId('w1-show-week')).toHaveCount(0);
 });
 
 test('Bangla: digits and bay labels in W1 to W3', async ({ page }) => {

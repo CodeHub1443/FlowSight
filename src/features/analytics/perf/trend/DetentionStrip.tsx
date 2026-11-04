@@ -52,6 +52,7 @@ export function DetentionStrip({ range }: { range: PerfRange }) {
                 data-testid={`detention-${c.bay}`}
                 data-state={over ? 'over' : 'none'}
                 aria-label={t('detention.cell', {
+                  count: c.visits,
                   bay: label,
                   n: fmt.num(c.detentions),
                   total: fmt.num(c.visits),
@@ -72,7 +73,7 @@ export function DetentionStrip({ range }: { range: PerfRange }) {
                   {fmt.num(c.detentions)}
                 </span>
                 <span className="text-ink-600 text-sm">
-                  {t('detention.ofTrucks', { total: fmt.num(c.visits) })}
+                  {t('detention.ofTrucks', { count: c.visits, total: fmt.num(c.visits) })}
                 </span>
                 <span className="text-ink-600 text-sm tabular-nums">{fmt.pct(c.sharePct)}</span>
               </li>

@@ -925,3 +925,92 @@ tray filter EN/BN. Findings: popovers clear the inspector and tray; timeline abo
 card inside the inspector card in both themes, no double shadow; BN labels in three-column cells wrap to two lines (accepted);
 popovers overlap bays while open (accepted by D1).
 
+## Task 20: Performance tab in /analytics (20.0, 20A, 20B, integration 20.9)
+
+- [x] 20.0 base: contract rev 1.2 (`GET /analytics/bay-performance`), data layer, shell, `<Chart>`, selectors ([notes](progress/t20-0.md);
+      `510960c`, 20.0b `52542b0`, 20.0c `dedfc2c`)
+- [x] 20A bay comparison W1 to W3 ([notes](progress/t20a.md); `fd53d59`, merged `49ace0a`)
+- [x] 20B throughput trend W4 and trucks over the expected time W5 ([notes](progress/t20b.md); `e604f4e`, merged `03def61`)
+- [x] 20.9 integration: merges, seam fixes, screenshots, leak check, docs; one commit "task-20.9: ...". Binding spec:
+      `docs/tasks/t20-spec.md` (section 7a lists the 20.9 notes and deviations).
+
+### Integration (20.9)
+Pre-merge review: every changed file of `t20a-compare` and `t20b-trend` (against `dedfc2c`) sits in its spec section 6 column; no shared
+file, secret, generated artifact or formatting churn. Accepted. `git merge --no-ff` of both: no conflicts.
+
+Seam fixes:
+- `perf/PerformanceTab.tsx`: trend section first, comparison second (both `WidgetCard`, 16 px gaps, 15 px semibold titles: already consistent).
+- One request per range: the page-level fetch log in `e2e/t20-shots.spec.ts` shows exactly one `bay-performance` and two `throughput` calls
+  (this and the previous period) per range, although W1, W2, W3 and W5 read the same query (React Query dedupe). No change.
+- W4 tooltip carries the unit ("n cartons", Bangla digits), like the caption and W2's tooltip (`ThroughputTrend.tsx`).
+- W2 site-median label moved from the x-axis ticks to the top of the line; occupancy end labels on the card colour above the line
+  (`timeSplitOption.ts`; found in the screenshots).
+- W5 "of 1 trucks" -> plural keys `ofTrucks_one/_other`, `cell_one/_other` (`DetentionStrip.tsx`, `perftrend.json` en/bn).
+- `e2e/t20a-compare.spec.ts`: the "Show last 7 days" test is now deterministic (simulator restarted on the peak day from a placeholder
+  tab, then `shift` has every bay NONE: asserts the insufficient text, the button, `?range=week` and the button gone on `week`); the W3
+  "not sortable" test clicks a W3 column header (with the trend section first, the first header on the page was W4's hidden data table).
+- New opt-in `e2e/t20-shots.spec.ts` (`$env:T20_SHOTS='1'`).
+
+### Screenshot findings (`docs/screens/t20-*`, peak day 2026-10-24 19:20, seed 1)
+1. Fixed: W2 median label over the x-axis ticks (EN and BN), the median line through occupancy labels, W5 "of 1 trucks".
+2. Open (design decision, BACKLOG): W4 on `week` draws today (in progress) as a full point, ~11,000 against ~26,000, so the week reads
+   as a collapse; W4's previous week is a flat 0 because the mock keeps 7 days of history (caption "+2,933 %").
+3. OK: no horizontal overflow of the page or any card at 1366, 1920, 2560, EN and BN, light and dark; Bangla digits on axes, categories,
+   legends, tooltips, captions and both hidden data tables (asserted: no Latin digit in BN tables and tooltips); W1 band shading visible
+   against the track in light and dark; "100 = typical" does not crowd "Slower" / "Faster" at 1366 (half-width card) or in Bangla; W3
+   headers do not wrap in Bangla at 1366; W4 X labels do not overlap (24 hourly on `day`, 7 dates on `week`), the current line stops at
+   now, the previous line is dashed `ink400`; W5 cells do not wrap, the "—" cell reads with its reason; the native bay select matches the
+   32 px controls.
+4. Sparse ranges read honestly: `shift` W1 "2 of 8 comparable trucks in this range" + "Show last 7 days"; `day` W1 one LOW bay (B01,
+   "few trucks (5 of 8)"), the rest "Not enough comparable trucks"; W5 all 0 on neutral tiles.
+5. States: loading skeletons per widget; error with one Retry per widget (W4's refetches throughput, W1's the shared query and recovers
+   W1 to W3 and W5 together); empty "No finished trucks in this range" in every widget.
+6. Minor (BACKLOG): W4 legend icons do not show the dash; W2 axis rounds up to 100 min; W2 "min" axis name sits low.
+
+### Leak check (debug build, 1366x768, SwiftShader; /live -> /analytics?range=week -> /live x10, client-side, after forced GC)
+| After | Nodes | Listeners | Canvases in heap | Heap MB | Geometries / textures | ECharts instances on page |
+|---|---|---|---|---|---|---|
+| start /live | 1,103 | 247 | 13 | 20.9 | 168 / 17 | 0 |
+| cycle 1 | 2,080 | 284 | 14 | 25.4 | 168 / 17 | 0 (2 while on /analytics) |
+| cycle 5 | 6,008 | 373 | 18 | 29.8 | 168 / 17 | 0 |
+| cycle 10 | 10,916 | 510 | 23 | 32.2 | 168 / 17 | 0 |
+
+Controls with the same script: via `/trucks` cycle 10 = 10,910 nodes, 496 listeners, 23 canvases, 27.8 MB; via `/analytics/throughput`
+(placeholder, no chart) 10,911 / 512 / 23 / 27.7 MB. The per-visit growth (~980 nodes, ~25 listeners, 1 canvas) comes from remounting
+`/live` and is the same without the Performance tab (BACKLOG). The Performance tab adds a flat ~3 to 5 MB (React Query cache, ECharts
+module), not growing per cycle; ECharts instances are disposed (2 on the page each visit, 0 after leaving; ResizeObservers stay at 2).
+
+### Bundle (`vite build`)
+| Chunk | 20.0b `52542b0` (scratch `git archive` build) | 20.9 |
+|---|---|---|
+| entry `index-*.js` | 897.60 kB (gzip 283.58) | 916.24 kB (gzip 288.88) |
+| `AnalyticsPage-*.js` (lazy) | 4.49 kB (gzip 1.75) | 27.17 kB (gzip 9.47) |
+| `ChartCanvas-*.js` (lazy, ECharts) | 527.25 kB (gzip 175.98) | 525.93 kB (gzip 175.48) |
+| scene `index-*.js` (lazy) | 1,503.26 kB | 1,503.27 kB |
+
+Entry growth by sourcemap attribution: perfindex + perftrend strings ~6.8 kB raw (~2.1 kB gzip alone, under the 5 kB rule, so not
+lazy-loaded); React Query observer + `data/api/client.ts` + `lib/period.ts` ~11 kB raw (~3 kB gzip), tree-shaken at 20.0 while the
+sections were stubs and now in the entry because `data/api/queries.ts` is imported by the entry (BACKLOG). No widget code in the entry;
+ECharts (zrender) only in `ChartCanvas-*.js`.
+
+### Metric admission audit (every number on the Performance tab -> spec section 1)
+| Number shown | Widget | Spec row |
+|---|---|---|
+| Cartons per hour (per day on `week`), this and the previous period; tooltip values | W4 | W4 throughput through the period |
+| This period so far, previous period by the same time, difference % | W4 caption | W4 "ahead or behind, when did we fall behind" |
+| Trucks over the expected time, of n trucks, share % | W5 | W5 count and share per bay |
+| Index, n visits, "few trucks (n of min)", "n of min comparable trucks" | W1 | W1 index with sample size and confidence (section 4) |
+| Mean pre-op / loading or unloading / post-op, mean occupancy, site median occupancy | W2 | W2 where the time goes |
+| Cartons per loading hour, cartons out / in, trucks, average crew, cartons per hour per crew member present | W3 | W3 workload context |
+| "100 = typical", axis ticks | W1, W2, W4 | scale labels, not metrics |
+
+No number without a row; nothing removed or moved.
+
+### Commands and results (final tree)
+typecheck, lint, format:check, i18n:check, contract:check, build: pass. `pnpm test` (plain, first run, before the 20.9 fixes) 13 failures in 5 files;
+only the tail of that log was kept (simulation retention, 5 s timeouts), so the full list is not recorded; `pnpm test --testTimeout=60000` (final) 1511/1515: App.test x2 (analytics `findByTestId` 1 s), LiveOverlay.flicker (own
+30 s), obstacles speed threshold; each file passes alone (29/29, 2/2, 32/32). e2e, one run of t20a-compare, t20b-trend, live-shell,
+live-flicker, smoke: 17/21; live-shell x3 throttling (11.2 min for one test), pass alone 6/6; t20a W3 header test real (seam: fixed),
+spec passes alone 6/6. `e2e/t20-shots.spec.ts` 14/14 (2560 tests rerun alone after a throttled pass). Tracked screenshots rewritten by
+e2e restored from HEAD.
+

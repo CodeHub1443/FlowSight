@@ -208,6 +208,35 @@ as two-column cells) and "More details". Section titles as the existing `Section
 is the shared `CollapsiblePanel` nested in the inspector card without its own shadow, collapsed by default, header 13 px
 `--ink-600`. At 1366x768 the whole timeline is visible without scrolling (enforced by `e2e/t19b-bay.spec.ts`).
 
+### 7.8 Analytics charts and the Performance tab (Task 20)
+**One chart wrapper.** Every analytics chart is `<Chart option ariaLabel table>` (`src/features/analytics/chart/`): ECharts,
+tree-shaken, in its own lazy chunk (never in the `/live` entry). Colours are read from the CSS tokens at init (`CHART_TOKENS` in
+`chart/theme.ts`; canvas cannot read `var()`), and the chart is re-created on a light/dark switch. Font `--font-sans` (Inter / Noto
+Sans Bengali), redrawn once web fonts are ready. Every number on an axis, label or tooltip goes through `src/lib/format.ts` (Bangla
+digits, lakh grouping): the wrapper fills value-axis and tooltip formatters a widget leaves out; a widget that sets its own formats
+with `useFmt()` and carries the unit ("n cartons", "1 h 05 m"). Animation 300 ms, off under `prefers-reduced-motion`. Every chart
+has an `aria-label` summary and a visually hidden data table (`chart-data-table`); "—" in a table or tooltip means unknown.
+**Chart tokens.** Axis lines and split lines `--border` (value split lines dashed); axis labels, axis names and legend `--ink-600`;
+category labels that name a bay `--ink-900`; tooltip on `--card` with a `--border` edge and `--ink-900` text. Current period: solid
+`--ui-blue`, 3 px; previous period: dashed `--ink-400`, 2 px, drawn underneath; the current line stops at "now" (no zero tail).
+Phase stacks use `SEGMENT_TONE` (§7.7: pre-op warn, loading/unloading ok, post-op neutral). A site median is a dashed `--ink-600`
+mark line with its label at the top (never on the axis ticks); value labels that the line may cross sit on `--card`, above it.
+Legends: `roundRect` icons.
+**Tones.** No red/green shouting. Index bands: slower `warn`, comparable `neutral` (number in `--ink-900`), faster `info`. Low
+confidence: bar at 50 % opacity and number in `--ink-400`; no confidence: no number, no bar, the reason in text. A bay cell with
+trucks over the expected time uses the `warn` tint and `warn` text; zero uses the neutral muted tile; a bay with no finished truck
+shows "—" in `--ink-400` with the reason written under it (unknown, never 0). Bays are always in bay order, never sorted by value.
+**Layout and spacing.** Page header (title, simulated-data pill in mock mode, period selector), the tab row, then the tab. The
+Performance tab is one column with 16 px gaps: the trend section first (W4 cartons through the period, full width; W5 trucks over
+the expected time, full width), then the comparison section (W1 bay index | W2 where the time goes, two columns from `xl`, one
+below; W3 workload table full width). Every widget is a `WidgetCard`: the floating card of §3, 16 px padding, 12 px gap, title
+15 px semibold `--ink-900` (truncated, never wrapped), an optional "How this is calculated" popover icon after it and controls on
+the right (native `select`, 32 px high, `--border`, `--card`). Text under a chart (captions) 14 px `--ink-600`.
+**States.** Loading: a `bg-muted` skeleton of the widget's height (pulse only without reduced motion). Error: "Could not load this
+data." and an outline Retry button. Empty: "No finished trucks in this range". Insufficient: the widget's own sentence (W1 adds a
+"Show last 7 days" outline button, hidden on `week`). All centred, 14 px `--ink-600`, at least 96 px high. Data already on screen
+stays during a background refetch (no flash to the skeleton).
+
 ## 8. Dark theme — "night shift" design (binding)
 Goal: a night-shift control room, **not** a black screen. Readability comes from **value layering** (each layer clearly lighter than
 the one behind it), **cool rim light** to separate silhouettes, **warm work-light pools** over active bays, and **saturation kept on

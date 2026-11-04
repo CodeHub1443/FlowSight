@@ -106,6 +106,9 @@ docs/
 ## Commands (keep these working)
 - `pnpm dev` (mock mode by default) · `pnpm dev:live` (`vite --mode live`, reads `.env.live`; no inline env vars, the dev machine is Windows)
 - `pnpm typecheck` · `pnpm lint` · `pnpm test` · `pnpm e2e` · `pnpm i18n:check` · `pnpm build`
+- One test file or folder: `pnpm test <path>` (e.g. `pnpm test src/features/analytics`). Not `pnpm exec vitest run <path>`, which fails
+  on `vitest.setup.ts`. Under load the full suite has known 5 s timeouts: `pnpm test --testTimeout=60000`, then rerun a failure alone.
+- One e2e spec: `pnpm exec playwright test e2e/<spec>.ts` (builds and serves the app itself); never the full e2e suite without a brief.
 
 ## Definition of done (every step)
 1. `pnpm typecheck && pnpm lint && pnpm test && pnpm i18n:check` all pass.

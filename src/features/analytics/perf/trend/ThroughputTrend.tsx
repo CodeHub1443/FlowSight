@@ -63,7 +63,12 @@ export function ThroughputTrend({ range }: { range: PerfRange }) {
     const option: EChartsOption = {
       grid: { left: 4, right: 16, top: 36, bottom: 4, containLabel: true },
       legend: { top: 0, left: 0, icon: 'roundRect', data: [currentName, previousName] },
-      tooltip: { trigger: 'axis' },
+      // values with their unit, like the caption and W2's tooltip ("—" for an hour that has not started)
+      tooltip: {
+        trigger: 'axis',
+        valueFormatter: (v) =>
+          typeof v === 'number' ? t('throughput.cartons', { n: fmt.num(v) }) : '—',
+      },
       xAxis: {
         type: 'category',
         data: labels,
