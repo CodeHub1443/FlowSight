@@ -1,8 +1,10 @@
+import { QueryClientProvider } from '@tanstack/react-query';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { TooltipProvider } from '@/components/ui/tooltip';
+import { createQueryClient } from '@/data/api';
 import i18n from '@/i18n';
 import bn from '@/i18n/locales/bn/analytics.json';
 import en from '@/i18n/locales/en/analytics.json';
@@ -20,23 +22,32 @@ function Where() {
 }
 
 function renderAt(path: string) {
+  const client = createQueryClient();
+  client.setDefaultOptions({ queries: { retry: false, refetchOnWindowFocus: false } });
   return render(
-    <TooltipProvider>
-      <MemoryRouter initialEntries={[path]}>
-        <Routes>
-          <Route path="analytics/*" element={<AnalyticsPage />} />
-        </Routes>
-        <Where />
-      </MemoryRouter>
-    </TooltipProvider>,
+    <QueryClientProvider client={client}>
+      <TooltipProvider>
+        <MemoryRouter initialEntries={[path]}>
+          <Routes>
+            <Route path="analytics/*" element={<AnalyticsPage />} />
+          </Routes>
+          <Where />
+        </MemoryRouter>
+      </TooltipProvider>
+    </QueryClientProvider>,
   );
 }
 
 beforeEach(async () => {
+  // network stub: a request that never resolves, so widgets stay in their loading state
+  vi.spyOn(globalThis, 'fetch').mockImplementation(() => new Promise<Response>(() => {}));
   await i18n.changeLanguage('en');
   sessionStore.getState().setMockRole('DC_MANAGER');
 });
-afterEach(() => sessionStore.getState().setMockRole('DC_MANAGER'));
+afterEach(() => {
+  vi.restoreAllMocks();
+  sessionStore.getState().setMockRole('DC_MANAGER');
+});
 
 describe('/analytics shell', () => {
   it('lists the tabs with Performance first and selected by default', () => {
