@@ -51,6 +51,11 @@ export function throughput(
       const points: Series['points'] = [];
       const step = stepOf(unit);
       for (let t = start; t < to; t += step) {
+        // before the history starts the count is unknown, not 0 (contract rev 1.2 changelog)
+        if (t < depot.historyStartMs) {
+          points.push({ t: iso(t), v: null });
+          continue;
+        }
         let sum = 0;
         for (let h = Math.floor(t / HOUR); h < Math.ceil((t + step) / HOUR); h++) {
           sum += depot.store.hourCounts.get(`${bay}|${dir}|${h}`) ?? 0;

@@ -26,7 +26,10 @@ test.describe('Performance tab: throughput trend and trucks over the expected ti
     await expect(w4.getByTestId('trend-chart')).toBeVisible({ timeout: 30_000 });
     await expect(w4.locator('canvas').first()).toBeVisible();
     await expect(w4.getByTestId('trend-total-current')).toBeVisible();
-    await expect(w4.getByTestId('trend-total-previous')).toBeVisible();
+    // the simulator keeps 7 days: the 7 days before the last week are unknown, so the caption says so (task 20.10 D2)
+    await expect(w4.getByTestId('trend-no-previous')).toBeVisible();
+    await expect(w4.getByTestId('trend-total-previous')).toHaveCount(0);
+    await expect(w4.getByTestId('trend-delta')).toHaveCount(0);
     // the week is per-day totals: 7 rows in the text alternative
     await expect(w4.getByTestId('chart-data-table').locator('tbody tr')).toHaveCount(7);
   });
@@ -36,6 +39,16 @@ test.describe('Performance tab: throughput trend and trucks over the expected ti
     const rows = page.getByTestId('perf-w4').getByTestId('chart-data-table').locator('tbody tr');
     await expect(rows.first()).toBeVisible({ timeout: 30_000 });
     expect(await rows.count()).toBeGreaterThan(7);
+  });
+
+  test('W4 day view: the previous day is within the history, so the caption has its total', async ({
+    page,
+  }) => {
+    await openPerformance(page, 'day');
+    const w4 = page.getByTestId('perf-w4');
+    await expect(w4.getByTestId('trend-total-current')).toBeVisible({ timeout: 30_000 });
+    await expect(w4.getByTestId('trend-no-previous')).toHaveCount(0);
+    await expect(w4.getByTestId('trend-total-previous')).toBeVisible();
   });
 
   test('W4 bay filter keeps the chart and changes the caption', async ({ page }) => {
@@ -61,7 +74,9 @@ test.describe('Performance tab: throughput trend and trucks over the expected ti
     const w4 = page.getByTestId('perf-w4');
     await expect(w4.getByTestId('trend-total-current')).toBeVisible({ timeout: 30_000 });
     expect(await w4.getByTestId('trend-total-current').textContent()).not.toMatch(LATIN_DIGIT);
-    expect(await w4.getByTestId('trend-total-previous').textContent()).not.toMatch(LATIN_DIGIT);
+    // the week's previous period is unknown in the mock: a sentence instead of a previous total
+    await expect(w4.getByTestId('trend-no-previous')).toBeVisible();
+    expect(await w4.getByTestId('trend-no-previous').textContent()).not.toMatch(LATIN_DIGIT);
     const strip = page.getByTestId('detention-strip');
     await expect(strip).toBeVisible();
     expect(await strip.textContent()).not.toMatch(LATIN_DIGIT);
