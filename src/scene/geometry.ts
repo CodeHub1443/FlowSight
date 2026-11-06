@@ -12,6 +12,7 @@ import {
   type WebGLProgramParametersWithUniforms,
 } from 'three';
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
+import { sharedAcrossMounts } from './gpuRelease';
 
 // Shared geometries and the two instancing materials every box and cylinder in the scene is drawn with.
 //
@@ -30,7 +31,7 @@ export type Detail = 'hi' | 'lo' | 'flat';
 export const ROUND = 0.13;
 
 /** Plane facing +Z, 1 x 1. */
-export const UNIT_PLANE = new PlaneGeometry(1, 1);
+export const UNIT_PLANE = sharedAcrossMounts(new PlaneGeometry(1, 1));
 
 function withCorners<T extends BufferGeometry>(g: T): T {
   const pos = g.getAttribute('position');
@@ -54,7 +55,7 @@ export function unitBox(smoothness: number): BufferGeometry {
     smoothness <= 0
       ? withCorners(new BoxGeometry(1, 1, 1))
       : withCorners(new RoundedBoxGeometry(1, 1, 1, smoothness, 0.12));
-  boxCache.set(smoothness, g);
+  boxCache.set(smoothness, sharedAcrossMounts(g));
   return g;
 }
 
@@ -65,7 +66,7 @@ export function unitCylinder(radialSegments: number): BufferGeometry {
   const hit = cylCache.get(radialSegments);
   if (hit) return hit;
   const g = new CylinderGeometry(1, 1, 1, radialSegments);
-  cylCache.set(radialSegments, g);
+  cylCache.set(radialSegments, sharedAcrossMounts(g));
   return g;
 }
 
@@ -76,7 +77,7 @@ export function unitSphere(segments: number): BufferGeometry {
   const hit = sphereCache.get(segments);
   if (hit) return hit;
   const g = new SphereGeometry(1, segments, Math.max(6, Math.round(segments * 0.7)));
-  sphereCache.set(segments, g);
+  sphereCache.set(segments, sharedAcrossMounts(g));
   return g;
 }
 
@@ -177,9 +178,9 @@ function standard(rounded: boolean): MeshStandardMaterial {
 }
 
 /** Material for every rounded/flat box InstancedMesh (needs `rbCorner` and `instanceFinish`). */
-export const BOX_MATERIAL = standard(true);
+export const BOX_MATERIAL = sharedAcrossMounts(standard(true));
 /** Material for cylinder InstancedMeshes (needs `instanceFinish`). */
-export const CYL_MATERIAL = standard(false);
+export const CYL_MATERIAL = sharedAcrossMounts(standard(false));
 
 /** Shadow-map depth for rounded boxes: the same vertex rebuild, so shadows have true rounded corners too. */
 export const BOX_DEPTH_MATERIAL = (() => {
@@ -190,5 +191,5 @@ export const BOX_DEPTH_MATERIAL = (() => {
       .replace('#include <begin_vertex>', `${ROUNDED_SCALE}\n${ROUNDED_POSITION}`);
   };
   m.customProgramCacheKey = () => 'scene-rounded-depth';
-  return m;
+  return sharedAcrossMounts(m);
 })();

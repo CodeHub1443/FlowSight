@@ -1,4 +1,5 @@
 import { CanvasTexture, RepeatWrapping, SRGBColorSpace } from 'three';
+import { sharedAcrossMounts } from '../gpuRelease';
 
 // Canvas textures are used only for painted-on plates (cabinet names, FG/DC marks) and the facade stripe band.
 // Bangla text is never drawn here (docs/04 section 4): these carry IDs and English equipment names only. Bay
@@ -20,7 +21,7 @@ function finish(key: string, c: HTMLCanvasElement): CanvasTexture {
   const t = new CanvasTexture(c);
   t.colorSpace = SRGBColorSpace;
   t.anisotropy = 4;
-  cache.set(key, t);
+  cache.set(key, sharedAcrossMounts(t));
   return t;
 }
 

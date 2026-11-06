@@ -5,6 +5,7 @@ import {
   ToneMapping,
   type ToneMappingProps,
 } from '@react-three/postprocessing';
+import { disposeFullScreenQuads } from './gpuRelease';
 import { useSceneEnv } from './sceneEnv';
 import { POST_TONE_MODE } from './toneMapping';
 
@@ -17,6 +18,12 @@ export const AO_RADIUS = 1.8;
 /** Periwinkle AO (docs/06 D2) reads softer than a grey one, so it can be strong without looking dirty. */
 export const AO_INTENSITY = 3.5;
 
+/**
+ * Releases the AO pass's full-screen quads when the pass goes (gpuRelease.ts: they hold the renderer through n8ao's
+ * shared triangle). Module-level, so React never detaches and re-attaches it on a re-render.
+ */
+const releaseAoQuads = (pass: object | null) => () => disposeFullScreenQuads(pass);
+
 export function ScenePost() {
   const { quality, palette, toneMapping } = useSceneEnv();
   const post = quality.post;
@@ -24,6 +31,7 @@ export function ScenePost() {
   return (
     <EffectComposer multisampling={0} enableNormalPass={false}>
       <N8AO
+        ref={releaseAoQuads}
         quality={post.ao}
         halfRes={post.halfRes}
         aoRadius={AO_RADIUS}

@@ -2,6 +2,7 @@ import { useLoader } from '@react-three/fiber';
 import { type BufferGeometry, Matrix4, type Mesh, type MeshStandardMaterial } from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
+import { sharedAcrossMounts } from '../gpuRelease';
 import type { PaletteKey } from '../materials';
 import { LIVE_MODELS, modelUrl, type ModelName } from './models';
 
@@ -38,9 +39,9 @@ function partsOf(gltf: {
     const material = mesh.material as MeshStandardMaterial;
     parts.push({
       tone: material.name as PaletteKey,
-      geometry: mesh.geometry,
+      geometry: sharedAcrossMounts(mesh.geometry),
       matrix: new Matrix4().copy(mesh.matrixWorld),
-      material,
+      material: sharedAcrossMounts(material),
     });
   });
   // tones in a stable order, whatever order the file lists them in

@@ -1,4 +1,5 @@
 import { Path, Shape, ShapeGeometry, type BufferGeometry } from 'three';
+import { sharedAcrossMounts } from './gpuRelease';
 
 // Flat rounded-rectangle geometries lying on the floor (three XZ plane, +Y up), cached by size: work-zone plates
 // and selection / hover rings. Rounded in plan, which the thickness-based box rounding cannot do for thin plates.
@@ -25,7 +26,7 @@ function cached(key: string, make: () => BufferGeometry): BufferGeometry {
   const hit = cache.get(key);
   if (hit) return hit;
   const g = make();
-  cache.set(key, g);
+  cache.set(key, sharedAcrossMounts(g));
   return g;
 }
 

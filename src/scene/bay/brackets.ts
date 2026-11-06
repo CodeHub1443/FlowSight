@@ -1,5 +1,6 @@
 import { BoxGeometry, type BufferGeometry } from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
+import { sharedAcrossMounts } from '../gpuRelease';
 
 // The selection bracket box (docs/06 D8): thin world-space boxes, because WebGL lines are always 1 px.
 
@@ -37,6 +38,6 @@ export function bracketGeometry(w: number, h: number, d: number): BufferGeometry
   }
   const merged = mergeGeometries(parts);
   for (const p of parts) p.dispose();
-  cache.set(key, merged);
+  cache.set(key, sharedAcrossMounts(merged));
   return merged;
 }

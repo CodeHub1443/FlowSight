@@ -14,6 +14,7 @@ import {
   MeshStandardMaterial,
 } from 'three';
 import { disposeInstancedGeometry, patchStandard } from '../geometry';
+import { sharedAcrossMounts } from '../gpuRelease';
 import type { Finish } from '../materials';
 
 // Instance pools for actors: a fixed-capacity InstancedMesh refilled from useFrame through its buffers, no React at
@@ -44,9 +45,9 @@ function actorMaterial(rounded: boolean): MeshStandardMaterial {
 }
 
 /** Rounded boxes (need `rbCorner`). */
-export const ACTOR_BOX_MATERIAL = actorMaterial(true);
+export const ACTOR_BOX_MATERIAL = sharedAcrossMounts(actorMaterial(true));
 /** Capsules, spheres, cylinders and GLB parts. Double-sided: the converted forklift has open meshes. */
-export const ACTOR_SOLID_MATERIAL = actorMaterial(false);
+export const ACTOR_SOLID_MATERIAL = sharedAcrossMounts(actorMaterial(false));
 
 const holders = new WeakMap<object, number>();
 

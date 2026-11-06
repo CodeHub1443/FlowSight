@@ -2,6 +2,7 @@ import { useFrame } from '@react-three/fiber';
 import { useEffect, useMemo, useRef } from 'react';
 import { LatheGeometry, MeshBasicMaterial, SphereGeometry, type Group } from 'three';
 import { UNIT_PLANE } from '../geometry';
+import { sharedAcrossMounts } from '../gpuRelease';
 import type { PaletteKey } from '../materials';
 import { useSceneEnv } from '../sceneEnv';
 import { HEAD_RADIUS, PIN_HEIGHT, teardropProfile } from './pinShape';
@@ -18,9 +19,9 @@ const SHADOW_SIZE = 1.1;
 const SHADOW_ALPHA = 0.5;
 const SEGMENTS = 24;
 
-const BODY = new LatheGeometry(teardropProfile(SEGMENTS), SEGMENTS);
+const BODY = sharedAcrossMounts(new LatheGeometry(teardropProfile(SEGMENTS), SEGMENTS));
 BODY.computeVertexNormals();
-const CORE = new SphereGeometry(HEAD_RADIUS * 0.46, SEGMENTS, 16);
+const CORE = sharedAcrossMounts(new SphereGeometry(HEAD_RADIUS * 0.46, SEGMENTS, 16));
 
 /** One event pin; `at` is the three.js world position of its base on the floor. */
 export function EventPin({

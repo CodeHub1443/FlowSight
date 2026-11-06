@@ -18,6 +18,11 @@ vi.mock('@/features/analytics/chart/load', () => ({
   preloadChart: vi.fn(),
 }));
 
+/** The analytics routes load a lazy chunk, which under a loaded full suite takes longer than findBy's 1 s default. */
+const LAZY_CHUNK_MS = 10_000;
+/** The test itself must outlast that wait (Vitest's default is 5 s). */
+const LAZY_TEST_MS = 15_000;
+
 function renderAt(path: string) {
   return render(
     <MemoryRouter initialEntries={[path]}>
@@ -78,23 +83,35 @@ describe('App shell', () => {
     expect(screen.getAllByTestId('placeholder-title').length).toBeGreaterThan(0);
   });
 
-  it('opens /analytics on the Performance tab (lazy chunk), with the range from the URL', async () => {
-    renderAt('/analytics?range=week');
-    expect(await screen.findByTestId('analytics-page')).toBeInTheDocument();
-    expect(screen.getByTestId('perf-tab')).toBeInTheDocument();
-    expect(screen.getByTestId('perf-index-section')).toHaveAttribute('data-range', 'week');
-    expect(screen.getByTestId('perf-trend-section')).toHaveAttribute('data-range', 'week');
-    expect(screen.getByRole('radio', { name: 'Last 7 days' })).toHaveAttribute(
-      'aria-checked',
-      'true',
-    );
-  });
+  it(
+    'opens /analytics on the Performance tab (lazy chunk), with the range from the URL',
+    async () => {
+      renderAt('/analytics?range=week');
+      expect(
+        await screen.findByTestId('analytics-page', {}, { timeout: LAZY_CHUNK_MS }),
+      ).toBeInTheDocument();
+      expect(screen.getByTestId('perf-tab')).toBeInTheDocument();
+      expect(screen.getByTestId('perf-index-section')).toHaveAttribute('data-range', 'week');
+      expect(screen.getByTestId('perf-trend-section')).toHaveAttribute('data-range', 'week');
+      expect(screen.getByRole('radio', { name: 'Last 7 days' })).toHaveAttribute(
+        'aria-checked',
+        'true',
+      );
+    },
+    LAZY_TEST_MS,
+  );
 
-  it('keeps the placeholder on the other analytics tabs', async () => {
-    renderAt('/analytics/throughput');
-    expect(await screen.findByTestId('placeholder-title')).toHaveTextContent('Throughput');
-    expect(screen.queryByTestId('perf-tab')).not.toBeInTheDocument();
-  });
+  it(
+    'keeps the placeholder on the other analytics tabs',
+    async () => {
+      renderAt('/analytics/throughput');
+      expect(
+        await screen.findByTestId('placeholder-title', {}, { timeout: LAZY_CHUNK_MS }),
+      ).toHaveTextContent('Throughput');
+      expect(screen.queryByTestId('perf-tab')).not.toBeInTheDocument();
+    },
+    LAZY_TEST_MS,
+  );
 
   it('shows 404 for an unknown path', () => {
     renderAt('/nope/nothing');

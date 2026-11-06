@@ -39,6 +39,7 @@ import { ExteriorContext } from './site/ExteriorContext';
 import { FaceContents } from './site/FaceContents';
 import { buildSiteLayout } from './site/layout';
 import { applySoftShadows } from './softShadows';
+import { useReleaseOnUnmount } from './useReleaseOnUnmount';
 import { useRenderPixelRatio } from './useRenderPixelRatio';
 
 // 16-tap PCF for the key light (docs/06 section 2 soft shadow without grain); before any material compiles
@@ -133,6 +134,8 @@ export function SceneRoot({
     },
     [],
   );
+  // shared materials, geometries and textures keep a dead renderer and its DOM alive unless released (Task 21)
+  const createdRef = useReleaseOnUnmount();
 
   const [visible, setVisible] = useState(() => document.visibilityState !== 'hidden');
   useEffect(() => {
@@ -210,6 +213,7 @@ export function SceneRoot({
           );
           if (start !== AUTO_START_TIER) setAutoTier(start);
           if (QUALITY_DEBUG) qualityProbe.renderer = gl;
+          createdRef.current = { gl, scene };
           onReady?.(gl, scene);
         }}
       >
