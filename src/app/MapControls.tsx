@@ -81,7 +81,7 @@ export function MapControls() {
       role="group"
       aria-label={t('map.label')}
       data-testid="map-controls"
-      className="card-surface absolute end-[396px] top-[16px] flex flex-col items-center gap-0.5 rounded-full p-1"
+      className="card-surface absolute end-[396px] print:hidden top-[16px] flex flex-col items-center gap-0.5 rounded-full p-1"
     >
       <Control
         testId="map-zoom-in"

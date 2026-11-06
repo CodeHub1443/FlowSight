@@ -643,6 +643,8 @@ export const ReportBayRowSchema = z.object({
   casesIn: CountSchema,
   trucks: CountSchema,
   avgTatMin: NonNegSchema.nullable(),
+  /** Contract rev 1.3: mean bay occupancy (departedAt - dockedAt), optional (absent from older backends). */
+  avgOccupancyMin: NonNegSchema.nullable().optional(),
   beltSec: BeltSecSchema,
   damaged: CountSchema,
   openTape: CountSchema,

@@ -90,3 +90,20 @@ export function canSeeCaptainNames(role: Role): boolean {
 export function canViewAnalytics(role: Role): boolean {
   return role !== 'KIOSK';
 }
+
+/** `/events` and `/events/:id` (t22 spec section 2): every role except the video-wall account. Per-category rules still apply. */
+export function canAccessEvents(role: Role): boolean {
+  return role !== 'KIOSK';
+}
+
+/** `/reports` (t22 spec section 2): management and supervisors; not security, not the video wall. */
+export function canAccessReports(role: Role): boolean {
+  return (
+    role === 'HQ_VIEWER' || role === 'DC_MANAGER' || role === 'SHIFT_SUPERVISOR' || role === 'ADMIN'
+  );
+}
+
+/** CSV export of a report: not for the shift supervisor (a view-and-print role). */
+export function canExportReports(role: Role): boolean {
+  return role === 'HQ_VIEWER' || role === 'DC_MANAGER' || role === 'ADMIN';
+}

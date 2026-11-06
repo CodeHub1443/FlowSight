@@ -10,9 +10,9 @@ export function AppShell() {
   return (
     <QueryProvider>
       <TooltipProvider>
-        <div className="flex h-screen min-h-0 flex-col">
+        <div className="flex h-screen min-h-0 flex-col print:block print:h-auto">
           <TopBar />
-          <main className="relative min-h-0 flex-1">
+          <main className="relative min-h-0 flex-1 print:static print:block">
             <Outlet />
           </main>
         </div>
@@ -26,11 +26,11 @@ export function AppShell() {
 export function PageLayout() {
   const { t } = useTranslation();
   return (
-    <div className="flex h-full min-h-0 flex-col overflow-y-auto">
-      <div className="flex-1 p-6">
+    <div className="flex h-full min-h-0 flex-col overflow-y-auto print:block print:h-auto print:overflow-visible">
+      <div className="flex-1 p-6 print:p-0">
         <Outlet />
       </div>
-      <footer className="text-muted-foreground flex items-center gap-2 px-6 py-3 text-sm">
+      <footer className="text-muted-foreground print:hidden flex items-center gap-2 px-6 py-3 text-sm">
         <img src="/brand/tdi-logo.svg" alt="TDI" className="h-5" />
         <span>{t('app.developedBy')}</span>
       </footer>

@@ -211,6 +211,14 @@ function kpiFor(depot: Depot, from: number, to: number, isNow: boolean): SiteSta
   };
 }
 
+/** Contract rev 1.3: mean (departedAt - dockedAt) in minutes over departed visits that docked; null if none. */
+export function avgOccupancyMin(departed: readonly VisitRec[]): number | null {
+  const docked = departed.filter((v) => v.dockedAt !== null && v.departedAt !== null);
+  if (docked.length === 0) return null;
+  const sum = docked.reduce((s, v) => s + ((v.departedAt ?? 0) - (v.dockedAt ?? 0)) / MIN, 0);
+  return round(sum / docked.length, 1);
+}
+
 export function report(
   depot: Depot,
   kind: 'shift' | 'daily',
@@ -253,6 +261,7 @@ export function report(
                 departed.length,
             )
           : null,
+      avgOccupancyMin: avgOccupancyMin(departed),
       beltSec: Object.fromEntries(BELT_KEYS.map((k) => [k, sec[k]])) as ReportBayRow['beltSec'],
       damaged: sum((v) => v.damaged),
       openTape: sum((v) => v.openTape),

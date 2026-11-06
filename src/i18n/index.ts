@@ -5,21 +5,25 @@ import bnAdmin from './locales/bn/admin.json';
 import bnAnalytics from './locales/bn/analytics.json';
 import bnBaypanel from './locales/bn/baypanel.json';
 import bnCommon from './locales/bn/common.json';
+import bnEvents from './locales/bn/events.json';
 import bnKpidetail from './locales/bn/kpidetail.json';
 import bnLive from './locales/bn/live.json';
 import bnMock from './locales/bn/mock.json';
 import bnPerfindex from './locales/bn/perfindex.json';
 import bnPerftrend from './locales/bn/perftrend.json';
+import bnReports from './locales/bn/reports.json';
 import bnScene from './locales/bn/scene.json';
 import enAdmin from './locales/en/admin.json';
 import enAnalytics from './locales/en/analytics.json';
 import enBaypanel from './locales/en/baypanel.json';
 import enCommon from './locales/en/common.json';
+import enEvents from './locales/en/events.json';
 import enKpidetail from './locales/en/kpidetail.json';
 import enLive from './locales/en/live.json';
 import enMock from './locales/en/mock.json';
 import enPerfindex from './locales/en/perfindex.json';
 import enPerftrend from './locales/en/perftrend.json';
+import enReports from './locales/en/reports.json';
 import enScene from './locales/en/scene.json';
 
 export const LANGUAGES = ['en', 'bn'] as const;
@@ -38,6 +42,8 @@ export const NAMESPACES = [
   'analytics',
   'perfindex',
   'perftrend',
+  'events',
+  'reports',
 ] as const;
 export type Namespace = (typeof NAMESPACES)[number];
 
@@ -59,6 +65,8 @@ void i18n.use(initReactI18next).init({
       analytics: enAnalytics,
       perfindex: enPerfindex,
       perftrend: enPerftrend,
+      events: enEvents,
+      reports: enReports,
     },
     bn: {
       common: bnCommon,
@@ -71,6 +79,8 @@ void i18n.use(initReactI18next).init({
       analytics: bnAnalytics,
       perfindex: bnPerfindex,
       perftrend: bnPerftrend,
+      events: bnEvents,
+      reports: bnReports,
     },
   },
   ns: NAMESPACES,

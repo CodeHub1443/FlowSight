@@ -1,0 +1,13 @@
+{
+  "page": {
+    "stub": "Events and evidence centre"
+  },
+  "evidence": {
+    "alt": "Evidence snapshot",
+    "loading": "Loading snapshot",
+    "error": "The snapshot could not be loaded.",
+    "retry": "Retry",
+    "noMedia": "No snapshot for this event",
+    "box": "Detected object"
+  }
+}

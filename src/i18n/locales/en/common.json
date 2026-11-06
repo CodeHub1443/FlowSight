@@ -42,6 +42,11 @@
     "body": "The page you asked for does not exist.",
     "back": "Back to live view"
   },
+  "notAvailable": {
+    "title": "Not available for your role",
+    "body": "Your role does not have access to this page. Ask an administrator if you need it.",
+    "back": "Back to live view"
+  },
   "debug": {
     "quality": "Tier {{tier}} · {{state}} · {{fps}} fps · {{width}}×{{height}} @ {{ratio}}",
     "title": "Data pipe (dev)",

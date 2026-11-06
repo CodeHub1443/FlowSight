@@ -1,4 +1,4 @@
-# 03 — Data Contract (v1, rev 1.2) — SOURCE OF TRUTH
+# 03 — Data Contract (v1, rev 1.3) — SOURCE OF TRUTH
 
 Shared by the frontend (zod schemas) and the backend (state-engine, wh-api). Any change: update this file first, then code.
 A **breaking** change bumps `v`. An **additive** change (new optional or nullable fields that older clients may ignore and
@@ -300,6 +300,7 @@ type LeaderboardRow = { rank: number; employeeId: string; name: Lang | null; bay
   mixFactor: number; trend: number[] };
 type SkuRow = { sku: string; name: Lang | null; pack: 'CASE' | 'SACK' | 'SHRINK'; count: number; avgConf: number };
 type ReportBayRow = { bay: string; casesOut: number; casesIn: number; trucks: number; avgTatMin: number | null;
+  avgOccupancyMin?: number | null;                       // rev 1.3: mean (departedAt − dockedAt), departed visits in the window; null if none
   beltSec: Record<'runningLoaded' | 'runningEmpty' | 'stopped' | 'noTruck' | 'offline', number>;
   damaged: number; openTape: number; tornSack: number; wetStained: number; fallOff: number; ppe: number; detentions: number };
 type Report = { kind: 'shift' | 'daily'; site: string; businessDay: string; shiftId: string | null; from: string; to: string;
@@ -471,6 +472,16 @@ type BayPerformance = {
 Continuous aggregates: hourly and daily by bay, SKU, captain and agency.
 
 ## 6. Changelog
+
+### rev 1.3 (2026-11-06): additive, payloads keep `v: 1`
+One new optional field; no NATS subject, message, event type or endpoint changes. A client must still accept a `Report` whose bay rows
+lack it (older backend) and show "-".
+
+| Where | Change | Definition |
+|---|---|---|
+| `ReportBayRow.avgOccupancyMin` | **new**, optional, number or `null` | Mean over the bay's departed visits in the report window of (`departedAt` − `dockedAt`), in minutes (bay occupancy, the Task 19 headline). `null` when the bay has no departed visit with both timestamps. `avgTatMin` is unchanged (depot turnaround, `departedAt` − `arrivedAt`). |
+
+Backend work to implement rev 1.3: add the column to the shift and daily report bay rows, computed exactly as above.
 
 ### rev 1.2 (2026-11-04): additive, payloads keep `v: 1`
 One new REST endpoint; no NATS subject, message, event type or existing field changes. A backend without it answers `404`, and the

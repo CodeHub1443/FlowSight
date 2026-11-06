@@ -95,5 +95,13 @@ Spec: `docs/06-visual-language.md`. Evidence: `docs/screens/step-merge-02-live-1
 - [ ] T20 · minor look: W4 legend icons are filled rectangles, so the dashed previous line is not shown as dashed in the legend; W2's axis rounds up to 100 min and leaves a quarter of the plot empty; W2's "min" axis name sits low beside the last tick; W4 empty state reuses "No finished trucks in this range" for a cartons chart
 - [x] T20 · document `pnpm test <file>` in CLAUDE.md (`pnpm exec vitest run <file>` fails on `vitest.setup.ts`) → done 20.9
 
+## Task 22 follow-ups (base 22.0, 2026-11-06)
+- [ ] P3 · Depot Brief (AI assistant) parked until several months of data exist; design rules kept: numbers computed in code, evidence links into the twin, quiet is a valid answer
+- [ ] T22 · backend (wh-api / state-engine): retain at least 12 months of visits with dwell breakdown, cartons per minute, events and evidence, and log edits to events
+- [ ] T22 · backend: implement contract rev 1.3 (`ReportBayRow.avgOccupancyMin`, docs/03 sections 4.1 and 6) in the shift and daily report bay rows; until then the report shows "-" for average occupancy
+- [ ] T22 · XLSX export: needs a library decision or the backend export (docs/03 section 4.2, `GET /reports/{kind}/export?fmt=xlsx`)
+- [ ] T22 · the `events` and `reports` i18n namespaces are registered eagerly in `src/i18n/index.ts`, so every string 22A and 22C add lands in the /live entry (22.0 left 70 bytes of the 3 kB budget). Decide: lazy `addResourceBundle` from the page chunks, or accept the growth
+- [ ] T22 · `print:hidden` on the /live Tray and VisitTracker was not added in 22.0 (both are under `src/features/live/**`, off limits for the base); they are only mounted on /live, so reports never print them. Add it when a live file is next touched if "print /live" becomes a use case
+
 ## Client open items (docs/01 §9)
 - [ ] Shift timings · [ ] mandatory PPE · [ ] SKU class list · [ ] roster source · [ ] real door pitch / bay order · [ ] brand kit · [ ] Telegram egress · [ ] transporter list

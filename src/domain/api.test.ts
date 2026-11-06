@@ -130,6 +130,7 @@ const reportBay = {
   casesIn: 380,
   trucks: 9,
   avgTatMin: null,
+  avgOccupancyMin: 41.5,
   beltSec: { runningLoaded: 1, runningEmpty: 2, stopped: 3, noTruck: 4, offline: 0 },
   damaged: 1,
   openTape: 0,

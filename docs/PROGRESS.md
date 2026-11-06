@@ -1014,3 +1014,19 @@ live-flicker, smoke: 17/21; live-shell x3 throttling (11.2 min for one test), pa
 spec passes alone 6/6. `e2e/t20-shots.spec.ts` 14/14 (2560 tests rerun alone after a throttled pass). Tracked screenshots rewritten by
 e2e restored from HEAD.
 
+
+## Task 22: alerts and evidence centre, shift and daily reports, scene interaction (22.0, 22A, 22B, 22C, integration 22.9)
+Binding spec: `docs/tasks/t22-spec.md`. No AI or language-model feature in this version (owner decision of 2026-11-06). Per-session notes in `docs/progress/t22-*.md`.
+
+- [x] **22.0** shared base (uncommitted): contract rev 1.3, data layer (events, visit, report, media), RBAC, route guard, stub routes, `urlState`, `EvidenceImage`, print foundation, i18n namespaces. Notes: `docs/progress/t22-0.md`
+- [ ] **22A** events: live toasts, bell link, `/events` list and drawer, inspector actions
+- [ ] **22B.1** scene interaction (code and unit tests, no browser): picking, selection marker, boom, belt scroll, shutters, camera glyphs, person separation
+- [ ] **22C** reports: shift and daily report, print, CSV
+- [ ] **22.9** integration: merge order C, A, B; seam fixes; screenshots; docs
+- [ ] **22B.2** scene verification alone: Playwright click-to-inspector, hover cost, fps A/B, nav-leak spec, screenshots EN and BN, light and dark
+
+### 22.0 summary
+Contract rev 1.3 adds `ReportBayRow.avgOccupancyMin` (optional, nullable). The REST client gained `apiPost`; the events, visit, report and media
+endpoints and hooks are in their own modules (`eventQueries.ts`, `reportQueries.ts`) so the /live entry chunk does not carry them. `/events`,
+`/events/:id` and `/reports` are lazy routes behind `RouteGuard`; stub pages only. See `docs/progress/t22-0.md` for the export list and the
+ownership table.

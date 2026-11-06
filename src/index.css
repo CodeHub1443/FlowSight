@@ -552,3 +552,21 @@
 :lang(bn) .bn-leading {
   line-height: 1.6;
 }
+
+/* Print foundation (t22 spec section 2): A4 portrait, 12 mm margins, backgrounds and status colours kept.
+   The shell chrome carries Tailwind's print:hidden; the report (22C) owns its own page-break rules. */
+@page {
+  size: A4 portrait;
+  margin: 12mm;
+}
+@media print {
+  html,
+  body {
+    height: auto;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  [data-sonner-toaster] {
+    display: none !important;
+  }
+}

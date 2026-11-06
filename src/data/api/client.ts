@@ -50,33 +50,38 @@ export function apiUrl(path: string, query: Query = {}): string {
   return `${apiBase()}${path}${qs ? `?${qs}` : ''}`;
 }
 
-/** GET a JSON endpoint and parse it with `schema`. Throws ApiRequestError. */
-export async function apiGet<S extends z.ZodType>(
+async function send<S extends z.ZodType>(
+  method: 'GET' | 'POST',
   path: string,
   query: Query,
+  body: unknown,
   schema: S,
   signal?: AbortSignal,
 ): Promise<z.output<S>> {
   let res: Response;
   try {
     res = await fetch(apiUrl(path, query), {
-      method: 'GET',
+      method,
       credentials: 'same-origin',
-      headers: { accept: 'application/json' },
+      headers:
+        method === 'POST'
+          ? { accept: 'application/json', 'content-type': 'application/json' }
+          : { accept: 'application/json' },
+      body: method === 'POST' ? JSON.stringify(body ?? {}) : undefined,
       signal,
     });
   } catch (e) {
     if (e instanceof DOMException && e.name === 'AbortError') throw e;
     throw new ApiRequestError('network', e instanceof Error ? e.message : String(e));
   }
-  let body: unknown = null;
+  let json: unknown = null;
   try {
-    body = await res.json();
+    json = await res.json();
   } catch {
-    body = null;
+    json = null;
   }
   if (!res.ok) {
-    const err = ApiErrorSchema.safeParse(body);
+    const err = ApiErrorSchema.safeParse(json);
     throw new ApiRequestError(
       'http',
       err.success ? err.data.error.message : `HTTP ${res.status}`,
@@ -84,11 +89,31 @@ export async function apiGet<S extends z.ZodType>(
       err.success ? err.data.error.code : null,
     );
   }
-  const parsed = schema.safeParse(body);
+  const parsed = schema.safeParse(json);
   if (!parsed.success) {
     invalidResponses += 1;
     console.warn(`[api] dropped an invalid response from ${path}`, parsed.error.issues.slice(0, 3));
     throw new ApiRequestError('invalid', `invalid response from ${path}`, res.status);
   }
   return parsed.data;
+}
+
+/** GET a JSON endpoint and parse it with `schema`. Throws ApiRequestError. */
+export function apiGet<S extends z.ZodType>(
+  path: string,
+  query: Query,
+  schema: S,
+  signal?: AbortSignal,
+): Promise<z.output<S>> {
+  return send('GET', path, query, undefined, schema, signal);
+}
+
+/** POST a JSON body and parse the JSON response with `schema`. Throws ApiRequestError. */
+export function apiPost<S extends z.ZodType>(
+  path: string,
+  body: unknown,
+  schema: S,
+  signal?: AbortSignal,
+): Promise<z.output<S>> {
+  return send('POST', path, {}, body, schema, signal);
 }
