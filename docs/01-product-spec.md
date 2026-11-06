@@ -1,4 +1,4 @@
-# 01 — Product Spec: Unilever Depot Twin
+# 01 — Product Spec: DepotFlow (Unilever Bangladesh depot digital twin)
 
 ## 1. The story this product tells
 Every evening a line of covered vans crawls into the Dhaka Central Sales Depot. Seven dock doors open, seven

@@ -1,4 +1,4 @@
-# CLAUDE.md — Unilever Depot Twin (frontend)
+# CLAUDE.md — DepotFlow for Unilever Bangladesh (frontend)
 
 You are building the **browser frontend** of a real-time 3D digital twin and analytics app for the
 **Unilever Bangladesh Dhaka Central Sales Depot**: one building, **7 truck bays**, each with
@@ -131,6 +131,11 @@ docs/
   Belt-state → token mapping is in `docs/04-scene-spec.md` §5.
 - Site facade colours in `config/sites/*.json` are physical paint (site data), the one allowed exception to "tokens only".
 - Compact, dense, legible at 3 m on a video wall: min 14 px body on desktop, 18 px on `/wall`.
+
+## Branding (t22 spec section 2; docs/06 section 7.9)
+- The product is **DepotFlow** (never translated); the client is Unilever Bangladesh; the credit is "Developed by TDI Pvt. Limited". Names live in `src/brand.ts`, never in a translation or a component.
+- Use the components in `src/components/common/Brand.tsx` (`ClientLogo`, `ProductMark`, `ProductName`, `ProductLockup`, `DevelopedBy`); `AboutDialog` is loaded with `React.lazy`. Never draw a logo with a bare `<img>`.
+- The Unilever logo is used unmodified: no recolouring, cropping, stretching, shadow or opacity; minimum height 32 px. The DepotFlow artwork is interim and white-background only: a white tile in the dark theme.
 
 ## Do not
 - Do not invent new message fields silently; propose them in the contract doc.

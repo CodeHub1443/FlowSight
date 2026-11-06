@@ -1,0 +1,12 @@
+{
+  "title": "About {{product}}",
+  "description": "Real-time digital twin and analytics for the Dhaka Central Sales Depot",
+  "version": "Version {{version}}",
+  "preparedFor": "Prepared for Unilever Bangladesh",
+  "ack": {
+    "title": "Acknowledgements",
+    "models": "3D props: NVIDIA SimReady Warehouse (nvidia/PhysicalAI-SimReady-Warehouse-01), CC-BY-4.0.",
+    "fonts": "Fonts: Inter and Noto Sans Bengali (bundled via @fontsource).",
+    "software": "Built with open-source software:"
+  }
+}

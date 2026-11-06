@@ -1025,6 +1025,8 @@ Binding spec: `docs/tasks/t22-spec.md`. No AI or language-model feature in this 
 - [ ] **22.9** integration: merge order C, A, B; seam fixes; screenshots; docs
 - [ ] **22B.2** scene verification alone: Playwright click-to-inspector, hover cost, fps A/B, nav-leak spec, screenshots EN and BN, light and dark
 
+- [x] **22.0b** branding with the supplied assets, lazy `events` / `reports` / `about` i18n namespaces (see `docs/progress/t22-0.md`)
+
 ### 22.0 summary
 Contract rev 1.3 adds `ReportBayRow.avgOccupancyMin` (optional, nullable). The REST client gained `apiPost`; the events, visit, report and media
 endpoints and hooks are in their own modules (`eventQueries.ts`, `reportQueries.ts`) so the /live entry chunk does not carry them. `/events`,

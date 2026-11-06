@@ -1,5 +1,5 @@
 import { Outlet } from 'react-router';
-import { useTranslation } from 'react-i18next';
+import { DevelopedBy } from '@/components/common';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { Toaster } from '@/components/ui/sonner';
 import { QueryProvider } from './QueryProvider';
@@ -24,15 +24,13 @@ export function AppShell() {
 
 /** Layout for ordinary pages: scrolling, padded, with the "Developed by TDI" footer. /live is full-bleed instead. */
 export function PageLayout() {
-  const { t } = useTranslation();
   return (
     <div className="flex h-full min-h-0 flex-col overflow-y-auto print:block print:h-auto print:overflow-visible">
       <div className="flex-1 p-6 print:p-0">
         <Outlet />
       </div>
-      <footer className="text-muted-foreground print:hidden flex items-center gap-2 px-6 py-3 text-sm">
-        <img src="/brand/tdi-logo.svg" alt="TDI" className="h-5" />
-        <span>{t('app.developedBy')}</span>
+      <footer className="print:hidden flex items-center px-6 py-3">
+        <DevelopedBy variant="footer" />
       </footer>
     </div>
   );

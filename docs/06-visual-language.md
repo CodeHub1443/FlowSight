@@ -237,6 +237,21 @@ data." and an outline Retry button. Empty: "No finished trucks in this range". I
 "Show last 7 days" outline button, hidden on `week`). All centred, 14 px `--ink-600`, at least 96 px high. Data already on screen
 stays during a background refetch (no flash to the skeleton).
 
+### 7.9 Branding (Task 22.0b) — binding
+Components: `src/components/common/Brand.tsx`. Names: `src/brand.ts` (`{ product: 'DepotFlow', developer: 'TDI Pvt. Limited', client: 'Unilever' }`).
+| Item | Rule |
+|---|---|
+| Client logo | `public/brand/unilever-logo.svg`, the official file byte for byte (single fill `#0F0E9A`). Never recoloured, cropped, stretched, shadowed or translucent. Minimum height 32 px; clear space at least a quarter of its height. Top bar: 44 px high in the 56 px bar. |
+| Dark theme | The logo and every DepotFlow image sit on a white rounded tile (`dark:bg-white`, radius 10, 4 px padding). The tile keeps the box size of the light theme; the image shrinks 8 px inside it. |
+| Product mark | `public/brand/depotflow-mark.svg`, 36 px high in the top bar, then a 1 px hairline divider between logo and mark. `ProductName` (text "DepotFlow", semibold, `--ink-900`) from the `lg` breakpoint up. |
+| Lockup | `public/brand/depotflow-lockup.svg`, About dialog (56 px). |
+| Credit | `DevelopedBy`: `public/brand/tdi-mark.png` at 16 px (print) or 20 px (footer) beside "Developed by TDI Pvt. Limited"; the image is decorative (`alt=""`). Page footers and the printed report footer; also the live view's bottom-right caption (plain text). |
+| Favicon / title | `public/brand/favicon.ico` (32x32, from the TDI icon); `<title>DepotFlow</title>`. |
+| About | User menu "About DepotFlow": lockup, description, client logo with "Prepared for Unilever Bangladesh", credit, version (`package.json`, build-time `__APP_VERSION__`), acknowledgements (3D assets as in ADR-12, fonts, open-source library names; no licence texts). Own chunk and own `about` i18n namespace. |
+| Interim artwork | `depotflow-lockup.svg` and `depotflow-mark.svg` are crops of an auto-traced raster (`assets-src/brand/DepoFlow.svg`, not served). They are white-background only and must be replaced when the owner supplies a clean vector (transparent background, no tagline). Do not edit them. |
+| Colour note | The Unilever logo blue `#0F0E9A` is darker than the UI brand blue (`--brand-500`). Colours of the UI are not changed for it. |
+| Originals | `assets-src/brand/` (git-ignored with the rest of `assets-src/`): `unilever-4.svg`, `DepoFlow.svg`, `the_data_island_tdi_logo.ico`. |
+
 ## 8. Dark theme — "night shift" design (binding)
 Goal: a night-shift control room, **not** a black screen. Readability comes from **value layering** (each layer clearly lighter than
 the one behind it), **cool rim light** to separate silhouettes, **warm work-light pools** over active bays, and **saturation kept on

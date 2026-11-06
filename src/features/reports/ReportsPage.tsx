@@ -1,3 +1,4 @@
+import '@/i18n/reports';
 import { useTranslation } from 'react-i18next';
 
 /** Stub (Task 22.0). 22C replaces this body: shift and daily report. */

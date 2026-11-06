@@ -1,0 +1,12 @@
+{
+  "title": "{{product}} সম্পর্কে",
+  "description": "ঢাকা সেন্ট্রাল সেলস ডিপোর রিয়েল-টাইম ডিজিটাল টুইন ও বিশ্লেষণ",
+  "version": "সংস্করণ {{version}}",
+  "preparedFor": "ইউনিলিভার বাংলাদেশের জন্য প্রস্তুত",
+  "ack": {
+    "title": "স্বীকৃতি",
+    "models": "৩ডি প্রপস: NVIDIA SimReady Warehouse (nvidia/PhysicalAI-SimReady-Warehouse-01), CC-BY-4.0।",
+    "fonts": "ফন্ট: Inter ও Noto Sans Bengali (@fontsource এর মাধ্যমে অন্তর্ভুক্ত)।",
+    "software": "ওপেন-সোর্স সফটওয়্যার দিয়ে তৈরি:"
+  }
+}

@@ -1,8 +1,8 @@
 {
   "app": {
-    "name": "Depot Twin",
+    "name": "DepotFlow",
     "sample": "Dhaka Central Depot",
-    "developedBy": "Developed by TDI",
+    "developedBy": "Developed by {{company}}",
     "logoAlt": "Unilever"
   },
   "language": {
@@ -67,5 +67,8 @@
       "lifecycle": "Lifecycle",
       "health": "Health"
     }
+  },
+  "about": {
+    "menu": "About {{product}}"
   }
 }

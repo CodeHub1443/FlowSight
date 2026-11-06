@@ -1,3 +1,4 @@
+import '@/i18n/events';
 import { ImageOff } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';

@@ -1,9 +1,9 @@
 {
   "app": {
-    "name": "ডিপো টুইন",
+    "name": "DepotFlow",
     "sample": "ঢাকা সেন্ট্রাল ডিপো",
-    "developedBy": "তৈরি করেছে টিডিআই",
-    "logoAlt": "ইউনিলিভার"
+    "developedBy": "তৈরি করেছে {{company}}",
+    "logoAlt": "Unilever"
   },
   "language": {
     "label": "ভাষা",
@@ -67,5 +67,8 @@
       "lifecycle": "ইভেন্টের ধাপ",
       "health": "সিস্টেম স্বাস্থ্য"
     }
+  },
+  "about": {
+    "menu": "{{product}} সম্পর্কে"
   }
 }

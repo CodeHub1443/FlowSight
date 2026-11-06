@@ -103,5 +103,12 @@ Spec: `docs/06-visual-language.md`. Evidence: `docs/screens/step-merge-02-live-1
 - [ ] T22 · the `events` and `reports` i18n namespaces are registered eagerly in `src/i18n/index.ts`, so every string 22A and 22C add lands in the /live entry (22.0 left 70 bytes of the 3 kB budget). Decide: lazy `addResourceBundle` from the page chunks, or accept the growth
 - [ ] T22 · `print:hidden` on the /live Tray and VisitTracker was not added in 22.0 (both are under `src/features/live/**`, off limits for the base); they are only mounted on /live, so reports never print them. Add it when a live file is next touched if "print /live" becomes a use case
 
+## Task 22.0b follow-ups (branding, 2026-11-06)
+- [ ] Branding · clean DepotFlow vector (transparent background, no tagline) from the owner: replace `public/brand/depotflow-lockup.svg` and `depotflow-mark.svg` (interim crops of an auto-traced raster; the files also carry a c2pa metadata blob)
+- [ ] Branding · Unilever brand kit: logo blue `#0F0E9A` is darker than the UI brand blue (`--brand-500`)
+- [ ] Branding · `assets-src/` is git-ignored, so the original brand files in `assets-src/brand/` are not in the repository: keep a copy elsewhere or add `!assets-src/brand/` to `.gitignore`
+- [ ] Branding · `src/features/live/LivePage.tsx` still prints the bottom-right credit as plain text via `app.developedBy` (it now reads "Developed by TDI Pvt. Limited" through the i18n default variable); switch it to `DevelopedBy variant="print"` when a live file is next touched
+- [ ] Branding · verify in the 22.9 screenshots: top bar logo (44 px) and mark (36 px) do not touch the bar edges at 1366 and 1920; dark-theme white tiles; Bangla footer; About dialog in EN and BN; favicon in the tab
+
 ## Client open items (docs/01 §9)
 - [ ] Shift timings · [ ] mandatory PPE · [ ] SKU class list · [ ] roster source · [ ] real door pitch / bay order · [ ] brand kit · [ ] Telegram egress · [ ] transporter list
