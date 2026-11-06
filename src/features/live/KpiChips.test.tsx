@@ -1,10 +1,10 @@
 import { act, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import { alertStore, uiStore } from '@/stores';
+import { alertStore } from '@/stores';
 import { makeBay, makeEvent, makeSite, ulid } from '@/stores/testUtils';
 import { KpiChips } from './KpiChips';
-import { trayFilterStore, resetTrayFilter } from './kpiDetail/trayFilter';
+import { resetTrayFilter } from './kpiDetail/trayFilter';
 import { push, renderWithProviders, resetStores, stubBrowserApis, T0 } from './testHarness';
 
 beforeAll(() => stubBrowserApis());
@@ -297,17 +297,19 @@ describe('KPI popovers', () => {
     expect(screen.getByTestId('kpidetail-alerts-split')).toHaveTextContent(
       '1 critical, 3 warning, 0 info',
     );
-    const rows = within(screen.getByTestId('kpidetail-groups')).getAllByRole('button');
+    const rows = within(screen.getByTestId('kpidetail-groups')).getAllByRole('link');
     // idle has the critical one (and a warn), then the warn-only groups in table order
     expect(rows.map((r) => r.dataset.group)).toEqual(['idle', 'hygiene', 'other']);
     expect(rows[0]).toHaveAttribute('data-total', '2');
     expect(rows[0]).toHaveTextContent('Idle & stoppage');
     expect(rows[2]).toHaveTextContent('Other');
 
-    await userEvent.click(rows[0] as HTMLElement);
-    expect(uiStore.getState().trayTab).toBe('alerts');
-    expect(trayFilterStore.getState().group).toBe('idle');
-    await waitFor(() => expect(screen.queryByTestId('kpidetail-alerts')).toBeNull());
+    // each row links to the Events page with the group filter (the page count uses the same matchesAlertGroup)
+    expect(rows.map((r) => r.getAttribute('href'))).toEqual([
+      '/events?group=idle',
+      '/events?group=hygiene',
+      '/events?group=other',
+    ]);
   });
 
   it('renders Bangla labels and digits', async () => {

@@ -1,4 +1,6 @@
 import { Building2, Film, Forklift, HardHat, ImageIcon } from 'lucide-react';
+import { lazy, Suspense } from 'react';
+import { Link } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import {
   Bell3d,
@@ -13,6 +15,7 @@ import {
 } from '@/components/common';
 import { canViewCategory } from '@/stores/alertFilter';
 import { formatPlate } from '@/lib/format';
+import { eventPath } from '@/features/events/urlState';
 import {
   useAlertStore,
   useBay,
@@ -31,6 +34,11 @@ import { bayConveyor, bayLabel, DEFAULT_SITE } from './siteInfo';
 import { BELT_TONE, CONN_TONE, EVENT_STATUS_TONE, PHASE_TONE, SEV_TONE } from './tones';
 import { useFmt } from './useFmt';
 import { findActor, useRole, useStreamNow } from './useLiveModel';
+
+// Acknowledge / Close / Note live in the events chunk (react-query mutations); the inspector fetches them on first use.
+const EventActions = lazy(() =>
+  import('@/features/events/EventActions').then((m) => ({ default: m.EventActions })),
+);
 
 interface BodyProps {
   actions: FrameActions;
@@ -337,7 +345,7 @@ export function EventBody({ eventId, actions }: BodyProps & { eventId: string })
           </StatusPill>
         </div>
       }
-      href={`/events/${event.id}`}
+      href={eventPath(event.id)}
       actions={actions}
     >
       <div
@@ -389,6 +397,18 @@ export function EventBody({ eventId, actions }: BodyProps & { eventId: string })
           </KeyValue>
         )}
       </KeyValueList>
+      <div className="flex flex-col gap-2 pt-3">
+        <Suspense fallback={null}>
+          <EventActions key={event.id} event={event} />
+        </Suspense>
+        <Link
+          to={eventPath(event.id)}
+          data-testid="inspector-open-events"
+          className="text-info-ink text-[13px] font-medium underline-offset-2 hover:underline"
+        >
+          {t('inspector.eventActions.openInEvents')}
+        </Link>
+      </div>
     </InspectorFrame>
   );
 }

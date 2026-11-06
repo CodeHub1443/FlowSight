@@ -1,5 +1,6 @@
-import { ChevronRight, X } from 'lucide-react';
+import { ChevronRight, ExternalLink, X } from 'lucide-react';
 import { memo, useEffect, useMemo, useRef, type ReactNode } from 'react';
+import { Link } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import {
   CollapsiblePanel,
@@ -20,6 +21,7 @@ import type {
   VisitPhase,
   WhEventWithStatus,
 } from '@/domain';
+import { eventPath } from '@/features/events/urlState';
 import { formatPlate } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import { useBays, useOpenAlerts, useUiStore, type Selection, type TrayTab } from '@/stores';
@@ -54,6 +56,8 @@ function Row({
   pill,
   meta,
   alertGroup,
+  href,
+  hrefLabel,
 }: {
   selected: boolean;
   onClick: () => void;
@@ -66,9 +70,12 @@ function Row({
   meta?: ReactNode;
   /** Alerts tab: the row's alert group (spec 5A), for the group filter and tests. */
   alertGroup?: AlertGroupId;
+  /** Alerts tab: "Open in Events" link drawn over the chevron column. */
+  href?: string;
+  hrefLabel?: string;
 }) {
   return (
-    <li data-flip-key={flipKey}>
+    <li data-flip-key={flipKey} className="relative">
       <button
         type="button"
         data-testid={testId}
@@ -95,11 +102,22 @@ function Row({
           {meta}
         </span>
         <ChevronRight
-          className="text-ink-400 size-3.5 rtl:rotate-180"
+          className={cn('text-ink-400 size-3.5 rtl:rotate-180', href && 'invisible')}
           strokeWidth={1.75}
           aria-hidden
         />
       </button>
+      {href && (
+        <Link
+          to={href}
+          aria-label={hrefLabel}
+          title={hrefLabel}
+          data-testid={`${testId}-open`}
+          className="text-ink-400 hover:text-info-ink focus-visible:ring-ring/50 absolute end-[6px] top-1/2 grid size-6 -translate-y-1/2 place-items-center rounded-full focus-visible:ring-[3px] focus-visible:outline-none"
+        >
+          <ExternalLink className="size-3.5" strokeWidth={1.75} aria-hidden />
+        </Link>
+      )}
     </li>
   );
 }
@@ -334,6 +352,8 @@ const AlertRow = memo(function AlertRow({
       flipKey={id}
       testId={`tray-alert-${id}`}
       alertGroup={group}
+      href={eventPath(id)}
+      hrefLabel={t('inspector.eventActions.openInEvents')}
       selected={selected}
       onClick={() => focusObject({ kind: 'event', id })}
       tone={SEV_TONE[sev]}
