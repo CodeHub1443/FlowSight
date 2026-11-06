@@ -1,5 +1,181 @@
 {
   "page": {
-    "stub": "Shift and daily reports"
+    "title": "Reports"
+  },
+  "controls": {
+    "kindLabel": "Report type",
+    "kind": { "shift": "Shift", "daily": "Daily" },
+    "periodLabel": "Period",
+    "currentShift": "Current shift",
+    "previousShift": "Previous shift",
+    "pickShift": "Pick a shift",
+    "today": "Today",
+    "yesterday": "Yesterday",
+    "pickDay": "Pick a day",
+    "date": "Date",
+    "shift": "Shift",
+    "shiftOption": "Shift {{id}} ({{start}} to {{end}})",
+    "print": "Print / Save as PDF",
+    "printPreparing": "Preparing images…",
+    "csv": "Export CSV",
+    "csvBays": "Bays",
+    "csvTruckLog": "Truck log"
+  },
+  "doc": {
+    "title": { "shift": "Shift report", "daily": "Daily report" },
+    "periodShift": "Shift {{shift}}, {{date}}, {{from}} to {{to}}",
+    "periodDaily": "{{date}}, {{from}} to {{to}}",
+    "status": { "inProgress": "In progress", "complete": "Complete" },
+    "generated": "Generated {{time}}",
+    "simulated": "Simulated data",
+    "simulatedHint": "This report is built from the in-browser simulator, not from the depot.",
+    "clientLogoAlt": "Unilever Bangladesh",
+    "figuresSoFar": "Figures so far; the period is not over. Changes against the previous period are shown once it is complete."
+  },
+  "headlines": {
+    "title": "Headlines",
+    "casesOut": "Cartons out",
+    "casesIn": "Cartons in",
+    "trucks": "Trucks completed",
+    "occupancy": "Bay occupancy (average)",
+    "depotTat": "Depot turnaround (average)",
+    "ppe": "PPE compliance",
+    "openAlerts": "Open alerts at the end",
+    "openAlertsDetail": "{{critical}} critical, {{warn}} warning",
+    "vs": { "shift": "vs previous shift", "daily": "vs previous day" },
+    "noDelta": "No figure for the previous period",
+    "reason": {
+      "noFinishedTrucks": "No finished trucks in this period",
+      "noPpe": "No PPE observations in this period"
+    }
+  },
+  "units": {
+    "min": "min",
+    "pts": "pts"
+  },
+  "handover": {
+    "title": "Handover: still open",
+    "none": "Nothing is open at the end of this period.",
+    "groupsLabel": "Open alerts by group",
+    "topTitle": "Most severe open events",
+    "partial": "{{shown}} of {{total}} open alerts are listed here; the report carries the most severe events only.",
+    "col": {
+      "severity": "Severity",
+      "event": "Event",
+      "bay": "Bay",
+      "age": "Open for",
+      "status": "Status",
+      "id": "Ref."
+    }
+  },
+  "groups": {
+    "delays": "Delays & waiting",
+    "idle": "Idle & stoppage",
+    "throughput": "Throughput & staging",
+    "ppe": "PPE",
+    "safety": "Safety",
+    "hygiene": "Product hygiene",
+    "security": "Security",
+    "system": "System & roster",
+    "other": "Other"
+  },
+  "sev": { "info": "Info", "warn": "Warning", "critical": "Critical" },
+  "status": { "OPEN": "Open", "ACK": "Acknowledged", "CLOSED": "Closed" },
+  "bays": {
+    "title": "Bays",
+    "total": "Total",
+    "beltShareNote": "Belt loaded: belt running with product, as a share of the time a truck was docked.",
+    "issuesNote": "Product issues: damaged, open tape, torn sack, wet and fall-off.",
+    "col": {
+      "bay": "Bay",
+      "casesOut": "Cartons out",
+      "casesIn": "Cartons in",
+      "trucks": "Trucks",
+      "occupancy": "Avg. occupancy",
+      "beltShare": "Belt loaded",
+      "detentions": "Detentions",
+      "productIssues": "Product issues",
+      "ppe": "PPE violations"
+    }
+  },
+  "trucks": {
+    "title": "Truck log",
+    "empty": "No finished trucks in this period.",
+    "detention": "Detention",
+    "col": {
+      "plate": "Plate",
+      "agency": "Agency",
+      "bay": "Bay",
+      "dir": "Direction",
+      "arrival": "Arrival",
+      "wait": "Wait for dock",
+      "occupancy": "Bay occupancy",
+      "cartons": "Cartons",
+      "detention": "Detention"
+    },
+    "dir": { "OUT": "Out", "IN": "In", "MIXED": "Mixed" }
+  },
+  "evidence": {
+    "title": "Evidence",
+    "none": "No events with a snapshot in this period.",
+    "alt": "Snapshot: {{title}}",
+    "unavailable": "Image unavailable",
+    "loading": "Loading image"
+  },
+  "sku": {
+    "title": "SKU summary",
+    "empty": "No cartons were matched to a SKU in this period.",
+    "unknownShare": "Not matched to a SKU: {{pct}} of counted cartons",
+    "unknownHint": "Data confidence: cartons the cameras could not match to a SKU.",
+    "col": { "sku": "SKU", "name": "Name", "pack": "Pack", "count": "Count" },
+    "pack": { "CASE": "Case", "SACK": "Sack", "SHRINK": "Shrink" }
+  },
+  "captains": {
+    "title": "Captains by bay assignment",
+    "note": "Listed in bay order. This is the bay assignment, not a ranking.",
+    "col": { "captain": "Captain", "bays": "Bays" }
+  },
+  "state": {
+    "loading": "Loading the report",
+    "error": "Could not load the report.",
+    "retry": "Retry",
+    "notAvailable": "Report not available",
+    "notAvailableHint": "There is no report for this period yet.",
+    "empty": "No activity was recorded in this period."
+  },
+  "csv": {
+    "bays": {
+      "bay": "Bay",
+      "casesOut": "Cartons out",
+      "casesIn": "Cartons in",
+      "trucks": "Trucks",
+      "avgOccupancyMin": "Average occupancy (min)",
+      "beltLoadedPct": "Belt loaded (%)",
+      "detentions": "Detentions",
+      "productIssues": "Product issues",
+      "ppe": "PPE violations"
+    },
+    "trucks": {
+      "visitId": "Visit",
+      "plateBn": "Plate (Bangla)",
+      "plateEn": "Plate (English)",
+      "agency": "Agency",
+      "bay": "Bay",
+      "dir": "Direction",
+      "arrival": "Arrival",
+      "docked": "Docked",
+      "departed": "Departed",
+      "waitMin": "Wait for dock (min)",
+      "occupancyMin": "Bay occupancy (min)",
+      "casesOut": "Cartons out",
+      "casesIn": "Cartons in",
+      "detention": "Detention"
+    },
+    "yes": "Yes",
+    "no": "No"
+  },
+  "footer": {
+    "developedBy": "Developed by {{company}}",
+    "generated": "Generated {{time}}"
   }
 }

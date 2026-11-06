@@ -46,7 +46,8 @@ describe('lazy i18n namespaces', () => {
   it('reports registers with its page', async () => {
     renderAt('/reports');
     const page = await screen.findByTestId('reports-page', {}, { timeout: LAZY_CHUNK_MS });
-    expect(page).toHaveTextContent(enReports.page.stub);
+    expect(page).toHaveTextContent(enReports.controls.kind.shift);
+    expect(i18n.hasResourceBundle('en', 'reports')).toBe(true);
     expect(i18n.hasResourceBundle('bn', 'reports')).toBe(true);
   });
 });

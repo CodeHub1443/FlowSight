@@ -1,0 +1,147 @@
+/*
+ * Report print layout (Task 22C). Page size and margins (A4 portrait, 12 mm) come from src/index.css.
+ *
+ * Print is always dark ink on white, whatever the UI theme: the sheet re-states its colours here as paper values (not UI
+ * tokens), so a report printed from the dark control-room theme is still readable. Status pills keep their text and get
+ * a border, so colour is never the only carrier of meaning. The detection box on a thumbnail keeps its red outline.
+ *
+ * Not verified in a browser in Task 22C (no browser in that session): see docs/progress/t22c.md for the 22.9 checklist.
+ */
+
+/* Block flow (not flex or grid) for the page stack and the sections, so they fragment across printed pages everywhere. */
+.rp-stack > * + * {
+  margin-top: 1rem;
+}
+.rp-section > * + * {
+  margin-top: 0.5rem;
+}
+
+/* Screen: the print-only parts are absent. */
+.rp-footer,
+.rp-frame-foot {
+  display: none;
+}
+
+@media print {
+  .rp-sheet {
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    font-size: 9pt;
+    line-height: 1.35;
+  }
+  .rp-sheet:lang(bn) {
+    line-height: 1.55;
+  }
+
+  /* One-cell table frame: its foot repeats on every printed page and reserves room for the fixed footer. */
+  .rp-frame {
+    display: table;
+    width: 100%;
+  }
+  .rp-frame-body {
+    display: table-row-group;
+  }
+  .rp-frame-foot {
+    display: table-footer-group;
+  }
+  .rp-frame-row {
+    display: table-row;
+  }
+  .rp-frame-cell {
+    display: table-cell;
+  }
+  .rp-spacer {
+    height: 10mm;
+  }
+
+  .rp-footer {
+    display: flex;
+    position: fixed;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    justify-content: space-between;
+    gap: 8mm;
+    padding-top: 1.2mm;
+    border-top: 0.3mm solid;
+    font-size: 8pt;
+  }
+
+  /* Paper colours. */
+  .rp-sheet,
+  .rp-sheet * {
+    color: #111 !important;
+    background: transparent !important;
+    border-color: #8a8a8a !important;
+    box-shadow: none !important;
+  }
+  .rp-sheet .rp-muted {
+    color: #444 !important;
+  }
+  .rp-sheet th {
+    background: #ececec !important;
+  }
+  .rp-sheet tfoot td,
+  .rp-sheet tr[data-total] td {
+    background: #f4f4f4 !important;
+  }
+  .rp-sheet [data-tone] {
+    border: 0.25mm solid #555 !important;
+    border-radius: 99px;
+    padding: 0 1.6mm !important;
+  }
+  .rp-sheet .rp-logo-tile {
+    background: #fff !important;
+    padding: 0 !important;
+  }
+  .rp-sheet [data-bbox] {
+    border-color: #c00 !important;
+  }
+
+  /* Breaks: sections and rows stay whole; the truck log may split between rows; headings stay with their content. */
+  .rp-stack > * + * {
+    margin-top: 4mm;
+  }
+  .rp-section {
+    break-inside: avoid;
+  }
+  .rp-section--flow {
+    break-inside: auto;
+  }
+  .rp-sheet h2 {
+    break-after: avoid;
+  }
+  .rp-sheet tr,
+  .rp-sheet figure,
+  .rp-sheet li {
+    break-inside: avoid;
+  }
+  .rp-sheet thead {
+    display: table-header-group;
+  }
+
+  /* Compact tables. */
+  .rp-sheet table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  .rp-sheet th,
+  .rp-sheet td {
+    padding: 0.8mm 1.4mm !important;
+    border-bottom: 0.2mm solid;
+  }
+
+  .rp-headlines {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 2mm !important;
+  }
+  .rp-evidence-grid {
+    grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+    gap: 2mm !important;
+  }
+}
