@@ -380,7 +380,12 @@ export class ActorRig {
   private actorBase(t: ActorTrack, lift: number): boolean {
     const bay = this.maps.bay.get(t.bay);
     if (!bay) return false;
-    const p = bayToSite(bay.face, bay.door, { x: t.x, y: t.y, z: 0 }, this.layout.floorLevel);
+    const p = bayToSite(
+      bay.face,
+      bay.door,
+      { x: t.x + t.sepX, y: t.y + t.sepY, z: 0 },
+      this.layout.floorLevel,
+    );
     _base.makeRotationY(headingToRotationY(bay.face, t.h));
     _base.setPosition(p.X, p.Y + lift, p.Z);
     return true;
@@ -747,7 +752,8 @@ export class ActorRig {
 
   // ---- belt items --------------------------------------------------------------------------------------------------
 
-  drawItems(items: readonly BeltItem[]): void {
+  /** `extendOf` gives how far a bay's boom has run out (metres): the trip of its items starts at the moving tip. */
+  drawItems(items: readonly BeltItem[], extendOf?: (bay: string) => number): void {
     const { itemCase } = this;
     if (!itemCase) return;
     const carton = finishOf('carton');
@@ -757,7 +763,7 @@ export class ActorRig {
       const bay = this.maps.bay.get(it.bay);
       if (!bay) continue;
       const c = bay.conveyor;
-      const y = itemY(it, beltSpan(c));
+      const y = itemY(it, beltSpan(c, extendOf?.(it.bay)));
       const s = itemScale(it.k);
       if (s <= 0) continue;
       const size = CARTON_DIMS[cartonSizeOf(it.variant)];

@@ -1,27 +1,38 @@
+import { useFrame } from '@react-three/fiber';
 import { useEffect, useMemo, useRef } from 'react';
 import { MeshBasicMaterial, type Group } from 'three';
 import type { BeltStatus } from '@/domain';
 import { Appear } from '../Appear';
 import { GlbOrProcedural } from '../assets/GlbOrProcedural';
 import { PropInstances } from '../assets/PropInstances';
+import { bayToThree } from '../frame';
+import type { BoxItem } from '../items';
 import { BoxInstances, CylInstances, MarkInstances } from '../primitives';
 import { Plate } from '../Plate';
 import { useSceneEnv } from '../sceneEnv';
 import { roundedPlate, roundedRing } from '../shapes';
 import type { BayLayout, FaceLayout } from '../site/layout';
 import {
+  beltTickItems,
+  beltTickU,
+  boomItems,
+  boomSectionLength,
   CABINET_FRONT,
   CABINET_LABEL_Z,
   cabinetButtonItems,
   cabinetItems,
   cabinetSpots,
-  conveyorBodyItems,
   conveyorFrame,
-  conveyorRollerItems,
+  conveyorHousingItems,
   conveyorStatusItems,
   conveyorSupportItems,
+  endRollerItem,
+  tipRollerItem,
+  type BoomBox,
 } from './bayItems';
+import { boomExtendM, boomSectionShift, type BayAnim } from './bayAnim';
 import { DoorAssembly } from './DoorAssembly';
+import { DynamicBoxes, type DynamicPose } from './DynamicBoxes';
 import { SelectionMarker } from './SelectionMarker';
 import { buildStaging, stagingInput } from './stagingLayout';
 import { STATUS_TONE } from './status';
@@ -36,7 +47,8 @@ interface BayProps {
   face: FaceLayout;
   bay: BayLayout;
   selected: boolean;
-  doorOpen: boolean;
+  /** Boom, belt surface and shutter state (stepped by the actor layer; a bay nobody steps stays as `anim` was made). */
+  anim: BayAnim;
   /** Belt status: drives the work light, floor plate and belt strip in the dark theme (docs/06 section 8.3). */
   status: BeltStatus;
   onSelect?: (s: BaySelection) => void;
@@ -58,7 +70,7 @@ const BRACKET_HEIGHT = 3;
  * selection: the selection marker (corner brackets, floor glow and blue outline, docs/06 D8) follows `selected` alone
  * and fades in over 200 ms (the selection pill is in the SceneRoot pill layer).
  */
-export function Bay({ face, bay, selected, doorOpen, status, onSelect }: BayProps) {
+export function Bay({ face, bay, selected, anim, status, onSelect }: BayProps) {
   const { palette, materials, shadows, theme } = useSceneEnv();
   const hoverRef = useRef<Group>(null);
   const { conveyor: c, zones } = bay;
@@ -71,8 +83,28 @@ export function Bay({ face, bay, selected, doorOpen, status, onSelect }: BayProp
   const ringD = ringY1 - ringY0;
   const wz = zones.workZone;
   const frame = useMemo(() => conveyorFrame(c), [c]);
-  const bodyItems = useMemo(() => conveyorBodyItems(c), [c]);
-  const rollers = useMemo(() => conveyorRollerItems(c), [c]);
+  const housing = useMemo(() => conveyorHousingItems(c), [c]);
+  const endRoller = useMemo(() => [endRollerItem(c)], [c]);
+  const tipRoller = useMemo(() => [tipRollerItem(c)], [c]);
+  const tickItems = useMemo(() => beltTickItems(c), [c]);
+  // the sections are long enough to stay joined at the full run-out (bayItems boomSectionLength)
+  const boom = useMemo(() => boomItems(c, boomSectionLength(c.fixedFrom + c.boomMaxReach)), [c]);
+  const boomHi = useMemo(() => boom.filter((b) => b.detail === 'hi'), [boom]);
+  const boomLo = useMemo(() => boom.filter((b) => b.detail !== 'hi'), [boom]);
+  const extendM = () => boomExtendM(c.fixedFrom, anim.reach, anim.boom);
+  const boomPose = (_: number, base: BoxItem, out: DynamicPose) => {
+    out.y = base.at[1] + boomSectionShift(extendM(), (base as BoomBox).section);
+  };
+  const boomStamp = () => anim.boomStamp;
+  const tipRef = useRef<Group>(null);
+  const tipSeen = useRef(-1);
+  useFrame(() => {
+    const g = tipRef.current;
+    if (!g || tipSeen.current === anim.boomStamp) return;
+    tipSeen.current = anim.boomStamp;
+    // the tilted frame's +u is three -Z: the tip roller moves with section 0
+    g.position.z = -boomSectionShift(extendM(), 0);
+  });
   const cabinets = useMemo(() => cabinetSpots(c), [c]);
   const fixedItems = useMemo(() => [...conveyorSupportItems(c), ...cabinetItems(c)], [c]);
   const buttons = useMemo(() => cabinetButtonItems(c), [c]);
@@ -145,7 +177,7 @@ export function Bay({ face, bay, selected, doorOpen, status, onSelect }: BayProp
       />
       {dark && <WorkLight status={status} y={(wz.y[0] + wz.y[1]) / 2} />}
 
-      <DoorAssembly door={face.door} open={doorOpen} />
+      <DoorAssembly door={face.door} anim={anim} />
 
       <mesh
         geometry={roundedPlate(plateW, plateD, 0.5)}
@@ -171,9 +203,39 @@ export function Bay({ face, bay, selected, doorOpen, status, onSelect }: BayProp
       />
 
       <Appear>
-        <BoxInstances items={bodyItems} transform={frame} cast />
+        <BoxInstances items={housing} transform={frame} cast />
+        <DynamicBoxes
+          items={boomHi}
+          detail="hi"
+          transform={frame}
+          cast
+          stamp={boomStamp}
+          pose={boomPose}
+        />
+        <DynamicBoxes
+          items={boomLo}
+          detail="lo"
+          transform={frame}
+          cast
+          stamp={boomStamp}
+          pose={boomPose}
+        />
+        <DynamicBoxes
+          items={tickItems}
+          detail="flat"
+          transform={frame}
+          stamp={() => anim.phaseStamp}
+          pose={(i, _base, out) => {
+            out.y = beltTickU(c, i, anim.phase);
+          }}
+        />
         {dark && <BoxInstances items={statusStrip} transform={frame} />}
-        <CylInstances items={rollers} transform={frame} />
+        <CylInstances items={endRoller} transform={frame} />
+        <group position={bayToThree(frame.at)} rotation={[frame.pitch, 0, 0]}>
+          <group ref={tipRef}>
+            <CylInstances items={tipRoller} />
+          </group>
+        </group>
         <BoxInstances items={fixedItems} cast />
         <CylInstances items={buttons} cast={false} />
         {cabinets.xs.map((x) => (

@@ -11,24 +11,29 @@ import {
 import { useTranslation } from 'react-i18next';
 import type { BeltStatus } from '@/domain';
 import { DEFAULT_SITE } from '@/features/live';
+import { findActor } from '@/features/live/useLiveModel';
 import { SceneSlotPlaceholder } from '@/features/live/SceneSlot';
-import type { ActorFeed, QualityTier, SceneSelection } from '@/scene';
+import type { ActorFeed, ActorSelection, QualityTier, SceneSelection } from '@/scene';
 // Direct paths (not '@/scene'): these are tiny and must not pull three.js into the entry chunk.
 import { useSceneCamera } from '@/scene/camera/cameraController';
 import { SCENE_SAFE_AREA } from '@/scene/camera/view';
+import { newestOpenEventForCamera } from '@/scene/glyphs/cameraGlyph';
 import { AUTO_START_TIER } from '@/scene/quality';
 import { QUALITY_DEBUG } from '@/scene/qualityProbe';
 import {
   alertStore,
+  canViewCategory,
   getActors,
   getBay,
   liveStore,
+  sessionStore,
   subscribeActors,
   subscribeBay,
   subscribeCases,
   uiStore,
   useLiveStore,
   useUiStore,
+  type Selection,
 } from '@/stores';
 import { MapControls } from './MapControls';
 import { QualityBadge } from './QualityBadge';
@@ -40,6 +45,8 @@ import { hasWebGL } from './webgl';
 declare global {
   interface Window {
     __sceneCamera?: ReturnType<typeof useSceneCamera>;
+    /** Debug builds: lets the e2e run toggle X-ray and select without a control for it. */
+    __uiStore?: typeof uiStore;
   }
 }
 
@@ -73,10 +80,56 @@ function targetContext(): SceneTargetContext {
   };
 }
 
-/** Non-React access to live data: what the actor layer interpolates between (docs/02 section 6 rule 1). */
-const ACTOR_FEED: ActorFeed = { getBay, subscribeBay, getActors, subscribeActors, subscribeCases };
+/**
+ * Non-React access to live data: what the actor layer interpolates between (docs/02 section 6 rule 1). Camera health has
+ * no accessor in stores/accessors.ts yet, so it is read from the liveStore here (same pattern as getBay).
+ */
+const ACTOR_FEED: ActorFeed = {
+  getBay,
+  subscribeBay,
+  getActors,
+  subscribeActors,
+  subscribeCases,
+  getCams: () => liveStore.getState().health?.cams,
+  subscribeCams: (cb) =>
+    liveStore.subscribe((s, prev) => {
+      if (s.health !== prev.health) cb(s.health?.cams);
+    }),
+};
 
-const selectBay = (s: SceneSelection) => uiStore.getState().select({ kind: 'bay', id: s.bayId });
+/** A click in the scene becomes a uiStore selection; the scene itself never touches a store. */
+function selectFromScene(s: SceneSelection): void {
+  const ui = uiStore.getState();
+  switch (s.kind) {
+    case 'bay':
+      ui.select({ kind: 'bay', id: s.bayId });
+      return;
+    case 'truck':
+    case 'person':
+    case 'forklift':
+      ui.select({ kind: s.kind, id: s.id });
+      return;
+    case 'camera': {
+      // the camera's newest open event, or nothing (a click on a healthy camera's glyph selects nothing)
+      const role = sessionStore.getState().role;
+      const id = newestOpenEventForCamera(alertStore.getState().events, s.camId, (e) =>
+        canViewCategory(role, e.category),
+      );
+      if (id) ui.select({ kind: 'event', id });
+      return;
+    }
+  }
+}
+
+/** Whether the scene has the selected truck, person or forklift to mark (else the bay is marked, as for any selection). */
+function actorInScene(sel: Selection, ctx: SceneTargetContext): boolean {
+  if (sel.kind === 'truck') {
+    return Object.values(ctx.bays).some(
+      (b) => b.visit?.visitId === sel.id || b.queue.some((q) => q.visitId === sel.id),
+    );
+  }
+  return findActor(ctx.actors, sel.id) !== null;
+}
 
 /** Falls back to the placeholder if the scene chunk fails to load or WebGL fails at runtime. */
 class SceneBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
@@ -117,7 +170,23 @@ export function LiveScene() {
   const theme = useUiStore((s) => s.theme);
   const labels = useUiStore((s) => s.labels);
   const selection = useUiStore((s) => s.selection);
-  const selectedBayId = selection ? bayOfSelection(selection, targetContext()) : null;
+  const xray = useUiStore((s) => s.xray);
+  // a selected truck, person or forklift is marked itself; the bay is marked for everything else
+  const selectedActor = useMemo<ActorSelection | null>(() => {
+    if (!selection) return null;
+    if (
+      selection.kind !== 'truck' &&
+      selection.kind !== 'person' &&
+      selection.kind !== 'forklift'
+    ) {
+      return null;
+    }
+    return actorInScene(selection, targetContext())
+      ? { kind: selection.kind, id: selection.id }
+      : null;
+  }, [selection]);
+  const selectedBayId =
+    selection && !selectedActor ? bayOfSelection(selection, targetContext()) : null;
   const setting = useUiStore((s) => s.quality);
   const [urlQuality] = useState(qualityFromUrl);
   const requested = urlQuality ?? setting;
@@ -146,6 +215,9 @@ export function LiveScene() {
   useEffect(() => {
     if (QUALITY_DEBUG) window.__sceneCamera = camera;
   }, [camera]);
+  useEffect(() => {
+    if (QUALITY_DEBUG) window.__uiStore = uiStore;
+  }, []);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -190,9 +262,11 @@ export function LiveScene() {
             safeArea={SCENE_SAFE_AREA}
             labels={labels}
             selectedBayId={selectedBayId}
+            selectedActor={selectedActor}
+            xray={xray}
             bayStatus={bayStatus}
             actors={ACTOR_FEED}
-            onSelect={selectBay}
+            onSelect={selectFromScene}
             onReady={() => {
               if (ref.current) ref.current.dataset.sceneReady = 'true';
             }}

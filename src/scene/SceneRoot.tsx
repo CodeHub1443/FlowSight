@@ -9,11 +9,16 @@ import type { ActorFeed } from './actors/feed';
 import { TruckPlates, type PlateElements } from './actors/TruckPlates';
 import { preloadLiveModels } from './assets/loader';
 import { AutoQuality } from './AutoQuality';
-import { Bay, type BaySelection } from './bay/Bay';
+import { Bay } from './bay/Bay';
+import { BayAnimRegistry, boomReach } from './bay/bayAnim';
 import { Shed } from './building/Shed';
 import { CameraRig } from './camera/CameraRig';
 import { CAMERA_FOV, NO_SAFE_AREA, type SafeArea } from './camera/view';
+import { GlyphBoard } from './glyphs/cameraGlyph';
+import { CameraGlyphs } from './glyphs/CameraGlyphs';
+import type { ActorSelection, SceneSelection } from './interaction/types';
 import { bayPillAnchor, selectionPillAnchor } from './labels/anchors';
+import type { ActorLabelStrings } from './labels/actorLabel';
 import { PillLayer, PillProjector, SELECTION_KEY, type PillElements } from './labels/Pills';
 import { EventPin } from './labels/EventPin';
 import {
@@ -37,7 +42,7 @@ import {
 } from './toneMapping';
 import { ExteriorContext } from './site/ExteriorContext';
 import { FaceContents } from './site/FaceContents';
-import { buildSiteLayout } from './site/layout';
+import { buildSiteLayout, type SiteLayout } from './site/layout';
 import { applySoftShadows } from './softShadows';
 import { useReleaseOnUnmount } from './useReleaseOnUnmount';
 import { useRenderPixelRatio } from './useRenderPixelRatio';
@@ -45,7 +50,7 @@ import { useRenderPixelRatio } from './useRenderPixelRatio';
 // 16-tap PCF for the key light (docs/06 section 2 soft shadow without grain); before any material compiles
 applySoftShadows();
 
-export type SceneSelection = BaySelection;
+export type { SceneSelection } from './interaction/types';
 
 /**
  * Distance fog into the void (docs/06 section 7.3: D7 and section 8.3 moved out, because the hero camera stands 75-105 m
@@ -66,11 +71,18 @@ export interface SceneRootProps {
   safeArea?: Readonly<SafeArea>;
   /** Bay number pills on the dock wall band (uiStore `labels`). */
   labels?: boolean;
-  /** Called when a bay (floor, belt, staging, ...) is clicked. The scene never writes to a store. */
+  /**
+   * Called when a bay (floor, belt, staging, ...), a truck, a person, a forklift or a camera glyph is clicked. The scene
+   * never writes to a store.
+   */
   onSelect?: (selection: SceneSelection) => void;
   /** Bay whose floor ring and pill are drawn as selected. */
   selectedBayId?: string | null;
-  /** Static shutter state per bay (default: open). */
+  /** The selected truck (visit id), person or forklift (track id): a floor ring and a pill follow it. */
+  selectedActor?: ActorSelection | null;
+  /** X-ray mode: the camera glyphs show whatever their health (otherwise only the ones that need attention). */
+  xray?: boolean;
+  /** Shutter state of a bay before a live feed drives it (default: open); a feed opens and closes it with the trucks. */
   doorOpen?: (bayId: string) => boolean;
   /** Belt status per bay id (default NO_TRUCK): work lights and status colours of the dark theme. */
   bayStatus?: Readonly<Record<string, BeltStatus>>;
@@ -97,6 +109,19 @@ function RendererToneMapping({ mapping, active }: { mapping: SceneToneMapping; a
   return null;
 }
 
+/** One BayAnim per bay, each with the reach its boom may run out to; `doorOpen` gives the shutters' starting state. */
+function buildAnim(layout: SiteLayout, doorOpen?: (bayId: string) => boolean): BayAnimRegistry {
+  const registry = new BayAnimRegistry(
+    layout.bays.map((b) => b.id),
+    (id) => doorOpen?.(id) ?? true,
+  );
+  for (const b of layout.bays) {
+    const a = registry.get(b.id);
+    if (a) a.reach = boomReach(b.conveyor.boomMaxReach);
+  }
+  return registry;
+}
+
 /** The 3D shed interior (roofless cutaway "dollhouse"), fully built from `siteConfig`. Fills its parent. */
 export function SceneRoot({
   siteConfig,
@@ -107,6 +132,8 @@ export function SceneRoot({
   labels = true,
   onSelect,
   selectedBayId = null,
+  selectedActor = null,
+  xray = false,
   doorOpen,
   bayStatus,
   actors,
@@ -144,8 +171,35 @@ export function SceneRoot({
     return () => document.removeEventListener('visibilitychange', on);
   }, []);
 
-  const { i18n } = useTranslation('scene');
+  const { i18n, t } = useTranslation('scene');
   const lang = i18n.language === 'bn' ? 'bn' : 'en';
+  // the words of the selected actor's pill; a new object only when the language changes
+  const labelStrings = useMemo<ActorLabelStrings>(
+    () => ({
+      lang,
+      captain: t('actor.captain'),
+      worker: t('actor.worker'),
+      person: t('actor.person'),
+      forklift: t('actor.forklift'),
+      phase: {
+        ARRIVED: t('actor.phase.ARRIVED'),
+        DOCKED: t('actor.phase.DOCKED'),
+        LOADING: t('actor.phase.LOADING'),
+        UNLOADING: t('actor.phase.UNLOADING'),
+        FINISHED: t('actor.phase.FINISHED'),
+        DEPARTED: t('actor.phase.DEPARTED'),
+      },
+    }),
+    [t, lang],
+  );
+  // boom, belt surface and shutter of each bay (stepped by the actor layer), and the camera glyph states
+  const [animFor, setAnimFor] = useState(() => ({ layout, registry: buildAnim(layout, doorOpen) }));
+  let anim = animFor.registry;
+  if (animFor.layout !== layout) {
+    anim = buildAnim(layout, doorOpen);
+    setAnimFor({ layout, registry: anim });
+  }
+  const glyphBoard = useMemo(() => new GlyphBoard(), []);
   const pillElements = useRef<PillElements>(new Map());
   const plateElements = useRef<PlateElements>(new Map());
   // the selection pill keeps showing the last selected bay while it fades out
@@ -237,7 +291,8 @@ export function SceneRoot({
           ))}
           {layout.bays.map((bay) => {
             const face = layout.faces.find((f) => f.face === bay.face);
-            if (!face) return null;
+            const bayAnim = anim.get(bay.id);
+            if (!face || !bayAnim) return null;
             return (
               <group
                 key={bay.id}
@@ -248,7 +303,7 @@ export function SceneRoot({
                   face={face}
                   bay={bay}
                   selected={selectedBayId === bay.id}
-                  doorOpen={doorOpen ? doorOpen(bay.id) : true}
+                  anim={bayAnim}
                   status={bayStatus?.[bay.id] ?? 'NO_TRUCK'}
                   onSelect={onSelect}
                 />
@@ -256,7 +311,21 @@ export function SceneRoot({
             );
           })}
           {actors && (
-            <ActorsLayer layout={layout} feed={actors} showPlates={labels} plates={plateElements} />
+            <>
+              <ActorsLayer
+                layout={layout}
+                feed={actors}
+                showPlates={labels}
+                plates={plateElements}
+                anim={anim}
+                board={glyphBoard}
+                selected={selectedActor}
+                onSelect={onSelect}
+                pills={pillElements}
+                labelStrings={labelStrings}
+              />
+              <CameraGlyphs layout={layout} board={glyphBoard} feed={actors} xray={xray} />
+            </>
           )}
           {pins?.map((pin) => (
             <EventPin key={pin.id} at={pin.at} />

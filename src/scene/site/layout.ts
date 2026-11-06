@@ -21,6 +21,17 @@ export interface BayZones {
   storage: Range;
 }
 
+/** A camera mount of a bay (config `cameraTemplate`, bay frame with z above the dock floor) and its place in the site frame. */
+export interface CameraMount {
+  /** Camera id as in the health frame and on events: `B04-CREW`. */
+  id: string;
+  role: 'DOCK' | 'CREW' | 'BELT';
+  /** The config's word for what it looks at (`yard`, `door`, `down`). */
+  looks: string;
+  mount: { x: number; y: number; z: number };
+  at: SitePoint;
+}
+
 export interface BayLayout {
   id: string;
   label: { en: string; bn: string };
@@ -36,6 +47,8 @@ export interface BayLayout {
   /** Width of this bay's slot along the face. */
   pitch: number;
   zones: BayZones;
+  /** The bay's cameras, in config order (3 at the Dhaka depot). */
+  cameras: CameraMount[];
   conveyor: {
     fixedFrom: number;
     fixedTo: number;
@@ -276,6 +289,13 @@ export function buildSiteLayout(config: SiteConfig): SiteLayout {
           aisle: clampRange(bi.forkliftAisle.y, 0, maxY),
           storage: clampRange(bi.storage.y, 0, maxY),
         },
+        cameras: config.cameraTemplate.map((cam): CameraMount => ({
+          id: `${b.id}-${cam.role}`,
+          role: cam.role,
+          looks: cam.looks,
+          mount: cam.mount,
+          at: bayToSite(df.face, door, cam.mount, floorLevel),
+        })),
         conveyor: {
           fixedFrom: c.fixedFrom,
           fixedTo,

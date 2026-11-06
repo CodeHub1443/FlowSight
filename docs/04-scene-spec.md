@@ -26,6 +26,22 @@ the shed interior**:
 - **Tokens and dark theme:** docs/06 §1.
 - Selection: blue outline + floor ring; hover: lighter outline. Pins: rounded map-pin sprites, colour by severity, gently bobbing;
   pill label beside selected objects (`B04 · DHAKA METRO-DA 11-2171 · Loading 412`).
+- **Picking and hover (Task 22B; `src/scene/interaction/`).** Trucks, people, forklifts and camera glyphs are selectable. They are instances in
+  shared pools and take no pointer events of their own, so there are **no R3F pointer handlers on them**: one canvas-level handler casts a ray
+  on a click and tests it against the bounds of what is drawn now (a capsule per person, forklift and truck; a sphere per glyph; built from the
+  rig's current poses, including the crew-separation offset; an actor still fading in or out is skipped). The bound grows with distance (at least
+  0.006 rad) so a figure at the hero distance can still be hit. **The nearest hit wins**, and **an actor beats the bay floor plate under it**: a click
+  that hits claims the event, so R3F's bay handler never sees it. A click on nothing of ours, and any drag, reaches R3F and the bays as before
+  (bays, belts and staging stay selectable). A pointer movement of more than **4 px between down and up is a drag**, not a click. Selection ids are
+  the ones the inspector bodies read: the **visit id** for a truck, the **track id** for a person or forklift. **Hover** looks only while the pointer
+  moves, **at most 10 times a second**, and never while a button is held (a camera drag); over an actor it shows the pointer cursor and a light
+  floor ring (`--hover`), over a camera glyph the cursor only. Cost: one fill of about 100 bounds and one ray test, 1.5 microseconds per ray measured.
+- **Selection marker and pill for an actor (B2).** A selected truck, person or forklift gets a blue floor ring (rounded footprint of its kind) and a
+  pill above it, both following the actor each frame through refs (no React state). Pill text: truck `B04 · DHAKA METRO-DA 11-2171 · Loading 412`
+  (bay, plate, phase and cartons out while loading / in while unloading; in Bangla the Bangla plate and Bangla digits; a truck still waiting on the
+  apron shows bay and plate only); person `Captain` or `Worker` (`Person` when the role is unknown), the role only, never a name or an id;
+  forklift `Forklift · B04`. When the actor is in the scene the bay is not marked as well (the actor's marker replaces the bay brackets and pill);
+  a selection the scene cannot find (a departed visit) falls back to marking its bay, as for any selection. Words: `scene` namespace, `actor.*`.
 
 ## 2. Shed and site frame
 ### 2.1 Frames and transforms (authoritative)
@@ -56,9 +72,23 @@ the shed interior**:
 | Forklift aisle | y 16 … 20 (shared) | forklifts travel E–W; painted aisle lines |
 | Storage | y 20 … 70 | instanced blocks of palletised cartons (as in the overhead frames), with aisles; low detail, not interactive |
 
-- **Belt animation:** belt UV scroll ∝ `rateCpm`; items spawned per `CaseTick` travel boom tip ↔ belt mouth in `dir`; colour by SKU;
+- **Belt animation:** items spawned per `CaseTick` travel boom tip ↔ belt mouth in `dir`; colour by SKU;
   flagged items red with a small pin; `SACK` pillow mesh, `CASE` box, `SHRINK` wrapped block. Representative, not physically exact.
-- Boom extends over 4 s when a visit enters `DOCKED`, retracts after `FINISHED`.
+- **Belt surface scroll (Task 22B, B4).** The cross ticks of the belt move along it at the **same speed the items travel**, one function for both
+  (`beltSpeedFor(rateCpm)` in `actors/beltItems.ts`): proportional to the rate up to 6 cartons a minute, then the full 0.9 m/s (a real belt runs at
+  one speed; the rate only says how often a carton is put on it), never below a quarter of that while the belt moves, so a trickle still carries its
+  first cartons off. The surface is **still when the belt is stopped, empty (`RUNNING_EMPTY`), without a truck, offline, without a rate or of unknown
+  direction**. `OUT` runs towards the truck, `IN` towards the mouth. The ticks wrap round the housing belt; the boom sections' belts do not scroll.
+  The bay animation runs in the actor layer's frame loop (`bay/bayAnim.ts`); nothing is React state. Not animated on the Low tier.
+- **Boom (B3).** The tip runs from `y = fixedFrom` (retracted) to `y = -reach` and back, eased over **1.2 s**. It is **out while a truck stands at the
+  door with its rear doors open (visit `DOCKED`, `LOADING`, `UNLOADING`, `FINISHED`)** and **in while the truck is reversing, departing, waiting or
+  absent**. `reach` is scaled to the truck's cargo depth (`0.9 x` the 7.4 m van body) and **never past `boomMaxReach`**. The three nested sections slide
+  out together (the tip all of the run-out, the next two thirds, the one at the housing a third) and stay joined at every point of the run; the items'
+  trip starts at the moving tip. Contact shadows are refreshed once the boom and the shutter come to rest.
+- **Door shutter (B5).** The curtain rolls up into its hood over **0.8 s**: open while a truck is docked, or reversing or departing with its rear within
+  12 m of the door; closed otherwise (waiting trucks do not open it). Without a live feed (the dev preview) the shutter keeps the `doorOpen` state it
+  was given.
+- **Camera glyphs (B6).** See section 5.
 - Each bay's interior is a selectable group: clicking floor, belt, staging or crew opens the matching inspector.
 
 ## 4. Actors
@@ -68,6 +98,11 @@ the shed interior**:
 - **Person:** low-poly capsule (1.7 m); **captain = full hi-vis vest** (lime `#C8F03C`, silver bands) + dark handheld scanner;
   **worker = cross-strap (X) vest**; forklift operator seated. Animations: HANDLING, SCANNING, WALKING, STATIONARY, CARRYING, DRIVING.
   PPE violation → amber ring at feet. **No** phone or idle visuals (contract §2).
+- **Crew separation (Task 22B, B7).** Two crew figures the camera model reports on top of each other are **drawn apart**: a minimum centre distance of
+  **0.55 m**, each drawn at most **0.6 m from its reported position**, per bay (spatial hash, a few relaxation passes), **visual only**: the data, the
+  interpolation and the obstacle push are untouched, and the offset is dropped for a figure it would put into a prop. Deterministic (same positions,
+  same offsets; a pair exactly on one spot parts along a direction taken from the two track seeds). Forklifts are not moved. Measured cost: about
+  0.04 ms a frame for 40 figures (budget 0.2 ms).
 - **Forklift:** yellow counterbalance forklift with mast and forks; carries a pallet when `act=CARRYING`.
 - Interpolate positions/heading between frames; fade out actors unseen for 5 s.
 
@@ -77,7 +112,7 @@ the shed interior**:
 | Bay | floor plate at the belt mouth tinted by belt status: `RUNNING_LOADED` → `--status-ok`, `RUNNING_EMPTY` → `--status-warn`, `STOPPED` → `--status-neutral`, `NO_TRUCK` → `--status-idle`, `OFFLINE` → `--status-offline` + hatch; open critical event pulses `--status-critical` |
 | Belt | emissive strip along the frame, same colours |
 | Door | shutter open/closed |
-| Camera | small camera glyphs at mount positions; red with a slash when offline |
+| Camera | camera glyph at each configured mount (3 per bay, 21 in all), one instanced mesh. **Shown in X-ray mode (`uiStore.xray`) and always when the camera is not `OK`** (`HealthFrame.cams`; a camera not yet reported is taken as healthy). Tint: `OBSTRUCTED`, `DEFOCUS`, `MOVED` = `--status-warn`; `OFFLINE` = `--status-critical` with a slow (2.4 s) size pulse, **off under `prefers-reduced-motion`**. A click selects the **newest open event of that camera** (`kind: 'event'`; events the role may not see are skipped), or nothing |
 | Event | pin above `pos` (or above the bay) for open warn/critical events; click → inspector with evidence |
 | Staging | pallet count = `palletsWaiting`; amber glow if `oldestWaitSec` > threshold |
 

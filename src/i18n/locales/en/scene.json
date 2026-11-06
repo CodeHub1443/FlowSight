@@ -23,5 +23,19 @@
       "med": "Medium",
       "low": "Low"
     }
+  },
+  "actor": {
+    "captain": "Captain",
+    "worker": "Worker",
+    "person": "Person",
+    "forklift": "Forklift",
+    "phase": {
+      "ARRIVED": "Arrived",
+      "DOCKED": "Docked",
+      "LOADING": "Loading",
+      "UNLOADING": "Unloading",
+      "FINISHED": "Finished",
+      "DEPARTED": "Departed"
+    }
   }
 }
