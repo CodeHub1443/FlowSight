@@ -6,8 +6,23 @@ import { hashString } from '../site/random';
 // that finds its belt full is skipped, never queued.
 
 export const MAX_ITEMS_PER_BAY = 24;
-/** Metres per second along the belt. */
+/** Metres per second along the belt at full speed. */
 export const BELT_SPEED = 0.9;
+/** Carton rate (per minute) at and above which the belt runs at BELT_SPEED. Below it the speed is proportional to the rate. */
+export const BELT_FULL_CPM = 6;
+/** Least share of BELT_SPEED a moving belt runs at, so a nearly empty belt still carries its first cartons off. */
+export const BELT_MIN_FRACTION = 0.25;
+
+/**
+ * Speed of a moving belt for its reported rate (docs/04 section 3: surface scroll proportional to `rateCpm`). The item
+ * travel in `BeltItems.update` and the surface scroll of the bay (bay/bayAnim.ts) both use this one function, so a carton
+ * never slides on the belt that carries it. Proportional up to BELT_FULL_CPM, then saturated: a real belt runs at a fixed
+ * speed, the rate only says how often a carton is placed on it.
+ */
+export function beltSpeedFor(rateCpm: number | undefined): number {
+  const rate = rateCpm !== undefined && Number.isFinite(rateCpm) ? Math.max(0, rateCpm) : 0;
+  return BELT_SPEED * Math.min(1, Math.max(BELT_MIN_FRACTION, rate / BELT_FULL_CPM));
+}
 /** Share of the trip at each end over which an item grows in or shrinks out (docs/06 section 2: no popping). */
 export const END_RAMP = 0.04;
 /** Least distance between two items on a belt, metres. */
@@ -70,13 +85,16 @@ export function itemY(item: Pick<BeltItem, 'dir' | 'k'>, span: BeltSpan): number
   return from + (to - from) * item.k;
 }
 
-/** The trip on a conveyor: boom tip to the end of the belt's working stretch. */
-export function beltSpan(c: { fixedFrom: number; fixedTo: number }): BeltSpan {
-  return { tip: c.fixedFrom, mouth: c.fixedTo - 0.4 };
+/**
+ * The trip on a conveyor: boom tip to the end of the belt's working stretch. `extend` is how far the boom has run out
+ * past `fixedFrom` (metres, 0 retracted): the tip, and with it the start of the trip, moves into the truck.
+ */
+export function beltSpan(c: { fixedFrom: number; fixedTo: number }, extend = 0): BeltSpan {
+  return { tip: c.fixedFrom - Math.max(0, extend), mouth: c.fixedTo - 0.4 };
 }
 
-export function beltTrip(c: { fixedFrom: number; fixedTo: number }): number {
-  const s = beltSpan(c);
+export function beltTrip(c: { fixedFrom: number; fixedTo: number }, extend = 0): number {
+  const s = beltSpan(c, extend);
   return s.mouth - s.tip;
 }
 
@@ -123,16 +141,23 @@ export class BeltItems {
     return this.perBay.get(bay) ?? 0;
   }
 
-  /** `lengthOf` gives the trip length of a bay, `statusOf` its belt status. */
+  /**
+   * `lengthOf` gives the trip length of a bay, `statusOf` its belt status. With `rateOf` the items travel at
+   * `beltSpeedFor(rate)`, the speed the belt surface scrolls at; without it at BELT_SPEED.
+   */
   update(
     dtMs: number,
     lengthOf: (bay: string) => number,
     statusOf: (bay: string) => BeltStatus | undefined,
+    rateOf?: (bay: string) => number | undefined,
   ): void {
     const dt = Math.max(0, dtMs) / 1000;
     for (let i = this.items.length - 1; i >= 0; i--) {
       const it = this.items[i] as BeltItem;
-      if (beltMoves(statusOf(it.bay))) it.k += (dt * BELT_SPEED) / Math.max(0.5, lengthOf(it.bay));
+      if (beltMoves(statusOf(it.bay))) {
+        const speed = rateOf ? beltSpeedFor(rateOf(it.bay)) : BELT_SPEED;
+        it.k += (dt * speed) / Math.max(0.5, lengthOf(it.bay));
+      }
       if (it.k >= 1) {
         this.items.splice(i, 1);
         this.perBay.set(it.bay, Math.max(0, (this.perBay.get(it.bay) ?? 1) - 1));

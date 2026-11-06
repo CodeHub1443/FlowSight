@@ -23,5 +23,19 @@
       "med": "মাঝারি",
       "low": "নিম্ন"
     }
+  },
+  "actor": {
+    "captain": "ক্যাপ্টেন",
+    "worker": "শ্রমিক",
+    "person": "ব্যক্তি",
+    "forklift": "ফর্কলিফট",
+    "phase": {
+      "ARRIVED": "পৌঁছেছে",
+      "DOCKED": "ডকে",
+      "LOADING": "লোডিং",
+      "UNLOADING": "আনলোডিং",
+      "FINISHED": "শেষ",
+      "DEPARTED": "রওনা দিয়েছে"
+    }
   }
 }

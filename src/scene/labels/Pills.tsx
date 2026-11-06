@@ -1,5 +1,5 @@
 import { useFrame, useThree } from '@react-three/fiber';
-import { BriefcaseConveyorBelt, DoorOpen } from 'lucide-react';
+import { BriefcaseConveyorBelt, Crosshair, DoorOpen } from 'lucide-react';
 import { memo, useMemo, useRef, type CSSProperties, type RefObject } from 'react';
 import { Vector3 } from 'three';
 import { hexAlpha, LIGHT_TOKENS, type ScenePalette, type SceneTheme } from '../materials';
@@ -26,6 +26,8 @@ export type Anchors = ReadonlyMap<string, readonly [number, number, number]>;
 export type PillElements = Map<string, HTMLElement>;
 
 export const SELECTION_KEY = '__selection';
+/** The pill that follows a selected truck, person or forklift (interaction/ActorInteraction.tsx positions and fills it). */
+export const ACTOR_KEY = '__actor';
 
 function styles(p: ScenePalette, dark: boolean) {
   const pill: CSSProperties = {
@@ -138,6 +140,15 @@ export const PillLayer = memo(function PillLayer({
           </span>
           <span style={{ fontWeight: 600 }}>{selection?.title ?? ''}</span>
           <span style={s.filledSub}>{selection?.sub ?? ''}</span>
+        </div>
+      </div>
+      {/* text and position are written by ActorInteraction every frame, through the ref: React never owns them */}
+      <div ref={register(ACTOR_KEY)} style={WRAP} data-testid="scene-actor-pill">
+        <div style={s.filled}>
+          <span style={s.filledTile}>
+            <Crosshair size={12} strokeWidth={1.75} aria-hidden />
+          </span>
+          <span data-actor-pill-text="" style={{ fontWeight: 600 }} />
         </div>
       </div>
     </div>

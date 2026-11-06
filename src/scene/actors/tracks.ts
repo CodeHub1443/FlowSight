@@ -49,6 +49,9 @@ export interface ActorTrack {
   pushVY: number;
   /** The next update places the figure at once: it is new, or was just teleported. */
   snap: boolean;
+  /** Visual-only offset that keeps crew figures apart (separation.ts): added where the figure is drawn and picked. */
+  sepX: number;
+  sepY: number;
 }
 
 /** One axis of a critically damped follow: no jump when the target jumps, however far. Leaves its velocity in `follow`. */
@@ -128,6 +131,8 @@ export class ActorTracks {
           pushVX: 0,
           pushVY: 0,
           snap: true,
+          sepX: 0,
+          sepY: 0,
         });
         continue;
       }

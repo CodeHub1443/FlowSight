@@ -3,58 +3,32 @@ import { Suspense, useEffect, useLayoutEffect, useMemo, useRef, type RefObject }
 import { Matrix4, Vector3 } from 'three';
 import { ModelBoundary } from '../assets/GlbOrProcedural';
 import { useModel } from '../assets/loader';
-import { BAND_HEIGHT } from '../building/bandHeight';
+import { boomExtendM, collectBayFacts, type BayAnimRegistry, type BayFacts } from '../bay/bayAnim';
+import { contactShadows } from '../contactShadowController';
+import type { GlyphBoard } from '../glyphs/cameraGlyph';
+import { ActorInteraction } from '../interaction/ActorInteraction';
+import type { ActorSelection, SceneSelection } from '../interaction/types';
+import type { ActorLabelStrings } from '../labels/actorLabel';
+import type { PillElements } from '../labels/Pills';
 import { QUALITY_DEBUG } from '../qualityProbe';
 import { useSceneEnv } from '../sceneEnv';
 import type { SiteLayout } from '../site/layout';
 import { bayToSite, headingToRotationY, siteToBay } from '../site/transforms';
 import { actorProbe } from './actorProbe';
-import { ActorRig, bayMaps, maxTrucks, type GlbPool } from './actorRig';
-import { BeltItems, beltTrip, MIN_ITEM_GAP_M } from './beltItems';
+import { ActorRig, type GlbPool } from './actorRig';
+import { beltTrip, MIN_ITEM_GAP_M } from './beltItems';
 import type { ActorFeed } from './feed';
-import { ObstacleField } from './obstacles';
-import { clearOfWall, plateLines, plateShown, type WallView } from './plateView';
+import { clearOfWall, plateLines, plateShown } from './plateView';
 import { ACTOR_LAYER, ACTOR_SOLID_MATERIAL, InstancePool, retain } from './pool';
 import { PLATE_BASE_H_PX, PLATE_BASE_PX, type PlateElements } from './TruckPlates';
-import { carriesPallet, showsPpeRing, ActorTracks, MAX_FORKLIFTS_PER_BAY } from './tracks';
+import { carriesPallet, showsPpeRing, MAX_FORKLIFTS_PER_BAY } from './tracks';
 import { PLATE } from './truckParts';
-import { truckTargets, TruckSim } from './truckSim';
+import { truckTargets } from './truckSim';
+import { createWorld } from './world';
 
 // People, forklifts, trucks and items on belts (docs/04 sections 3 and 4). Everything between live messages happens in
 // the one useFrame below: positions and headings interpolate into instance buffers, with no React state at all (docs/02
 // section 6 rules 1 and 2). Messages arrive through `feed`, at most at the store's 4 Hz; case ticks per item.
-
-interface World {
-  tracks: ActorTracks;
-  trucks: TruckSim;
-  items: BeltItems;
-  obstacles: ObstacleField;
-  /** Dock wall per face, for the plates. */
-  walls: Map<string, WallView>;
-}
-
-function createWorld(layout: SiteLayout): World {
-  const { bay, face } = bayMaps(layout);
-  const walls = new Map<string, WallView>();
-  for (const f of layout.faces) {
-    walls.set(f.face, {
-      doors: f.bays.map((b) => b.localX),
-      doorWidth: f.door.width,
-      doorTop: layout.floorLevel + f.door.height,
-      wallTop: layout.floorLevel + f.door.height + BAND_HEIGHT,
-    });
-  }
-  const trucks = new TruckSim(
-    {
-      doorX: (id) => bay.get(id)?.localX ?? null,
-      slot: (id, n) => face.get(id)?.apron.slots[n - 1] ?? null,
-      apronDepth: layout.view.apronDepth,
-    },
-    maxTrucks(layout),
-  );
-  const obstacles = new ObstacleField(layout);
-  return { tracks: new ActorTracks(obstacles), trucks, items: new BeltItems(), obstacles, walls };
-}
 
 /** The GLB parts of the forklift and its pallet, one pool per part, with the forklift's paint from docs/04 section 4. */
 function ForkliftModels({ rig, shadows }: { rig: ActorRig; shadows: boolean }) {
@@ -110,12 +84,28 @@ export function ActorsLayer({
   feed,
   showPlates,
   plates,
+  anim,
+  board,
+  selected,
+  onSelect,
+  pills,
+  labelStrings,
 }: {
   layout: SiteLayout;
   feed: ActorFeed;
   showPlates: boolean;
   /** The DOM plate elements (TruckPlates), by plate slot. */
   plates: RefObject<PlateElements>;
+  /** Boom, belt surface and shutter of each bay: stepped here, drawn by the bays (bay/bayAnim.ts). */
+  anim: BayAnimRegistry;
+  /** Camera glyph states, for picking the glyphs that show. */
+  board: GlyphBoard | null;
+  /** The selected truck, person or forklift (marker and pill). */
+  selected: ActorSelection | null;
+  onSelect?: (selection: SceneSelection) => void;
+  /** The DOM pill elements (labels/Pills), for the selected actor's pill. */
+  pills: RefObject<PillElements>;
+  labelStrings: ActorLabelStrings;
 }) {
   const { palette, quality, shadows, tier } = useSceneEnv();
   const camera = useThree((s) => s.camera);
@@ -173,6 +163,19 @@ export function ActorsLayer({
     rig: null,
   });
   const v = useMemo(() => ({ a: new Vector3(), b: new Vector3(), c: new Vector3() }), []);
+  const facts = useMemo(
+    () =>
+      new Map<string, BayFacts>(
+        layout.bays.map((b) => [b.id, { boomOut: false, shutterOpen: false }]),
+      ),
+    [layout],
+  );
+  const doorX = (bay: string) => rig.maps.bay.get(bay)?.localX ?? null;
+  const extendOf = (bay: string): number => {
+    const b = rig.maps.bay.get(bay)?.conveyor;
+    const a = anim.get(bay);
+    return b && a ? boomExtendM(b.fixedFrom, a.reach, a.boom) : 0;
+  };
 
   useFrame(() => {
     const now = performance.now();
@@ -184,14 +187,26 @@ export function ActorsLayer({
 
     tracks.update(now, dt, isAnimated);
     const moved = trucks.update(now, dt, isAnimated);
+
+    // boom, belt surface and shutters follow the trucks and the belt state; the bays draw them from `anim`
+    collectBayFacts(trucks.trucks.values(), doorX, facts);
+    for (const [id, a] of anim.entries()) {
+      const f = facts.get(id);
+      if (!f) continue;
+      // baked contact shadows are refreshed once a bay's boom or shutter has come to rest
+      if (a.step(f, feed.getBay(id)?.belt, dt, isAnimated).settled) contactShadows.invalidate();
+    }
+
     if (isAnimated) {
       items.update(
         dt,
         (bay) => {
           const b = rig.maps.bay.get(bay)?.conveyor;
-          return b ? beltTrip(b) : 1;
+          return b ? beltTrip(b, extendOf(bay)) : 1;
         },
         (bay) => feed.getBay(bay)?.belt.status,
+        // the belt surface scrolls at the same speed (bay/bayAnim.ts scrollVelocity)
+        (bay) => feed.getBay(bay)?.belt.rateCpm,
       );
     }
 
@@ -199,10 +214,12 @@ export function ActorsLayer({
     if (isAnimated || c.trackSeq !== tracks.seq || c.rig !== rig) {
       c.trackSeq = tracks.seq;
       c.rig = rig;
+      // crew figures reported on top of each other are drawn apart (visual only)
+      world.crew.apply(tracks.tracks, (bay, x, y) => world.obstacles.isInside(bay, x, y, 0));
       rig.beginActors();
       for (const t of tracks.tracks.values()) rig.drawTrack(t, now / 1000);
       // items after the people: a flagged item's pin shares their pools
-      if (isAnimated) rig.drawItems(items.items);
+      if (isAnimated) rig.drawItems(items.items, extendOf);
       rig.endActors();
     }
     if (rig.trucksStale(trucks.seq) || moved) rig.drawTrucks(trucks.trucks.values());
@@ -328,6 +345,17 @@ export function ActorsLayer({
       {rig.pools.map((p) => (
         <primitive key={p.mesh.uuid} object={p.mesh} />
       ))}
+      <ActorInteraction
+        layout={layout}
+        world={world}
+        maps={rig.maps}
+        feed={feed}
+        board={board}
+        selected={selected}
+        onSelect={onSelect}
+        pills={pills}
+        strings={labelStrings}
+      />
       {tier !== 'low' && (
         <ModelBoundary fallback={null}>
           <Suspense fallback={null}>

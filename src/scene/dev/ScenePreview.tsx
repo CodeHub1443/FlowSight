@@ -98,7 +98,9 @@ export function ScenePreview() {
         safeArea={safeArea}
         toneMapping={toneMapping === 'default' ? undefined : toneMapping}
         selectedBayId={selected}
-        onSelect={(s) => setSelected(s.bayId)}
+        onSelect={(s) => {
+          if (s.kind === 'bay') setSelected(s.bayId);
+        }}
         doorOpen={(id) => id !== 'B06'}
         actors={demoActors}
         pins={

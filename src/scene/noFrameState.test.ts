@@ -51,15 +51,26 @@ describe('no React state per frame', () => {
   //  - EventPin.tsx: the 1.2 s bob of an event pin (docs/06 D9), ref-driven.
   //  - AutoQuality.tsx: feeds the frame time to TierGovernor (a ref); reports to React only on a tier step.
   //  - ActorsLayer.tsx: interpolates people, forklifts, trucks and belt items into instance buffers (docs/02 section 6
-  //    rule 2) and places the truck plates; all refs and buffers, no React state.
-  it('limits useFrame to the camera rig, motion, on-demand contact shadows, pills, event pins, auto quality and actors', () => {
+  //    rule 2) and places the truck plates; all refs and buffers, no React state. It also steps the boom, belt surface and
+  //    shutter state of each bay (bay/bayAnim.ts) and the crew separation (Task 22B).
+  //  - DynamicBoxes.tsx: rewrites the matrices of a few instanced boxes (boom, belt ticks, shutter) when a stamp has
+  //    changed; one number comparison per frame at rest (Task 22B).
+  //  - Bay.tsx: moves the boom-tip roller group when the boom stamp has changed (Task 22B).
+  //  - CameraGlyphs.tsx: repaints the glyphs when the board changes and pulses the offline ones, off under
+  //    prefers-reduced-motion (Task 22B).
+  //  - ActorInteraction.tsx: follows the hovered and selected actor with a ring and a pill through refs (Task 22B).
+  it('limits useFrame to the camera rig, motion, on-demand contact shadows, pills, event pins, auto quality, actors and bay animation', () => {
     expect(withFrame.map(([p]) => base(p)).sort()).toEqual(
       [
+        'ActorInteraction.tsx',
         'ActorsLayer.tsx',
         'Appear.tsx',
         'AutoQuality.tsx',
+        'Bay.tsx',
+        'CameraGlyphs.tsx',
         'CameraRig.tsx',
         'ContactShadowLayer.tsx',
+        'DynamicBoxes.tsx',
         'EventPin.tsx',
         'Pills.tsx',
       ].sort(),

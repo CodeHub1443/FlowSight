@@ -1,6 +1,5 @@
 import { useLayoutEffect, useMemo, useRef } from 'react';
 import {
-  type BufferGeometry,
   Color,
   Euler,
   type InstancedBufferAttribute,
@@ -15,8 +14,6 @@ import {
   BOX_DEPTH_MATERIAL,
   BOX_MATERIAL,
   CYL_MATERIAL,
-  disposeInstancedGeometry,
-  instancedGeometry,
   ROUND,
   UNIT_PLANE,
   unitBox,
@@ -27,12 +24,9 @@ import type { BoxItem, CylItem, MarkItem } from './items';
 import { emissiveOf, finishOf, type PaletteKey } from './materials';
 import { useSceneEnv } from './sceneEnv';
 import { plateTexture } from './labels/textures';
+import { parentMatrix, useInstanceGeometry, type ItemFrame } from './instancing';
 
-/** Parent frame of a set of items: a pivot (bay frame) and a pitch about the x axis (e.g. the sloping conveyor). */
-export interface ItemFrame {
-  at: V3;
-  pitch: number;
-}
+export type { ItemFrame } from './instancing';
 
 interface InstancesProps {
   /** `bay`: items in the bay/face frame. `three`: items already in three.js axes (x, y up, z). */
@@ -43,28 +37,11 @@ interface InstancesProps {
 }
 
 const _m = new Matrix4();
-const _parent = new Matrix4();
 const _q = new Quaternion();
 const _e = new Euler();
 const _s = new Vector3();
 const _p = new Vector3();
 const _c = new Color();
-
-function parentMatrix(transform: ItemFrame | undefined): Matrix4 | null {
-  if (!transform) return null;
-  const at = bayToThree(transform.at);
-  return _parent.compose(
-    _p.set(at[0], at[1], at[2]),
-    _q.setFromEuler(_e.set(transform.pitch, 0, 0)),
-    _s.set(1, 1, 1),
-  );
-}
-
-function useInstanceGeometry(base: BufferGeometry, count: number) {
-  const geometry = useMemo(() => instancedGeometry(base, count), [base, count]);
-  useLayoutEffect(() => () => disposeInstancedGeometry(geometry, base), [geometry, base]);
-  return geometry;
-}
 
 interface BoxGroupProps extends InstancesProps {
   items: readonly BoxItem[];
