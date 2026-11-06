@@ -267,6 +267,17 @@
     },
     "forklift": {
       "state": "State"
+    },
+    "eventActions": {
+      "openInEvents": "Open in Events",
+      "ack": "Acknowledge",
+      "close": "Close event",
+      "note": "Add note",
+      "closeLabel": "Closing note (at least 3 characters)",
+      "cancel": "Cancel",
+      "readOnly": "View only.",
+      "notPermitted": "Not permitted.",
+      "failed": "Not saved. Change undone."
     }
   },
   "scene": {
@@ -291,5 +302,10 @@
       "fast": "Shift + arrow keys: move faster",
       "zoom": "+ and −: zoom"
     }
+  },
+  "notify": {
+    "showOnMap": "Show on map",
+    "open": "Open",
+    "productIssues": "{{n}} product issues"
   }
 }

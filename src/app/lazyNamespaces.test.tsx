@@ -28,7 +28,7 @@ describe('lazy i18n namespaces', () => {
   it('events is registered, for both languages, once its page has loaded', async () => {
     renderAt('/events');
     const page = await screen.findByTestId('events-page', {}, { timeout: LAZY_CHUNK_MS });
-    expect(page).toHaveTextContent(enEvents.page.stub);
+    expect(page).toHaveTextContent(enEvents.page.title);
     expect(i18n.hasResourceBundle('en', 'events')).toBe(true);
     expect(i18n.hasResourceBundle('bn', 'events')).toBe(true);
   });
@@ -37,10 +37,10 @@ describe('lazy i18n namespaces', () => {
     renderAt('/events');
     const page = await screen.findByTestId('events-page', {}, { timeout: LAZY_CHUNK_MS });
     await i18n.changeLanguage('bn');
-    expect(await screen.findByText(bnEvents.page.stub)).toBeInTheDocument();
-    expect(page).toHaveTextContent(bnEvents.page.stub);
+    expect(await screen.findByText(bnEvents.page.title)).toBeInTheDocument();
+    expect(page).toHaveTextContent(bnEvents.page.title);
     await i18n.changeLanguage('en');
-    expect(await screen.findByText(enEvents.page.stub)).toBeInTheDocument();
+    expect(await screen.findByText(enEvents.page.title)).toBeInTheDocument();
   });
 
   it('reports registers with its page', async () => {

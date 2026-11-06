@@ -2,6 +2,7 @@ import { Link } from 'react-router';
 import { ClientLogo, ProductMark, ProductName } from '@/components/common';
 import { AlertBell } from './AlertBell';
 import { GlobalSearch } from './GlobalSearch';
+import { LiveNotifications } from './LiveNotifications';
 import { LanguageToggle } from './LanguageToggle';
 import { ConnDot, ModeBadge } from './ModeBadge';
 import { SiteSwitcher } from './SiteSwitcher';
@@ -26,6 +27,7 @@ export function TopBar() {
         <SiteSwitcher />
         <ModeBadge />
         <ConnDot />
+        <LiveNotifications />
         <AlertBell />
         <LanguageToggle />
         <ThemeToggle />

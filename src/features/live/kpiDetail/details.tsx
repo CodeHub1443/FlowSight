@@ -1,6 +1,7 @@
 import { useMemo, type ReactNode } from 'react';
 import { ChevronRight } from 'lucide-react';
 import { Popover } from 'radix-ui';
+import { Link } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import {
   MaybeValue,
@@ -11,6 +12,7 @@ import {
   type Tone,
 } from '@/components/common';
 import type { Severity } from '@/domain';
+import { defaultEventFilters, eventsPath } from '@/features/events/urlState';
 import { cn } from '@/lib/utils';
 import { useBays, useOpenAlerts, useSiteKpi } from '@/stores';
 import { bayLabel } from '../siteInfo';
@@ -26,7 +28,6 @@ import {
   type AlertGroupRow,
 } from './selectors';
 import { SEGMENT_FILL_CLASS, SEGMENT_TONE, SEGMENT_TRACK_CLASS } from './segmentTone';
-import { openAlertsTrayForGroup } from './trayFilter';
 
 // Popover bodies for the KPI chips (Task 19 spec 5A). A separate chunk, loaded on first use (React.lazy in
 // KpiChips). Every value comes from the stores through the 19.0 selectors; nothing here is computed from a sample.
@@ -434,13 +435,12 @@ function GroupRow({ row }: { row: AlertGroupRow }) {
   return (
     <li>
       <Popover.Close asChild>
-        <button
-          type="button"
+        <Link
+          to={eventsPath({ ...defaultEventFilters(), group: row.id })}
           data-testid={`kpidetail-group-${row.id}`}
           data-group={row.id}
           data-total={row.total}
           aria-label={t('alerts.openGroup', { group: label })}
-          onClick={() => openAlertsTrayForGroup(row.id)}
           className="soft-transition hover:bg-row-hover focus-visible:ring-ring/50 bn-leading grid min-h-10 w-full grid-cols-[minmax(0,1fr)_auto_14px] items-center gap-x-2 rounded-[12px] px-2 py-1.5 text-left text-[13px] leading-5 focus-visible:ring-[3px] focus-visible:outline-none"
         >
           <span className="text-ink-900 min-w-0 truncate font-medium">{label}</span>
@@ -467,7 +467,7 @@ function GroupRow({ row }: { row: AlertGroupRow }) {
             strokeWidth={1.75}
             aria-hidden
           />
-        </button>
+        </Link>
       </Popover.Close>
     </li>
   );
