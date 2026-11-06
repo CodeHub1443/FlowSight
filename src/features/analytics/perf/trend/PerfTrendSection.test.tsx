@@ -198,6 +198,55 @@ describe('W4 throughput trend', () => {
     renderSection('day');
     expect(screen.getByTestId('trend-total-previous')).toHaveTextContent('0 cartons');
     expect(screen.queryByTestId('trend-delta')).not.toBeInTheDocument();
+    expect(screen.getByTestId('trend-no-previous')).toHaveTextContent(
+      en.throughput.caption.noPrevious,
+    );
+  });
+
+  it('shows "No previous-period data yet" instead of a difference when the previous period is unknown', async () => {
+    const prevStart = DAY_START - D;
+    const prev = mocks.throughput.get('previous') as QueryState<{
+      window: PeriodWindow;
+      response: { series: Series[] };
+    }>;
+    const nulls: Series = {
+      key: 'B01.OUT',
+      label: { en: 'B01.OUT', bn: 'B01.OUT' },
+      points: [0, 1, 2, 3].map((h) => ({ t: new Date(prevStart + h * H).toISOString(), v: null })),
+    };
+    mocks.throughput.set('previous', {
+      ...prev,
+      data: { window: prev.data?.window as PeriodWindow, response: { series: [nulls] } },
+    });
+    renderSection('day');
+    expect(chartOption().series[0]?.data.slice(0, 4)).toEqual([null, null, null, null]);
+    expect(screen.queryByTestId('trend-delta')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('trend-total-previous')).not.toBeInTheDocument();
+    expect(screen.getByTestId('trend-no-previous')).toHaveTextContent(
+      en.throughput.caption.noPrevious,
+    );
+    await i18n.changeLanguage('bn');
+    renderSection('day');
+    expect(screen.getAllByText(bn.throughput.caption.noPrevious).length).toBeGreaterThan(0);
+  });
+
+  it('the hour in progress is a dashed, hollow partial point, not a full bucket', () => {
+    const cur = mocks.throughput.get('current') as QueryState<{
+      window: PeriodWindow;
+      response: unknown;
+    }>;
+    mocks.throughput.set('current', {
+      ...cur,
+      data: {
+        window: win(DAY_START, DAY_START + 2.5 * H),
+        response: (cur.data as { response: unknown }).response,
+      },
+    });
+    renderSection('day');
+    const series = chartOption().series as unknown as { name: string; data: unknown[] }[];
+    expect(series).toHaveLength(3);
+    expect(series[1]?.data.slice(0, 3)).toEqual([5, 6, null]);
+    expect(series[2]?.data[2]).toMatchObject({ value: 7, symbol: 'circle' });
   });
 
   it('the bay filter re-cuts both lines without a new request', async () => {
@@ -242,7 +291,10 @@ describe('W4 throughput trend', () => {
     );
     renderSection('week');
     const [, current] = chartOption().series as [LineSeries, LineSeries];
-    expect(current.data).toEqual([4, 6, 0, 0, 0, 0, 1]);
+    // the day in progress (the last) is not a full bucket: it is the dashed, hollow partial point
+    expect(current.data).toEqual([4, 6, 0, 0, 0, 0, null]);
+    const partial = (chartOption().series as unknown as { data: unknown[] }[])[2];
+    expect(partial?.data[6]).toMatchObject({ value: 1, symbol: 'circle' });
     expect(chartOption().xAxis.data).toHaveLength(7);
     expect(chartOption().xAxis.data[0]).toBe('Sun 18 Oct');
     expect(screen.getByText(en.throughput.title.day)).toBeInTheDocument();

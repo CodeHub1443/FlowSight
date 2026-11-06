@@ -42,6 +42,33 @@ export function hourlyTotals(
   return totals;
 }
 
+/**
+ * Hours of the period whose every point is null (no recorded data, as the simulator answers before its history starts).
+ * An hour with no point at all is not unknown: it counts as 0 where `hourlyTotals` has nothing for it.
+ */
+export function unknownHours(
+  series: readonly Series[],
+  window: PeriodWindow,
+  bay?: string | null,
+): Set<number> {
+  const seen = new Set<number>();
+  const known = new Set<number>();
+  const length = periodLengthMs(window);
+  for (const s of series) {
+    if (bay && bayOfSeriesKey(s.key) !== bay) continue;
+    for (const p of s.points) {
+      const t = Date.parse(p.t);
+      if (Number.isNaN(t)) continue;
+      const offset = offsetInPeriod(window, t);
+      if (offset < 0 || offset >= length) continue;
+      const hour = Math.floor(offset / HOUR_MS);
+      seen.add(hour);
+      if (p.v !== null && Number.isFinite(p.v)) known.add(hour);
+    }
+  }
+  return new Set([...seen].filter((h) => !known.has(h)));
+}
+
 /** Sum the hourly totals into slots of `unit` (identity for hours; per business day for the week). */
 function slotTotals(hourly: ReadonlyMap<number, number>, unit: TrendUnit, slots: number): number[] {
   const perSlot = unitMs(unit) / HOUR_MS;
@@ -59,17 +86,29 @@ export type Trend = {
   slotStarts: number[];
   /** This period per slot; `null` for slots that have not started yet (the line stops at "now"). */
   current: (number | null)[];
-  /** The previous period per slot, aligned by offset into the period. */
-  previous: number[];
+  /** The previous period per slot, aligned by offset into the period; `null` where it has no recorded data (a gap). */
+  previous: (number | null)[];
   /** Slots that have started (a slot in progress counts). 0 when the period has not begun. */
   elapsedSlots: number;
+  /** Index of the slot still in progress (drawn hollow, joined by a dashed segment); null when every started slot is complete. */
+  partialIndex: number | null;
+  /** The moment the partial slot is counted until (epoch ms); null without a partial slot. */
+  partialUntil: number | null;
   /** Cartons of this period so far. */
   currentTotal: number;
-  /** Cartons of the previous period up to the same point in time (the hour in progress pro-rated). */
-  previousToDate: number;
-  /** The whole previous period. */
+  /**
+   * Cartons of the previous period up to the same point in time (the hour in progress pro-rated); null when any of its
+   * buckets up to that point has no recorded data.
+   */
+  previousToDate: number | null;
+  /** True when every previous-period bucket up to the same point in time has recorded data. */
+  previousKnown: boolean;
+  /** The whole previous period (buckets without data count as nothing). */
   previousFull: number;
-  /** (current - previous at the same point) / previous at the same point, in percent; null when that previous total is 0. */
+  /**
+   * (current - previous at the same point) / previous at the same point, in percent. Null unless the previous period is
+   * known up to that point and its total there is above 0: the caption then says there is no previous-period data yet.
+   */
   deltaPct: number | null;
 };
 
@@ -93,20 +132,29 @@ export function buildTrend(args: {
 
   const curHourly = hourlyTotals(current.series, current.window, bay);
   const prevHourly = hourlyTotals(previous.series, previous.window, bay);
+  const prevUnknown = unknownHours(previous.series, previous.window, bay);
   const cur = slotTotals(curHourly, unit, slots);
-  const prev = slotTotals(prevHourly, unit, slots);
+  const prevTotals = slotTotals(prevHourly, unit, slots);
+  const perSlot = step / HOUR_MS;
+  const prev = prevTotals.map((v, i) => {
+    for (let h = i * perSlot; h < (i + 1) * perSlot; h++) if (prevUnknown.has(h)) return null;
+    return v;
+  });
 
   const currentLine = cur.map((v, i) => (i < elapsedSlots ? v : null));
   const currentTotal = cur.reduce((a, v, i) => (i < elapsedSlots ? a + v : a), 0);
-  const previousFull = prev.reduce((a, v) => a + v, 0);
+  const previousFull = prev.reduce<number>((a, v) => a + (v ?? 0), 0);
+  const partial = elapsedSlots > 0 && elapsed < Math.min(length, elapsedSlots * step);
 
   // the previous period "at the same point in time", from the hourly buckets so the week is not rounded to whole days
-  let previousToDate = 0;
+  let sumToDate = 0;
   for (const [hour, v] of prevHourly) {
     const hourStart = hour * HOUR_MS;
     if (hourStart >= elapsed) continue;
-    previousToDate += v * Math.min(1, (elapsed - hourStart) / HOUR_MS);
+    sumToDate += v * Math.min(1, (elapsed - hourStart) / HOUR_MS);
   }
+  const previousKnown = ![...prevUnknown].some((h) => h * HOUR_MS < elapsed);
+  const previousToDate = previousKnown ? sumToDate : null;
 
   return {
     unit,
@@ -114,10 +162,16 @@ export function buildTrend(args: {
     current: currentLine,
     previous: prev,
     elapsedSlots,
+    partialIndex: partial ? elapsedSlots - 1 : null,
+    partialUntil: partial ? current.window.to : null,
     currentTotal,
     previousToDate,
+    previousKnown,
     previousFull,
-    deltaPct: previousToDate > 0 ? ((currentTotal - previousToDate) / previousToDate) * 100 : null,
+    deltaPct:
+      previousToDate !== null && previousToDate > 0
+        ? ((currentTotal - previousToDate) / previousToDate) * 100
+        : null,
   };
 }
 

@@ -1,4 +1,3 @@
-import type { EChartsOption } from 'echarts';
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useThroughput } from '@/data/api';
@@ -12,6 +11,7 @@ import { WidgetBody, WidgetCard } from '../shared';
 import { CONFIGURED_BAY_IDS } from './bays';
 import { formatDayLabel } from './dayLabel';
 import { buildTrend, judgeTrend, type Trend } from './trendSelectors';
+import { trendOption } from './trendOption';
 
 // W4: cartons per hour (per day for the week) through the period, this period against the previous one of the same
 // length (docs/tasks/t20-spec.md sections 1 and 4). Hourly data comes from /analytics/throughput, called twice.
@@ -60,53 +60,14 @@ export function ThroughputTrend({ range }: { range: PerfRange }) {
     const labelOf = (ms: number): string =>
       unitKey === 'day' ? formatDayLabel(ms, fmt.lang, fmt.digits) : fmt.clock(ms);
     const labels = trend.slotStarts.map(labelOf);
-    const option: EChartsOption = {
-      grid: { left: 4, right: 16, top: 36, bottom: 4, containLabel: true },
-      legend: { top: 0, left: 0, icon: 'roundRect', data: [currentName, previousName] },
-      // values with their unit, like the caption and W2's tooltip ("—" for an hour that has not started)
-      tooltip: {
-        trigger: 'axis',
-        valueFormatter: (v) =>
-          typeof v === 'number' ? t('throughput.cartons', { n: fmt.num(v) }) : '—',
-      },
-      xAxis: {
-        type: 'category',
-        data: labels,
-        boundaryGap: unitKey === 'day',
-        axisLabel: { hideOverlap: true },
-      },
-      yAxis: { type: 'value', min: 0 },
-      series: [
-        {
-          name: previousName,
-          type: 'line',
-          data: trend.previous,
-          showSymbol: unitKey === 'day',
-          symbolSize: 6,
-          lineStyle: { type: 'dashed', width: 2, color: tokens.ink400 },
-          itemStyle: { color: tokens.ink400 },
-          z: 1,
-        },
-        {
-          name: currentName,
-          type: 'line',
-          data: trend.current,
-          connectNulls: false,
-          showSymbol: unitKey === 'day',
-          symbolSize: 7,
-          lineStyle: { width: 3, color: tokens.uiBlue },
-          itemStyle: { color: tokens.uiBlue },
-          z: 2,
-        },
-      ],
-    };
+    const option = trendOption({ trend, labels, currentName, previousName, fmt, tokens, t });
     const table = {
       caption: title,
       columns: [t(`throughput.table.${unitKey}`), currentName, previousName],
       rows: trend.slotStarts.map((ms, i) => [
         labelOf(ms),
         trend.current[i] === null ? null : fmt.num(trend.current[i] ?? 0),
-        fmt.num(trend.previous[i] ?? 0),
+        trend.previous[i] === null ? null : fmt.num(trend.previous[i] ?? 0),
       ]),
     };
     return { option, table };
@@ -163,16 +124,20 @@ export function ThroughputTrend({ range }: { range: PerfRange }) {
                   value: t('throughput.cartons', { n: fmt.num(trend.currentTotal) }),
                 })}
               </span>
-              <span data-testid="trend-total-previous">
-                {t('throughput.caption.previous', {
-                  label: previousName,
-                  value: t('throughput.cartons', { n: fmt.num(trend.previousToDate) }),
-                })}
-              </span>
-              {trend.deltaPct !== null && (
+              {trend.previousToDate !== null && (
+                <span data-testid="trend-total-previous">
+                  {t('throughput.caption.previous', {
+                    label: previousName,
+                    value: t('throughput.cartons', { n: fmt.num(trend.previousToDate) }),
+                  })}
+                </span>
+              )}
+              {trend.deltaPct !== null ? (
                 <span data-testid="trend-delta" className="text-ink-900 font-medium">
                   {t('throughput.caption.delta', { pct: fmt.pct(trend.deltaPct, true) })}
                 </span>
+              ) : (
+                <span data-testid="trend-no-previous">{t('throughput.caption.noPrevious')}</span>
               )}
             </p>
           </>

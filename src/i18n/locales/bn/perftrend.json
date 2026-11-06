@@ -25,10 +25,12 @@
       "day": "দিন"
     },
     "cartons": "{{n}}টি কার্টন",
+    "soFar": "{{value}} এখন পর্যন্ত ({{time}} পর্যন্ত)",
     "caption": {
       "current": "{{label}}: {{value}}",
       "previous": "{{label}}, একই সময় পর্যন্ত: {{value}}",
-      "delta": "আগের সময়ের তুলনায় {{pct}}"
+      "delta": "আগের সময়ের তুলনায় {{pct}}",
+      "noPrevious": "আগের সময়ের তথ্য এখনও নেই"
     },
     "insufficient": "এই সময়কাল মাত্র শুরু হয়েছে।"
   },

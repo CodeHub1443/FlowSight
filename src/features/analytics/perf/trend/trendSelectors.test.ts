@@ -266,7 +266,10 @@ describe('judgeTrend', () => {
     previous: [],
     elapsedSlots: 1,
     currentTotal: 0,
+    partialIndex: null,
+    partialUntil: null,
     previousToDate: 0,
+    previousKnown: true,
     previousFull: 0,
     deltaPct: null,
   };

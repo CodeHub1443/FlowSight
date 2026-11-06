@@ -25,10 +25,12 @@
       "day": "Day"
     },
     "cartons": "{{n}} cartons",
+    "soFar": "{{value}} so far (until {{time}})",
     "caption": {
       "current": "{{label}}: {{value}}",
       "previous": "{{label}} by the same time: {{value}}",
-      "delta": "{{pct}} compared with the previous period"
+      "delta": "{{pct}} compared with the previous period",
+      "noPrevious": "No previous-period data yet"
     },
     "insufficient": "This period has only just started."
   },

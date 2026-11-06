@@ -5,13 +5,34 @@ import { SEGMENT_TONE } from '@/features/live/kpiDetail/segmentTone';
 import type { Fmt } from '@/features/live/useFmt';
 import type { ChartTokens } from '../../chart/theme';
 import { axisMaxWith, siteMedianLine } from '../selectors';
-import { niceCeil, phaseTotal, workDirection } from './rows';
+import { phaseTotal, workDirection } from './rows';
 
 // The ECharts option of W2 (pure; colours from useChartTokens(), digits and labels from useFmt()).
 
 const BAR_MAX_WIDTH = 18;
 /** Room right of the longest bar for its occupancy label (px). */
 const END_LABEL_ROOM = 64;
+
+/** The most the value axis may extend past the longest bar or the median line (fraction). */
+export const AXIS_HEADROOM = 0.1;
+
+/**
+ * The value axis maximum: the smallest multiple of a round step (1, 2 or 5 x 10^k, the roundest first) that holds `v` with
+ * at most `AXIS_HEADROOM` to spare. 0 when there is nothing to draw.
+ */
+export function headroomMax(v: number): number {
+  if (!Number.isFinite(v) || v <= 0) return 0;
+  const limit = v * (1 + AXIS_HEADROOM) + 1e-9;
+  const top = Math.floor(Math.log10(v));
+  for (let k = top; k >= top - 3; k--) {
+    for (const m of [5, 2, 1]) {
+      const step = m * 10 ** k;
+      const max = Math.ceil(v / step - 1e-9) * step;
+      if (max <= limit) return Number(max.toPrecision(12));
+    }
+  }
+  return v;
+}
 
 export type T = (key: string, opts?: Record<string, unknown>) => string;
 
@@ -38,7 +59,7 @@ export function timeSplitOption({
 }): EChartsOption {
   const categories = rows.map((r) => bayLabel(r.bay, fmt.lang));
   const totals = rows.map((r) => Math.max(phaseTotal(r) ?? 0, r.mean.occupancyMin ?? 0));
-  const max = niceCeil(axisMaxWith(totals, median));
+  const max = headroomMax(axisMaxWith(totals, median));
   const shared = siteMedianLine(median, {
     label: t('w2.medianLine', { label: t('analytics:siteMedian'), value: fmt.durHM(median) }),
     color: tokens.ink600,
@@ -99,7 +120,10 @@ export function timeSplitOption({
       type: 'value',
       max: max > 0 ? max : undefined,
       name: t('w2.axis'),
+      // the unit sits at the end of the axis, level with the axis line (not below the tick labels)
+      nameLocation: 'end',
       nameGap: 8,
+      nameTextStyle: { align: 'left', verticalAlign: 'middle' },
       splitLine: { lineStyle: { type: 'dashed' } },
     },
     yAxis: {

@@ -480,6 +480,8 @@ frontend shows the Performance widgets' error state.
 |---|---|---|
 | `GET /analytics/bay-performance?site&from&to` | **new** endpoint, returns `BayPerformance` | Section 4.4: fair per-bay comparison (index vs comparable trucks), phase means, site medians, workload and crew context, detentions. |
 
+Analytics series points before the first recorded data are null, not 0.
+
 Backend work (wh-api / state-engine) to implement rev 1.2: serve the endpoint from the `visits` table (plus the crew count while
 loading/unloading per visit), with definitions 1 to 14 of section 4.4 exactly, `minIncluded` = 8; one row per configured bay in bay order;
 permitted for every role except `KIOSK`. Bay level only: no track IDs, employee IDs or names.
