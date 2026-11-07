@@ -1023,6 +1023,8 @@ Binding spec: `docs/tasks/t22-spec.md`. No AI or language-model feature in this 
 - [x] **22B.1** scene interaction (code and unit tests, no browser): picking, selection marker, boom, belt scroll, shutters, camera glyphs, person separation. Notes: `docs/progress/t22b.md`
 - [x] **22C** reports: shift and daily report, print, CSV. Notes: `docs/progress/t22c.md`
 - [x] **22.9** integration: merge order C, A, B; seam fixes; screenshots; docs. Notes: `docs/progress/t22-9.md`
+- [x] **22.10** navigation-latency investigation (no code change): confirmed the router-transition hypothesis for leaving `/live`. Notes: `docs/progress/t22-10.md`
+- [x] **22.11** applied the 22.10 fix (`useTransitions={false}`) with Suspense fallbacks on every lazy route. Notes: `docs/progress/t22-11.md`
 - [ ] **22B.2** scene verification alone: Playwright click-to-inspector, hover cost, fps A/B, nav-leak spec, screenshots EN and BN, light and dark
 
 - [x] **22.0b** branding with the supplied assets, lazy `events` / `reports` / `about` i18n namespaces (see `docs/progress/t22-0.md`)
@@ -1063,3 +1065,27 @@ failures are the known `entryChunk.test.mjs` staleness —, build) passed; full 
 22B.2) run once. Entry chunk 930.35 kB raw / 293.54 kB gzip, 2.85 kB over the brief's stated 927.5 kB ceiling for a documented, non-leak reason
 (22B.1's `LiveScene.tsx` additions plus this session's own X-ray toggle, both entry-resident by construction — not trimmed, per the brief). See
 `docs/progress/t22-9.md` for full evidence, screenshots and the BACKLOG additions.
+
+### 22.10 summary
+Investigation only, no `src/` change. Confirmed the brief's hypothesis: react-router 7's `<BrowserRouter>` (`src/app/App.tsx`) wraps every
+navigation in `React.startTransition` unless `useTransitions={false}` is passed, and on `/live`'s busy render loop that transition is starved for
+a median of 7-22 s between the URL changing (confirmed near-instant, 0-1 ms) and the destination committing, across all four event-centre entry
+points (bell, tray row, KPI row, toast "Open") and three load conditions. A/B against `useTransitions={false}` (temporarily applied, then reverted)
+cut that to a median of 7-300 ms while measured main-thread long-task time stayed flat — the fix changes commit timing, not scene load. New
+measurement harness `e2e/t22-10-nav-latency.spec.ts`. See `docs/progress/t22-10.md` for the full numbers, the mechanism, and the explanation of
+task 22.9's four "Open on a toast" symptoms as one non-deterministic latency distribution plus one unrelated simulator-timing gap.
+
+### 22.11 summary
+Applied the 22.10 fix: `useTransitions={false}` on `src/app/App.tsx`'s `<BrowserRouter>`, plus a new text-free `RouteFallback` skeleton
+(`src/app/RouteFallback.tsx`, reusing the established `bg-muted motion-safe:animate-pulse` pattern) passed as the `fallback` to every lazy route's
+`<Suspense>` in `src/app/routes.tsx` (`/analytics`, `/events`, `/events/:id`, `/reports`, and the dev-only `/dev/assets`) — without it, a
+synchronous navigation into an unloaded chunk would suspend into a blank flash instead of the old page lingering. `e2e/t22-10-nav-latency.spec.ts`
+is now opt-in (`NAV_LATENCY=1`), skipped by default, with `T22_10_CONDITIONS` added for a reduced run. A reduced on-patched-code run (3 reps ×
+settled/warmup × 4 entry points) matched the 22.10 `useTransitions={false}` numbers (medians 6-330 ms). `e2e/t21-nav-leak.spec.ts` (default mode)
+still passes its leak gate (counts and heap unchanged from the Task 21 baseline) but its own canvas-leave-time measurement to the non-lazy
+`/trucks` route did **not** improve (median ~12 s, matching the pre-fix baseline) — an open, unexplained discrepancy against this session's own
+harness, reported rather than hidden; see `docs/progress/t22-11.md` section 10. Full regression (typecheck, lint, format, i18n, 1925 unit tests —
+2 pre-existing load-sensitive timeouts pass alone — , build) passed; entry chunk 930.77 kB raw (+419 B over the 22.9 baseline, both well under
+budget). `e2e/t22a-events.spec.ts` alone: the previously-confirmed "Open on a toast" failure now passes reliably alone; full-file counts were
+noisy across two runs (12/14 then 6/14) under this sandbox's own documented CPU variability, not attributed to this change. See
+`docs/progress/t22-11.md`.

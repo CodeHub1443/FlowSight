@@ -80,6 +80,40 @@ describe('App shell', () => {
     expect(screen.getAllByTestId('placeholder-title').length).toBeGreaterThan(0);
   });
 
+  // One case per distinct `lazy()` wrapper in routes.tsx (not one per route): `/events` and `/events/:id` share the
+  // same `EventsPage` lazy component, which resolves its dynamic import() once and never suspends again afterward
+  // in the same process — so only the first navigation to either route can observe the fallback. `/events/:id` is
+  // covered separately below, after this block, without asserting the (by then unobservable) transient fallback.
+  it.each([
+    ['/analytics?range=week', 'analytics-page'],
+    ['/events', 'events-page'],
+    ['/reports', 'reports-page'],
+  ])(
+    'shows the route fallback before the lazy chunk, then %s (task 22.11)',
+    async (path, pageTestId) => {
+      renderAt(path);
+      // synchronous: React renders the Suspense fallback on the same pass that suspends, before the dynamic
+      // import()'s promise can resolve, even for an already-cached module.
+      expect(screen.getByTestId('route-fallback')).toBeInTheDocument();
+      expect(
+        await screen.findByTestId(pageTestId, {}, { timeout: LAZY_CHUNK_MS }),
+      ).toBeInTheDocument();
+      expect(screen.queryByTestId('route-fallback')).not.toBeInTheDocument();
+    },
+    LAZY_TEST_MS,
+  );
+
+  it(
+    '/events/:id resolves to the same guarded, lazy EventsPage (task 22.11)',
+    async () => {
+      renderAt('/events/01ARZ3NDEKTSV4RRFFQ69G5FAV');
+      expect(
+        await screen.findByTestId('events-page', {}, { timeout: LAZY_CHUNK_MS }),
+      ).toBeInTheDocument();
+    },
+    LAZY_TEST_MS,
+  );
+
   it(
     'opens /analytics on the Performance tab (lazy chunk), with the range from the URL',
     async () => {

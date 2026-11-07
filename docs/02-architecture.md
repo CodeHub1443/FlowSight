@@ -117,6 +117,17 @@ REST via react-query hooks in `data/api/queries.ts`; MSW handlers in mock mode r
   5. Labels via drei `Html` only for selected or hovered objects plus pins; otherwise use `Text` (SDF) or sprites.
   6. Charts: ECharts with `useDirtyRect`, data decimation for > 2k points.
 - Video-wall PC: dedicated `/wall` route, fixed "Med" quality, auto-cycle every 30 s (site → each active bay → KPIs).
+- **Routing runs outside React transitions on purpose** (`src/app/App.tsx`, `<BrowserRouter useTransitions={false}>`).
+  react-router 7's default wraps every router state update in `React.startTransition`; measured on `/live`'s busy
+  render loop (task 22.10), that let the scene's own synchronous work — `useFrame`, `useSyncExternalStore`-driven
+  store flushes outside React's scheduler — starve the transition for a median of 7-22 s between the URL changing
+  and the destination committing. `useTransitions={false}` makes navigation synchronous instead: median 7-300 ms in
+  the same measurement, with no change to how much work the scene itself does (`docs/progress/t22-10.md`,
+  `docs/progress/t22-11.md`). **Consequence for every new lazy route:** a synchronous navigation into an unloaded
+  `React.lazy` chunk suspends without the transition's fallback-masking (no stale page lingering while it loads), so
+  every `<Suspense>` boundary around a lazy route **must** pass a `fallback` (`src/app/RouteFallback.tsx`, used by
+  all of `/analytics`, `/events`, `/events/:id`, `/reports` in `src/app/routes.tsx`) — a lazy route added without one
+  will show a blank flash instead of nothing happening.
 
 ## 7. What the backend must provide (hand this list to the backend team)
 1. **state-engine**: from raw detections, produce the messages in the contract at the stated rates. It owns:

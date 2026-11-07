@@ -8,6 +8,7 @@ import { AppShell, PageLayout } from './AppShell';
 import { LiveScene } from './LiveScene';
 import { NotFound } from './NotFound';
 import { Placeholder } from './Placeholder';
+import { RouteFallback } from './RouteFallback';
 import { RouteGuard } from './RouteGuard';
 
 // Dev only: `import.meta.env.DEV` is false at build time, so neither the route nor its chunk reaches production.
@@ -24,7 +25,7 @@ const ReportsPage = lazy(() =>
 /** A lazy page behind the role guard. The guard sits outside Suspense, so a role without access never loads the chunk. */
 const guarded = (allow: (role: Role) => boolean, Page: ComponentType) => (
   <RouteGuard allow={allow}>
-    <Suspense>
+    <Suspense fallback={<RouteFallback />}>
       <Page />
     </Suspense>
   </RouteGuard>
@@ -44,7 +45,7 @@ export function AppRoutes() {
           <Route
             path="analytics/*"
             element={
-              <Suspense>
+              <Suspense fallback={<RouteFallback />}>
                 <AnalyticsPage />
               </Suspense>
             }
@@ -66,7 +67,7 @@ export function AppRoutes() {
         <Route
           path="dev/assets"
           element={
-            <Suspense>
+            <Suspense fallback={<RouteFallback />}>
               <AssetPreview />
             </Suspense>
           }
