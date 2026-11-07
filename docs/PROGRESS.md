@@ -1019,10 +1019,10 @@ e2e restored from HEAD.
 Binding spec: `docs/tasks/t22-spec.md`. No AI or language-model feature in this version (owner decision of 2026-11-06). Per-session notes in `docs/progress/t22-*.md`.
 
 - [x] **22.0** shared base (uncommitted): contract rev 1.3, data layer (events, visit, report, media), RBAC, route guard, stub routes, `urlState`, `EvidenceImage`, print foundation, i18n namespaces. Notes: `docs/progress/t22-0.md`
-- [ ] **22A** events: live toasts, bell link, `/events` list and drawer, inspector actions
-- [ ] **22B.1** scene interaction (code and unit tests, no browser): picking, selection marker, boom, belt scroll, shutters, camera glyphs, person separation
-- [ ] **22C** reports: shift and daily report, print, CSV
-- [ ] **22.9** integration: merge order C, A, B; seam fixes; screenshots; docs
+- [x] **22A** events: live toasts, bell link, `/events` list and drawer, inspector actions. Notes: `docs/progress/t22a.md`
+- [x] **22B.1** scene interaction (code and unit tests, no browser): picking, selection marker, boom, belt scroll, shutters, camera glyphs, person separation. Notes: `docs/progress/t22b.md`
+- [x] **22C** reports: shift and daily report, print, CSV. Notes: `docs/progress/t22c.md`
+- [x] **22.9** integration: merge order C, A, B; seam fixes; screenshots; docs. Notes: `docs/progress/t22-9.md`
 - [ ] **22B.2** scene verification alone: Playwright click-to-inspector, hover cost, fps A/B, nav-leak spec, screenshots EN and BN, light and dark
 
 - [x] **22.0b** branding with the supplied assets, lazy `events` / `reports` / `about` i18n namespaces (see `docs/progress/t22-0.md`)
@@ -1032,3 +1032,34 @@ Contract rev 1.3 adds `ReportBayRow.avgOccupancyMin` (optional, nullable). The R
 endpoints and hooks are in their own modules (`eventQueries.ts`, `reportQueries.ts`) so the /live entry chunk does not carry them. `/events`,
 `/events/:id` and `/reports` are lazy routes behind `RouteGuard`; stub pages only. See `docs/progress/t22-0.md` for the export list and the
 ownership table.
+
+### 22A summary
+Live notifications (toast rules as pure functions in `notifyDecision.ts`, lazy `notifyRuntime` chunk fetched on the first live event), the full
+`/events` page (URL-driven filters, hand-written windowed grid, live merge, keyboard, drawer with evidence/history/actions), and the links from the
+live shell (bell footer, tray rows, inspector `EventBody`). See `docs/progress/t22a.md` for the gaps list (KPI popover rows now link to `/events`
+instead of the tray's own group filter, which is now unused; `src/stores/accessors.ts` has no `HealthFrame` accessor yet).
+
+### 22B.1 summary
+Scene interaction, code and unit tests only (B1–B7 of docs/04 §3): single canvas-level pick/hover handler, the selection marker and pill, boom
+extend/retract, belt scroll speed, door shutters, camera glyphs (visible in X-ray or when a camera is not `OK`), and crew separation. `uiStore.xray`
+existed with no control until 22.9 added one (below). See `docs/progress/t22b.md` for the deviations (pill separator, boom section lengths, the
+actor-replaces-bay-marker behaviour change).
+
+### 22C summary
+`/reports`: shift and daily reports, print layout (A4, repeating footer and table header, `break-inside: avoid`), CSV export (BOM, RFC 4180,
+formula-injection guard). Built against a base that predated the 22.0b branding block, so it shipped with local brand stand-ins
+(`reportBrand.tsx`, `brandConst.ts`); 22.9 replaced them with the real `Brand.tsx` components. See `docs/progress/t22c.md` for the handover
+per-group-count contract gap and the missing "alerts raised" figure.
+
+### 22.9 summary
+Integration of 22A, 22B.1 and 22C on `master`. Brand swap in the reports header/footer (real `ClientLogo` / `ProductName` / `DevelopedBy`, the two
+stand-in files deleted); confirmed the `events`/`reports` i18n namespaces are out of the `/live` entry (the `scripts/entryChunk.test.mjs` failure is
+the script itself being stale against 22C's real `reports.json`, not a leak); added the X-ray toggle to `MapControls` (the brief's path,
+`src/features/live/MapControls.tsx`, does not exist — the file is `src/app/MapControls.tsx`); ran both written e2e specs, fixed one Bangla-wording
+assertion (22.0b's shared `DevelopedBy` reads differently from the old reports-only stand-in) and one over-strict toast-count assertion (a sonner
+exit-animation race); found and reported, but did **not** fix (out of `src/scene/**` scope), a real, reproducible failure clicking "Open" on a live
+toast while `/live`'s scene is still warming up under burst load. Full regression (typecheck, lint, format, i18n, 1913/1915 unit tests — the 2
+failures are the known `entryChunk.test.mjs` staleness —, build) passed; full e2e suite (excluding `t21-nav-leak` and `t22b-scene`, reserved for
+22B.2) run once. Entry chunk 930.35 kB raw / 293.54 kB gzip, 2.85 kB over the brief's stated 927.5 kB ceiling for a documented, non-leak reason
+(22B.1's `LiveScene.tsx` additions plus this session's own X-ray toggle, both entry-resident by construction — not trimmed, per the brief). See
+`docs/progress/t22-9.md` for full evidence, screenshots and the BACKLOG additions.

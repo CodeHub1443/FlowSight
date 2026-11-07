@@ -301,7 +301,8 @@
       "move": "Arrow keys: move the view",
       "fast": "Shift + arrow keys: move faster",
       "zoom": "+ and −: zoom"
-    }
+    },
+    "xray": "Camera X-ray"
   },
   "notify": {
     "showOnMap": "Show on map",

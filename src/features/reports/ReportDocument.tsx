@@ -1,13 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { StatusPill } from '@/components/common';
+import { ClientLogo, DevelopedBy, ProductName, StatusPill } from '@/components/common';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import type { ReportKind } from '@/data/api/endpoints';
 import type { Report } from '@/domain';
 import { DEFAULT_SITE } from '@/features/live/siteInfo';
 import { formatLang } from '@/lib/format';
 import type { ReportModel } from './model';
-import { ReportDevelopedBy, ReportClientLogo, ReportProductName } from './reportBrand';
 import { useReportFmt, type ReportFmt } from './reportFmt';
 import { selectDeltas, selectHeadlines, type Deltas, type Headlines } from './selectors';
 import {
@@ -191,10 +190,15 @@ export function ReportDocument({
       aria-label={t(`doc.title.${kind}`)}
       className="rp-sheet bg-card border-card-border shadow-raised mx-auto w-full max-w-[1100px] rounded-[12px] border p-6"
     >
-      <div className="rp-frame">
-        <div className="rp-frame-body">
-          <div className="rp-frame-row">
-            <div className="rp-frame-cell">
+      {/*
+       * Table frame (print only; `display: contents` on screen, see reports-print.css): the tfoot is a real
+       * CSS table-footer-group, which the browser repeats at the bottom of every printed page with its own
+       * reserved height, so content can never run under it. The tbody's single cell holds the whole report.
+       */}
+      <table className="rp-page">
+        <tbody>
+          <tr className="rp-page-row">
+            <td className="rp-page-cell">
               <div className="rp-stack">
                 {/* 1. Header */}
                 <header
@@ -202,9 +206,9 @@ export function ReportDocument({
                   className="border-hairline flex flex-wrap items-start justify-between gap-4 border-b pb-3"
                 >
                   <div className="flex items-center gap-3">
-                    <ReportClientLogo />
+                    <ClientLogo height={32} />
                     <div className="flex flex-col">
-                      <ReportProductName />
+                      <ProductName className="text-[15px] leading-5" />
                       <span
                         data-testid="report-depot"
                         className="text-ink-600 rp-muted text-[13px]"
@@ -310,7 +314,7 @@ export function ReportDocument({
                     />
                     <Tile
                       id="openAlerts"
-                      label={t('headlines.openAlerts')}
+                      label={inProgress ? t('headlines.openAlertsNow') : t('headlines.openAlerts')}
                       value={fmt.num(h.openAlerts.needsAttention)}
                       detail={t('headlines.openAlertsDetail', {
                         critical: fmt.num(h.openAlerts.critical),
@@ -335,23 +339,21 @@ export function ReportDocument({
                 {/* 8. Captains by bay assignment (roles that may see names only) */}
                 {model.captains.length > 0 && <CaptainsSection captains={model.captains} />}
               </div>
-            </div>
-          </div>
-        </div>
-        <div className="rp-frame-foot" aria-hidden>
-          <div className="rp-frame-row">
-            <div className="rp-frame-cell">
-              <div className="rp-spacer" />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Printed footer, repeated on every page (fixed position; hidden on screen) */}
-      <footer data-testid="report-footer" className="rp-footer">
-        <ReportDevelopedBy />
-        <span>{generated}</span>
-      </footer>
+            </td>
+          </tr>
+        </tbody>
+        <tfoot>
+          <tr className="rp-page-row">
+            <td className="rp-page-cell">
+              {/* Repeats on every printed page via table-footer-group; hidden on screen. */}
+              <footer data-testid="report-footer" className="rp-footer">
+                <DevelopedBy variant="print" />
+                <span>{generated}</span>
+              </footer>
+            </td>
+          </tr>
+        </tfoot>
+      </table>
     </article>
   );
 }

@@ -252,6 +252,13 @@ Components: `src/components/common/Brand.tsx`. Names: `src/brand.ts` (`{ product
 | Colour note | The Unilever logo blue `#0F0E9A` is darker than the UI brand blue (`--brand-500`). Colours of the UI are not changed for it. |
 | Originals | `assets-src/brand/` (git-ignored with the rest of `assets-src/`): `unilever-4.svg`, `DepoFlow.svg`, `the_data_island_tdi_logo.ico`. |
 
+**Print colours (Task 22.9).** `src/features/reports/reports-print.css` fixes printed ink and paper as literal values (`#111` text, `#8a8a8a`
+borders, `#ececec` / `#f4f4f4` table fills), not the `--ink-*` / `--card` tokens, and forces them with `!important` inside `.rp-sheet` under
+`@media print`. This is deliberate and is the one place in the app where "tokens only" (§1) does not apply: a report must read as dark ink
+on white paper even when printed from the dark control-room theme, and print media overrides the page's own light/dark tokens anyway, so a
+token reference would not track theme at print time regardless. The client-logo tile stays white in print through `dark:bg-white`'s higher
+selector specificity, not through a print-only override.
+
 ## 8. Dark theme — "night shift" design (binding)
 Goal: a night-shift control room, **not** a black screen. Readability comes from **value layering** (each layer clearly lighter than
 the one behind it), **cool rim light** to separate silhouettes, **warm work-light pools** over active bays, and **saturation kept on

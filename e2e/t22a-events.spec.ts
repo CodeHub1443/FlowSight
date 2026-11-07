@@ -159,7 +159,12 @@ test.describe('Live notifications and links', () => {
     await expect(toast).toBeVisible({ timeout: 120_000 });
     await expect(toast.getByRole('button', { name: 'Show on map' })).toBeVisible();
     await expect(toast.getByRole('button', { name: 'Open' })).toBeVisible();
-    expect(await page.getByTestId('live-toast').count()).toBeLessThanOrEqual(3);
+    // Sonner animates a dismissed toast out rather than removing it instantly, so a freshly-shown 4th toast can
+    // briefly share the DOM with the one it is evicting; the notifyDecision model itself caps `active` at 3 (see
+    // notifyDecision.test.ts). Poll past that exit animation instead of asserting on a single instant.
+    await expect
+      .poll(() => page.getByTestId('live-toast').count(), { timeout: 5_000 })
+      .toBeLessThanOrEqual(3);
   });
 
   test('"Open" on a toast opens the event in the Events page', async ({ page }) => {

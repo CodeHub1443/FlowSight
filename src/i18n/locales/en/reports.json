@@ -29,7 +29,6 @@
     "generated": "Generated {{time}}",
     "simulated": "Simulated data",
     "simulatedHint": "This report is built from the in-browser simulator, not from the depot.",
-    "clientLogoAlt": "Unilever Bangladesh",
     "figuresSoFar": "Figures so far; the period is not over. Changes against the previous period are shown once it is complete."
   },
   "headlines": {
@@ -41,6 +40,7 @@
     "depotTat": "Depot turnaround (average)",
     "ppe": "PPE compliance",
     "openAlerts": "Open alerts at the end",
+    "openAlertsNow": "Open alerts now",
     "openAlertsDetail": "{{critical}} critical, {{warn}} warning",
     "vs": { "shift": "vs previous shift", "daily": "vs previous day" },
     "noDelta": "No figure for the previous period",
@@ -59,6 +59,7 @@
     "groupsLabel": "Open alerts by group",
     "topTitle": "Most severe open events",
     "partial": "{{shown}} of {{total}} open alerts are listed here; the report carries the most severe events only.",
+    "listedSuffix": "listed",
     "col": {
       "severity": "Severity",
       "event": "Event",
@@ -84,6 +85,7 @@
   "bays": {
     "title": "Bays",
     "total": "Total",
+    "trucksNote": "Trucks: every truck that arrived in the period, including any still docked when it ended (the headline above counts only trucks that departed).",
     "beltShareNote": "Belt loaded: belt running with product, as a share of the time a truck was docked.",
     "issuesNote": "Product issues: damaged, open tape, torn sack, wet and fall-off.",
     "col": {
@@ -175,7 +177,6 @@
     "no": "No"
   },
   "footer": {
-    "developedBy": "Developed by {{company}}",
     "generated": "Generated {{time}}"
   }
 }

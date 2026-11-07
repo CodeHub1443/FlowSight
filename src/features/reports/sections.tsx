@@ -68,6 +68,9 @@ export function HandoverSection({ handover, report }: { handover: Handover; repo
   const fmt = useReportFmt();
   const title = useEventTitle();
   const reportTo = Date.parse(report.to);
+  // When the report's topEvents subset doesn't carry every open alert, each chip's count is only what's listed,
+  // not the group's true total; say so rather than presenting a partial count as if it were complete.
+  const partial = handover.listed < handover.total;
   return (
     <Section id="handover" title={t('handover.title')}>
       {handover.groups.length === 0 ? (
@@ -86,7 +89,10 @@ export function HandoverSection({ handover, report }: { handover: Handover; repo
                 className="bg-muted border-hairline flex items-center gap-2 rounded-[10px] border px-3 py-1.5 text-[13px]"
               >
                 <span className="text-ink-900">{t(`groups.${g.id}`)}</span>
-                <span className="text-ink-900 font-semibold tabular-nums">{fmt.num(g.total)}</span>
+                <span className="text-ink-900 font-semibold tabular-nums">
+                  {fmt.num(g.total)}
+                  {partial && <span className="font-normal"> {t('handover.listedSuffix')}</span>}
+                </span>
                 <span className="text-ink-600 rp-muted text-[12px]">
                   {[
                     g.critical > 0 ? `${fmt.num(g.critical)} ${t('sev.critical')}` : null,
@@ -247,7 +253,7 @@ export function BaysSection({ rows, totals }: { rows: BayRowView[]; totals: BayR
         </table>
       </div>
       <p className="text-ink-600 rp-muted text-[12px]">
-        {t('bays.beltShareNote')} {t('bays.issuesNote')}
+        {t('bays.trucksNote')} {t('bays.beltShareNote')} {t('bays.issuesNote')}
       </p>
     </Section>
   );

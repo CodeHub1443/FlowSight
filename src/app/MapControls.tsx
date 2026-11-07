@@ -1,8 +1,18 @@
-import { Home, Keyboard, Minus, Plus, RotateCcw, RotateCw, type LucideIcon } from 'lucide-react';
+import {
+  Home,
+  Keyboard,
+  Minus,
+  Plus,
+  RotateCcw,
+  RotateCw,
+  ScanEye,
+  type LucideIcon,
+} from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { useSceneCamera } from '@/scene/camera/cameraController';
+import { useUiStore } from '@/stores';
 
 /** One +/- step of the distance to the orbit target, and one rotate step. */
 const ZOOM_STEP = 0.8;
@@ -15,12 +25,15 @@ function Control({
   icon: Icon,
   label,
   onClick,
+  pressed,
   className,
 }: {
   testId: string;
   icon: LucideIcon;
   label: string;
   onClick: () => void;
+  /** Toggle controls only: sets `aria-pressed` and a pressed look. Omitted for one-shot controls. */
+  pressed?: boolean;
   className?: string;
 }) {
   return (
@@ -28,9 +41,10 @@ function Control({
       type="button"
       data-testid={testId}
       aria-label={label}
+      aria-pressed={pressed}
       title={label}
       onClick={onClick}
-      className={cn(CONTROL_CLASS, className)}
+      className={cn(CONTROL_CLASS, pressed && 'bg-row-hover text-ink-900', className)}
     >
       <Icon className="size-[18px]" strokeWidth={1.75} aria-hidden />
     </button>
@@ -76,6 +90,8 @@ function KeysHint() {
 export function MapControls() {
   const { t } = useTranslation('live');
   const camera = useSceneCamera();
+  const xray = useUiStore((s) => s.xray);
+  const setXray = useUiStore((s) => s.setXray);
   return (
     <div
       role="group"
@@ -114,6 +130,14 @@ export function MapControls() {
         icon={Home}
         label={t('map.home')}
         onClick={() => camera.flyTo('floorOverview')}
+      />
+      <span aria-hidden className="bg-hairline my-0.5 h-px w-5" />
+      <Control
+        testId="map-xray"
+        icon={ScanEye}
+        label={t('map.xray')}
+        pressed={xray}
+        onClick={() => setXray(!xray)}
       />
       <span aria-hidden className="bg-hairline my-0.5 h-px w-5" />
       <KeysHint />

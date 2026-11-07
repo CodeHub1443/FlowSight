@@ -269,7 +269,11 @@ test.describe('Task 19A: KPI chips and detail popovers', () => {
     await close(page, 'alerts');
   });
 
-  test('an alert group opens the Alerts tray filtered to that group', async ({ page }) => {
+  // 22A changed this row from an in-tray filter to a plain link: `kpidetail-group-*` is now a `<Link>` to
+  // `/events?group=<id>` (src/features/live/kpiDetail/details.tsx), and the old `trayFilter.ts` / `tray-filter` bar
+  // it used to drive is unused (docs/BACKLOG.md, "T22.9.9 follow-ups"). Follows the same assertions as
+  // e2e/t22a-events.spec.ts's "a group count on the page equals the KPI popover count" test.
+  test('an alert group opens the Events page filtered to that group', async ({ page }) => {
     await openLive(page);
     const panel = await openByKeyboard(page, 'alerts');
     const first = panel.getByTestId(/^kpidetail-group-/).first();
@@ -278,33 +282,8 @@ test.describe('Task 19A: KPI chips and detail popovers', () => {
     expect(group).not.toBeNull();
     await first.click();
 
-    // Closed at once (trigger state); the DOM node goes after the 200 ms exit animation, which SwiftShader can start
-    // seconds late after a click that sets the scene rendering (19.9 trace: 0.6-2.3 s at 1920x1080, more at 2560x1440).
-    await expect(page.getByTestId('kpi-open-alerts')).toHaveAttribute('aria-expanded', 'false');
-    await expect(page.getByTestId('kpidetail-alerts')).toHaveCount(0, { timeout: 20_000 });
-    await expect(page.getByRole('tab', { name: /^Alerts/ })).toHaveAttribute(
-      'aria-selected',
-      'true',
-    );
-    const bar = page.getByTestId('tray-filter');
-    await expect(bar).toHaveAttribute('data-group', group ?? '');
-    const rows = page.locator('[data-testid^="tray-alert-"][data-alert-group]');
-    await expect
-      .poll(async () => {
-        const groups = await rows.evaluateAll((els) =>
-          els.map((e) => e.getAttribute('data-alert-group')),
-        );
-        return groups.length > 0 && groups.every((g) => g === group);
-      })
-      .toBe(true);
-
-    // English and Bangla label on the filter bar
-    await expect(bar).toContainText('Showing:');
-    await setLang(page, 'bn');
-    await expect(bar).toContainText('দেখানো হচ্ছে:');
-    await setLang(page, 'en');
-
-    await page.getByTestId('tray-filter-clear').click();
-    await expect(page.getByTestId('tray-filter')).toHaveCount(0);
+    await expect(page).toHaveURL(new RegExp(`/events\\?group=${group}`));
+    await expect(page.getByTestId('events-page')).toBeVisible();
+    await expect(page.getByTestId(`events-group-${group}`)).toHaveAttribute('aria-pressed', 'true');
   });
 });

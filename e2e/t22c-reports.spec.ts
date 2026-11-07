@@ -1,4 +1,4 @@
-import { readFile } from 'node:fs/promises';
+import { readFile, writeFile } from 'node:fs/promises';
 import type { Download, Page } from '@playwright/test';
 import { expect, test } from './fixtures';
 
@@ -9,16 +9,21 @@ import { expect, test } from './fixtures';
 // Run: pnpm exec playwright test e2e/t22c-reports.spec.ts
 
 const LANG_KEY = 'depot.pref.language';
+const THEME_KEY = 'depot.pref.theme';
 /** A4 portrait at 96 dpi. */
 const A4 = { width: 794, height: 1123 };
 const MAX_PAGES = 3;
 
 type Lang = 'en' | 'bn';
+type Theme = 'light' | 'dark';
 
-async function openReport(page: Page, lang: Lang, query = '') {
+async function openReport(page: Page, lang: Lang, query = '', theme: Theme = 'light') {
   await page.addInitScript(
-    ([key, value]) => localStorage.setItem(key as string, value as string),
-    [LANG_KEY, lang],
+    ([langKey, langValue, themeKey, themeValue]) => {
+      localStorage.setItem(langKey as string, langValue as string);
+      localStorage.setItem(themeKey as string, themeValue as string);
+    },
+    [LANG_KEY, lang, THEME_KEY, theme],
   );
   await page.setViewportSize({ width: 1366, height: 768 });
   await page.goto(`/reports${query}`);
@@ -89,7 +94,7 @@ for (const lang of ['en', 'bn'] as const) {
       await expect(page.getByTestId('report-controls')).toBeHidden();
       await expect(page.getByTestId('report-footer')).toBeVisible();
       await expect(page.getByTestId('report-footer')).toContainText(
-        lang === 'bn' ? 'কর্তৃক তৈরি' : 'Developed by',
+        lang === 'bn' ? 'তৈরি করেছে' : 'Developed by',
       );
       const overflow = await page.evaluate(
         () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
@@ -123,6 +128,7 @@ for (const lang of ['en', 'bn'] as const) {
           preferCSSPageSize: true,
           printBackground: true,
         });
+        await writeFile(`docs/screens/t22c-pdf-${lang}-${which}.pdf`, pdf);
         const pages = pdfPageCount(pdf);
         expect(pages, 'the PDF has pages').toBeGreaterThan(0);
         expect(pages, `a full shift prints to at most ${MAX_PAGES} A4 pages`).toBeLessThanOrEqual(
@@ -144,6 +150,7 @@ for (const lang of ['en', 'bn'] as const) {
       await expect(page.getByTestId('report-document')).toHaveAttribute('data-kind', 'daily');
       await page.emulateMedia({ media: 'print' });
       const pdf = await page.pdf({ format: 'A4', preferCSSPageSize: true, printBackground: true });
+      await writeFile(`docs/screens/t22c-pdf-${lang}-daily.pdf`, pdf);
       test.info().annotations.push({
         type: 'pdf-pages',
         description: `${lang} daily: ${pdfPageCount(pdf)}`,
@@ -152,6 +159,30 @@ for (const lang of ['en', 'bn'] as const) {
     });
   });
 }
+
+test.describe('/reports print: dark session theme still prints white paper', () => {
+  test('previous shift, EN, dark theme: same page count as light, white paper (Task 22.9c)', async ({
+    page,
+  }) => {
+    await openReport(page, 'en', '', 'dark');
+    await page.getByRole('radio', { name: 'Previous shift' }).click();
+    await expect(page.getByTestId('report-document')).toHaveAttribute('data-state', 'complete', {
+      timeout: 60_000,
+    });
+    await expect(page.getByTestId('report-print')).toBeEnabled({ timeout: 60_000 });
+    await page.emulateMedia({ media: 'print' });
+    const pdf = await page.pdf({ format: 'A4', preferCSSPageSize: true, printBackground: true });
+    await writeFile(`docs/screens/t22c-pdf-en-previous-dark.pdf`, pdf);
+    const pages = pdfPageCount(pdf);
+    expect(pages, 'the PDF has pages').toBeGreaterThan(0);
+    expect(pages, `a full shift prints to at most ${MAX_PAGES} A4 pages`).toBeLessThanOrEqual(
+      MAX_PAGES,
+    );
+    test
+      .info()
+      .annotations.push({ type: 'pdf-pages', description: `en previous (dark): ${pages}` });
+  });
+});
 
 test.describe('/reports CSV export', () => {
   test('Bays: a UTF-8 file with a byte-order mark, a header and seven bays in order', async ({

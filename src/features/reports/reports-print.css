@@ -1,12 +1,24 @@
 /*
- * Report print layout (Task 22C). Page size and margins (A4 portrait, 12 mm) come from src/index.css.
+ * Report print layout (Task 22C; footer rebuilt structurally in Task 22.9d). Page size and margins (A4 portrait,
+ * 12 mm all round) come from src/index.css and are not overridden here.
+ *
+ * The printed footer is a real CSS table-footer-group (see `.rp-page` below), not a fixed-position element: the
+ * browser repeats it at the bottom of every printed page and reserves its own height there, so page content can
+ * never run under it and the footer never bleeds onto the top of a later page.
  *
  * Print is always dark ink on white, whatever the UI theme: the sheet re-states its colours here as paper values (not UI
  * tokens), so a report printed from the dark control-room theme is still readable. Status pills keep their text and get
  * a border, so colour is never the only carrier of meaning. The detection box on a thumbnail keeps its red outline.
- *
- * Not verified in a browser in Task 22C (no browser in that session): see docs/progress/t22c.md for the 22.9 checklist.
  */
+
+/* Screen: the table frame is invisible scaffolding, present only so print can turn it into a real table. */
+.rp-page,
+.rp-page > tbody,
+.rp-page > tfoot,
+.rp-page-row,
+.rp-page-cell {
+  display: contents;
+}
 
 /* Block flow (not flex or grid) for the page stack and the sections, so they fragment across printed pages everywhere. */
 .rp-stack > * + * {
@@ -17,12 +29,38 @@
 }
 
 /* Screen: the print-only parts are absent. */
-.rp-footer,
-.rp-frame-foot {
+.rp-footer {
   display: none;
 }
 
 @media print {
+  /* The table frame: a real CSS table so the tfoot becomes a table-footer-group (repeats at the bottom of every
+     printed page, with its own reserved height — content can't run under it, no @page margin trick needed). */
+  .rp-page {
+    display: table;
+    width: 100%;
+    border-collapse: collapse;
+  }
+  .rp-page > tbody {
+    display: table-row-group;
+  }
+  .rp-page > tfoot {
+    display: table-footer-group;
+  }
+  .rp-page-row {
+    display: table-row;
+  }
+  .rp-page-cell {
+    display: table-cell;
+    padding: 0 !important;
+  }
+
+  /* Paper is always white with dark ink in print, whatever the session theme (light or dark control room). */
+  html,
+  body {
+    background: #ffffff !important;
+  }
+
   .rp-sheet {
     width: 100% !important;
     max-width: none !important;
@@ -38,33 +76,10 @@
     line-height: 1.55;
   }
 
-  /* One-cell table frame: its foot repeats on every printed page and reserves room for the fixed footer. */
-  .rp-frame {
-    display: table;
-    width: 100%;
-  }
-  .rp-frame-body {
-    display: table-row-group;
-  }
-  .rp-frame-foot {
-    display: table-footer-group;
-  }
-  .rp-frame-row {
-    display: table-row;
-  }
-  .rp-frame-cell {
-    display: table-cell;
-  }
-  .rp-spacer {
-    height: 10mm;
-  }
-
+  /* Static flow inside the tfoot's table cell — the table-footer-group mechanics place it at the bottom of
+     every page, so no position/offset is needed here. */
   .rp-footer {
     display: flex;
-    position: fixed;
-    right: 0;
-    bottom: 0;
-    left: 0;
     justify-content: space-between;
     gap: 8mm;
     padding-top: 1.2mm;
@@ -72,10 +87,16 @@
     font-size: 8pt;
   }
 
-  /* Paper colours. */
+  /* Paper colours: the sheet itself is opaque white (not transparent — the session theme's body background must
+     never show through), everything inside it paints on top in dark ink with no fills of its own. */
+  .rp-sheet {
+    background: #ffffff !important;
+  }
   .rp-sheet,
   .rp-sheet * {
     color: #111 !important;
+  }
+  .rp-sheet * {
     background: transparent !important;
     border-color: #8a8a8a !important;
     box-shadow: none !important;
@@ -86,7 +107,7 @@
   .rp-sheet th {
     background: #ececec !important;
   }
-  .rp-sheet tfoot td,
+  .rp-sheet tfoot td:not(.rp-page-cell),
   .rp-sheet tr[data-total] td {
     background: #f4f4f4 !important;
   }
@@ -94,10 +115,6 @@
     border: 0.25mm solid #555 !important;
     border-radius: 99px;
     padding: 0 1.6mm !important;
-  }
-  .rp-sheet .rp-logo-tile {
-    background: #fff !important;
-    padding: 0 !important;
   }
   .rp-sheet [data-bbox] {
     border-color: #c00 !important;
@@ -116,7 +133,7 @@
   .rp-sheet h2 {
     break-after: avoid;
   }
-  .rp-sheet tr,
+  .rp-sheet tr:not(.rp-page-row),
   .rp-sheet figure,
   .rp-sheet li {
     break-inside: avoid;
@@ -125,13 +142,20 @@
     display: table-header-group;
   }
 
-  /* Compact tables. */
+  /* Compact tables. The truck log's on-screen horizontal-scroll wrapper and its `min-w-[720px]` table both exist
+     for narrow screens; print has no scrollbar, so a forced min-width wider than the printable area (~703px at
+     12mm A4 margins) silently clips whatever sits past the page edge (seen on the Detention column in EN). Drop
+     both constraints so the table sizes to the actual printable width instead. */
+  .rp-sheet .overflow-x-auto {
+    overflow: visible !important;
+  }
   .rp-sheet table {
     width: 100%;
+    min-width: 0 !important;
     border-collapse: collapse;
   }
   .rp-sheet th,
-  .rp-sheet td {
+  .rp-sheet td:not(.rp-page-cell) {
     padding: 0.8mm 1.4mm !important;
     border-bottom: 0.2mm solid;
   }

@@ -3,14 +3,15 @@ import { fireEvent, render, screen, waitFor, within } from '@testing-library/rea
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { BRAND } from '@/brand';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { createQueryClient, isoDhaka } from '@/data/api';
 import type { Report, Role } from '@/domain';
 import i18n from '@/i18n';
 import bnReports from '@/i18n/locales/bn/reports.json';
+import enCommon from '@/i18n/locales/en/common.json';
 import enReports from '@/i18n/locales/en/reports.json';
 import { liveStore, sessionStore } from '@/stores';
-import { REPORT_BRAND } from './brandConst';
 import { buildReportModel } from './model';
 import { DONE_SHIFT, NOW, simReport } from './reportFixture';
 import { ReportsPage } from './ReportsPage';
@@ -122,11 +123,11 @@ describe('completed shift report, English', () => {
   it('header: logo, product, depot, period, status, generated time and the simulated marker', async () => {
     renderAt(DONE);
     const d = await doc();
-    expect(within(d).getByAltText(enReports.doc.clientLogoAlt)).toHaveAttribute(
+    expect(within(d).getByAltText(enCommon.app.logoAlt)).toHaveAttribute(
       'src',
       '/brand/unilever-logo.svg',
     );
-    expect(within(d).getByTestId('report-product')).toHaveTextContent(REPORT_BRAND.product);
+    expect(within(d).getByTestId('product-name')).toHaveTextContent(BRAND.product);
     expect(within(d).getByTestId('report-depot')).toHaveTextContent('Dhaka Central Sales Depot');
     expect(within(d).getByRole('heading', { level: 1 })).toHaveTextContent(
       enReports.doc.title.shift,
@@ -202,6 +203,37 @@ describe('completed shift report, English', () => {
     expect(screen.getAllByTestId('where').at(-1)).toHaveTextContent(`/events/${first.id}`);
   });
 
+  it('handover: chip counts read as "listed" when the topEvents subset is fewer than kpi.openAlerts', async () => {
+    transform = (r) => ({
+      ...r,
+      topEvents: r.topEvents.map((e) => ({ ...e, status: 'OPEN' as const })),
+    });
+    renderAt(DONE);
+    const d = await doc();
+    const r = transform(simReport('shift', DONE_SHIFT) as Report);
+    const expected = selectHandover(r, 'DC_MANAGER');
+    const groups = within(d).getByTestId('report-handover-groups');
+    if (expected.listed < expected.total) {
+      expect(groups.textContent).toContain(enReports.handover.listedSuffix);
+    } else {
+      expect(groups.textContent).not.toContain(enReports.handover.listedSuffix);
+    }
+  });
+
+  it('headlines: open-alerts tile says "now" while the period runs and "at the end" once complete', async () => {
+    const liveView = renderAt(LIVE);
+    const live = await doc();
+    expect(within(live).getByTestId('report-headline-openAlerts')).toHaveTextContent(
+      enReports.headlines.openAlertsNow,
+    );
+    liveView.unmount();
+    renderAt(DONE);
+    const done = await doc();
+    expect(within(done).getByTestId('report-headline-openAlerts')).toHaveTextContent(
+      enReports.headlines.openAlerts,
+    );
+  });
+
   it('bays: seven rows in bay order, a totals row, no sorting by value', async () => {
     renderAt(DONE);
     const d = await doc();
@@ -222,6 +254,16 @@ describe('completed shift report, English', () => {
     expect(
       within(d).getByTestId('report-bays-table').querySelectorAll('th[scope="col"]'),
     ).toHaveLength(9);
+  });
+
+  it('bays: the trucks-column note explains the headline/table discrepancy (table counts visits still docked)', async () => {
+    renderAt(DONE);
+    const d = await doc();
+    expect(within(d).getByTestId('report-bays')).toHaveTextContent(enReports.bays.trucksNote);
+    const r = simReport('shift', DONE_SHIFT) as Report;
+    const m = buildReportModel(r, 'DC_MANAGER');
+    // bay rows count every truck that arrived in the period; the headline counts only departed trucks
+    expect(m.bayTotals.trucks).toBeGreaterThanOrEqual(m.headlines.trucksCompleted);
   });
 
   it('truck log: finished visits in arrival order with both plate spellings and a repeating header', async () => {
@@ -278,7 +320,7 @@ describe('completed shift report, Bangla', () => {
     expect(within(d).getByTestId('report-evidence')).toHaveTextContent(bnReports.evidence.title);
     expect(within(d).getByTestId('report-sku')).toHaveTextContent(bnReports.sku.title);
     expect(within(d).getByTestId('report-captains')).toHaveTextContent(bnReports.captains.title);
-    expect(within(d).getByTestId('report-footer')).toHaveTextContent('কর্তৃক তৈরি');
+    expect(within(d).getByTestId('report-footer')).toHaveTextContent('তৈরি করেছে');
     expect(d.textContent).not.toMatch(
       /\b(headlines|handover|bays|trucks|doc|evidence|sku|captains)\.[a-zA-Z]+/,
     );
