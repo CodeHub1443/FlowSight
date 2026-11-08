@@ -1089,3 +1089,26 @@ harness, reported rather than hidden; see `docs/progress/t22-11.md` section 10. 
 budget). `e2e/t22a-events.spec.ts` alone: the previously-confirmed "Open on a toast" failure now passes reliably alone; full-file counts were
 noisy across two runs (12/14 then 6/14) under this sandbox's own documented CPU variability, not attributed to this change. See
 `docs/progress/t22-11.md`.
+
+### 22B.2 summary
+Browser verification of 22B.1 (scene interaction), mode VERIFICATION + FIXES, nothing committed. `e2e/t22b-scene.spec.ts`
+run alone (first time, written in 22B.1): 5/8 passed first try, the 3 failures split into 2 confirmed environment
+contention (passed alone on a quiet machine) and 1 **real, reproducible finding, not fixed**: a drag starting on a
+person still selects the bay underneath it, because R3F's own click-vs-drag protection only checks "same object as
+pointerdown," not pixel distance, and `ActorInteraction.tsx`'s drag branch never calls `stopPropagation()` — this
+conflicts with the test's own assertion but matches `docs/04-scene-spec.md`'s documented "as before" behaviour, so
+reported with options rather than decided. fps A/B on the real RTX 3050 (`scripts/assets/live-perf.mjs`, baseline
+`08b1f04` vs master, 3+3 alternated runs, machine confirmed quiet): mean fps diff -1.03 (barely past the ±1.0 gate)
+but paired/epoch diffs flip sign and are dwarfed 100× by this session's own ambient-noise floor; draw calls (+43)
+and triangles (+1.7%) are deterministic and match `docs/progress/t22b.md`'s own estimate — reported as
+**inconclusive by noise**, not decided as pass or fail. `e2e/t21-nav-leak.spec.ts` (default mode) passes its leak
+gate cleanly (nodes/listeners/canvases/geometries/textures all flat or better than start) and, with new per-cycle
+timeline instrumentation, directly answers 22.11's open question: the destination route becoming visible and the
+old scene canvas leaving the DOM are the **same** React commit, every cycle, and that commit's own long-task time
+(measured directly) accounts for essentially all of the 12-34 s canvas-leave latency — a real, synchronous
+teardown cost under this session's load, not a scheduling artifact and not evidence of a stuck canvas. Also found:
+`T22B_SHOTS=1`'s own screenshot pass hangs on every dark-theme combination under SwiftShader (not a 22B.1
+regression — confirmed fine on the real GPU); no dev control exists to force a crew overlap (contrary to the
+brief's assumption); forcing a not-OK camera works, but only probabilistically (~80%/click) via the `system`
+trigger, not deterministically. See `docs/progress/t22b2.md` for full numbers, every screenshot path, and the
+options reported for each undecided finding.

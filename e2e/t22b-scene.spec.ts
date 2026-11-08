@@ -193,6 +193,10 @@ test('hover cost: at most 10 looks a second, each well under a millisecond', asy
     ms: window.__pickProbe?.hoverMs ?? 0,
   }));
   const looks = end.looks - start.looks;
+  // 22B.2: the actual numbers behind the gate below, for the report (not asserted beyond the existing checks).
+  console.log(
+    `t22b hover cost: ${looks} looks over ${seconds.toFixed(2)} s (${(looks / seconds).toFixed(1)}/s), ${((end.ms - start.ms) / looks).toFixed(4)} ms/look`,
+  );
   expect(looks).toBeGreaterThan(0);
   expect(looks).toBeLessThanOrEqual(Math.ceil(seconds * 10) + 1);
   expect((end.ms - start.ms) / looks).toBeLessThan(2);

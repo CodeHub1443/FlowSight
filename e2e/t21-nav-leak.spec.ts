@@ -39,6 +39,10 @@ declare global {
     __t21ContextLost?: number;
     __t21Gone?: number;
     __soakProbe?: unknown;
+    /** 22B.2 timeline instrumentation (informational; not a gate). */
+    __t21RouteVisible?: number;
+    __t21LongTaskMs?: number;
+    __t21LongTaskCount?: number;
   }
 }
 
@@ -137,10 +141,34 @@ async function go(page: Page, path: string) {
 }
 
 /**
+ * 22B.2 timeline instrumentation (informational, not a gate): a long-task accumulator (reset per cycle by the
+ * caller reading and zeroing it) and a second MutationObserver marking the moment the destination route's own
+ * content (the /trucks placeholder's path text) is visible, distinct from the scene canvas leaving (below).
+ */
+async function armRouteVisible(page: Page, path: string) {
+  await page.evaluate((p) => {
+    window.__t21RouteVisible = undefined;
+    const visible = () =>
+      document.querySelector('[data-testid="placeholder-path"]')?.textContent === p;
+    const observer = new MutationObserver(() => {
+      if (!visible()) return;
+      window.__t21RouteVisible = performance.now();
+      observer.disconnect();
+    });
+    observer.observe(document.body, { childList: true, subtree: true, characterData: true });
+    if (visible()) {
+      window.__t21RouteVisible = performance.now();
+      observer.disconnect();
+    }
+  }, path);
+}
+
+/**
  * Pushes `path` and resolves with the in-page performance.now() of the push. A MutationObserver set up first stores in
  * window.__t21Gone the performance.now() at which the scene canvas is no longer in the document.
  */
 async function leave(page: Page, path: string): Promise<number> {
+  await armRouteVisible(page, path);
   return page.evaluate((p) => {
     window.__t21Gone = undefined;
     const gone = () => !document.querySelector('[data-testid="scene-canvas"]');
@@ -159,6 +187,25 @@ async function leave(page: Page, path: string): Promise<number> {
     }
     return t0;
   }, path);
+}
+
+/** GPU memory (geometries+textures) back to the settled-start baseline, polled after the canvas has left the DOM. */
+async function waitGpuReleased(
+  page: Page,
+  baseline: { geometries: number; textures: number },
+  timeoutMs = 10_000,
+): Promise<number | null> {
+  const t0 = Date.now();
+  for (;;) {
+    const mem = await page.evaluate(
+      () => (window as Window & RendererProbe).__qualityProbe?.renderer?.info.memory ?? null,
+    );
+    if (mem && mem.geometries === baseline.geometries && mem.textures === baseline.textures) {
+      return Date.now() - t0; // ms since polling started (just after the canvas left the DOM)
+    }
+    if (Date.now() - t0 > timeoutMs) return null;
+    await new Promise((r) => setTimeout(r, 100));
+  }
 }
 
 /** Prints a line and appends it to test-results/t21-nav-leak.log. */
@@ -194,6 +241,18 @@ test(`${CYCLES} visits to /live leak no DOM, listeners, canvases or heap`, async
       true,
     );
   });
+  // 22B.2 timeline instrumentation (informational, not a gate): total long-task time and count since the page
+  // loaded; the per-cycle log reads and resets both so each cycle reports only its own share.
+  await page.addInitScript(() => {
+    window.__t21LongTaskMs = 0;
+    window.__t21LongTaskCount = 0;
+    new PerformanceObserver((list) => {
+      for (const entry of list.getEntries()) {
+        window.__t21LongTaskMs = (window.__t21LongTaskMs ?? 0) + entry.duration;
+        window.__t21LongTaskCount = (window.__t21LongTaskCount ?? 0) + 1;
+      }
+    }).observe({ entryTypes: ['longtask'] });
+  });
   const cdp = await page.context().newCDPSession(page);
   await cdp.send('Performance.enable');
   await cdp.send('HeapProfiler.enable');
@@ -215,11 +274,31 @@ test(`${CYCLES} visits to /live leak no DOM, listeners, canvases or heap`, async
   const checked = new Map<number, Sample>();
   const navMs: number[] = [];
   for (let i = 1; i <= CYCLES; i++) {
+    await page.evaluate(() => {
+      window.__t21LongTaskMs = 0;
+      window.__t21LongTaskCount = 0;
+    });
     const pushedAt = await leave(page, '/trucks');
     await expect(page.getByTestId('scene-canvas')).toHaveCount(0, { timeout: LEAVE_TIMEOUT_MS });
     const goneAt = await page.evaluate(() => window.__t21Gone ?? performance.now());
     const ms = goneAt - pushedAt;
     navMs.push(ms);
+    // 22B.2 timeline (informational): (a) push is t=0 by construction; (b) route visible; (c) canvas gone
+    // (same value as goneAt above); (d) GPU memory back to the start baseline, polled after (c); (e) the
+    // spec's own 'left' condition is (c) itself (the scene-canvas assertion above).
+    const routeVisibleAt = await page.evaluate(() => window.__t21RouteVisible ?? null);
+    const lt = await page.evaluate(() => ({
+      ms: window.__t21LongTaskMs ?? 0,
+      count: window.__t21LongTaskCount ?? 0,
+    }));
+    const gpuMsAfterGone = await waitGpuReleased(
+      page,
+      { geometries: start.geometries, textures: start.textures },
+      10_000,
+    );
+    log(
+      `t21 timeline cycle ${i}: push=0 routeVisible=${routeVisibleAt === null ? 'n/a' : (routeVisibleAt - pushedAt).toFixed(0)} canvasGone=${ms.toFixed(0)} gpuReleased=${gpuMsAfterGone === null ? 'n/a(>10s after gone)' : `+${gpuMsAfterGone}afterGone`} longTasks=${lt.count} (${lt.ms.toFixed(0)} ms) [all ms relative to the push, except gpuReleased which is relative to the canvas leaving]`,
+    );
     log(`t21 nav cycle ${i}: ${ms.toFixed(0)} ms`);
     if (ms > SLOW_NAV_MS) {
       test
