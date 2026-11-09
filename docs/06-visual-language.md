@@ -259,6 +259,27 @@ on white paper even when printed from the dark control-room theme, and print med
 token reference would not track theme at print time regardless. The client-logo tile stays white in print through `dark:bg-white`'s higher
 selector specificity, not through a print-only override.
 
+### 7.10 Toast placement (Task 22b.3, offset corrected 22b.4) — binding
+No prior rule existed (grepped: no "toast" match before this task); sonner's own default (bottom-right) was in effect and overlapped the Bays
+tray on `/live` (`docs/progress/t22b2.md` §3, measured `getBoundingClientRect` overlap).
+
+| Toast | Position | Offset | Why |
+|---|---|---|---|
+| A live-event toast (`notifyRuntime.tsx`'s `toast.custom()`, the bell/tray/toast "new event" notifications) | `top-center` | 12 px below the KPI row's **measured** bottom edge (`src/app/shell/toastOffset.ts`'s `computeToastOffsetTop`); falls back to `SCENE_SAFE_AREA.top + 16` px (136 px) only while the KPI row is unmounted | A fixed 136 px guess (22b.3) undershot the KPI row's real height — it overlapped the bottom of the KPI cards at both 1920x1080 and 1366x768 (`docs/screens/t22b3-toast-*.png`, architect review). Measuring the row's real `getBoundingClientRect().bottom` at runtime (`KpiChips.tsx`, `ResizeObserver`, reported into `uiStore.kpiRowBottom`) keeps the toast clear of the cards at any width, with the row collapsed or expanded, and in EN and BN — never a second fixed guess. The toast's 356 px width still never reaches the 360 px right column (inspector/tray) at either size. |
+| Every other toast (`/events`, `/reports`, …) | `bottom-right` (sonner's own default) | none | Unchanged; nothing on those pages conflicts with it. |
+
+Implementation: `src/app/AppShell.tsx` mounts **one** `<Toaster offset={{ top: computeToastOffsetTop(kpiRowBottom) }}>` everywhere (the top
+offset only affects top-positioned toasts; it does nothing to the bottom-right default, which reads the bottom/right offsets instead). The
+top-centre placement is set **once, per toast, at creation** — `notifyRuntime.tsx`'s `toast.custom()` call passes `position: 'top-center'` in its
+own options — not read reactively from `useLocation()`. This matters, not just style: an earlier version instead swapped the `Toaster`'s own
+`position` prop on `pathname === '/live'`, and sonner groups toasts by position into separately-keyed `<ol>` lists — changing the Toaster's
+`position` prop mid-session unmounts and rebuilds the *whole* list, including any toast already on screen, which broke
+`e2e/t22a-events.spec.ts`'s own "Open on a toast" navigation test (the toast's DOM was torn down by the position swap in the same commit as the
+click's own navigation). Reported and fixed in the same session, `docs/progress/t22b3.md`. **Only the offset value changes at runtime now (22b.4);
+the `position` prop itself is never swapped**, so that bug class cannot recur. A future toast type that wants the top-centre placement sets
+`position: 'top-center'` on its own `toast(...)` call the same way; the stack limit (3), per-severity duration and the toast actions
+(`src/app/shell/notifyDecision.ts`, `NotifyCard.tsx`) are unchanged.
+
 ## 8. Dark theme — "night shift" design (binding)
 Goal: a night-shift control room, **not** a black screen. Readability comes from **value layering** (each layer clearly lighter than
 the one behind it), **cool rim light** to separate silhouettes, **warm work-light pools** over active bays, and **saturation kept on

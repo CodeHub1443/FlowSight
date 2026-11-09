@@ -236,6 +236,17 @@ export function isDrag(downX: number, downY: number, upX: number, upY: number): 
   return Math.hypot(upX - downX, upY - downY) > DRAG_PX;
 }
 
+/**
+ * Same threshold as `isDrag`, for R3F's own click handlers (bays, belts, staging): R3F's `ThreeEvent.delta`
+ * ("Delta between first click and this event", `@react-three/fiber`'s `events.d.ts`) is already the rounded
+ * pointer-down-to-click distance in CSS pixels, computed the same way regardless of what pointerdown hit
+ * (t22b.3 Finding A: a drag starting on an actor still reaches here when the actor's own canvas-level handler
+ * declines to claim it) — so no separate down/up coordinates are needed, only this one comparison.
+ */
+export function isR3fClickDrag(delta: number): boolean {
+  return delta > DRAG_PX;
+}
+
 export type ClickDecision =
   /** Not a click: the camera was dragged. Leave it to the controls. */
   | { type: 'ignore' }

@@ -1112,3 +1112,30 @@ regression — confirmed fine on the real GPU); no dev control exists to force a
 brief's assumption); forcing a not-OK camera works, but only probabilistically (~80%/click) via the `system`
 trigger, not deterministically. See `docs/progress/t22b2.md` for full numbers, every screenshot path, and the
 options reported for each undecided finding.
+
+### 22B.3 summary
+Closed every 22B.2 finding. **Drag never selects, anywhere** (Finding A, owner decision): `src/scene/bay/Bay.tsx`'s one click
+handler (bays, belts, staging share it) now rejects a click when R3F's own `event.delta` (the pointer-down-to-click distance,
+quoted from `@react-three/fiber`'s own types) exceeds the project's existing 4 px `DRAG_PX` threshold — one call site, covers a
+drag starting on an actor and a plain drag on bare bay floor alike; `docs/04` updated, a unit test added
+(`isR3fClickDrag`), all 8 `e2e/t22b-scene.spec.ts` non-screenshot tests pass individually. **Toast placement** (owner decision,
+`docs/06` §7.10): a live-event toast sits top-centre (136 px below the top safe area) via `position: 'top-center'` set once per
+toast at creation (`notifyRuntime.tsx`), not read from the current route — a first implementation that instead swapped the
+`Toaster`'s own `position` prop by route was found, mid-session, to break "Open on a toast" (sonner keys its toast groups by
+position, so swapping it mid-navigation unmounts and rebuilds the toast, including the button just clicked); found, explained and
+fixed in the same session, with 13 screenshots (light both sizes/languages, dark on the real GPU) confirming the placement clears
+the KPI row, tray, inspector and map controls everywhere. **Dark-theme screenshots** now skip under SwiftShader with a stated
+reason, gated on `T22B_GPU=1` (verified at runtime, not just `--list`). **The fps gate returned a clean, unambiguous result for
+the first time in this project**: 5 alternating A/B pairs on the real RTX 3050 — median mean-frame-time difference +0.71% (gate
+±5%), median p95 difference −0.1 ms (gate +1.0 ms), both pass; draw calls (+43) and triangles (+1.76%) deterministic and matching
+the architect's own prior estimate. (`nvidia-smi`'s `utilization.gpu` never read under the brief's 10% idle threshold on this
+sandbox despite power draw and performance-state readings consistent with a genuinely idle GPU — reported as a deviation, not
+hidden.) **The nav-timeline split directly answers task 22.11's open question**: new longtask-vs-push classification in
+`e2e/t21-nav-leak.spec.ts`, cross-checked with a lead-time diagnostic, shows the long task "before" the push starts only
+0.2-0.7 ms earlier and then runs the *entire* leave duration past it — the leave time, on both SwiftShader (13.7-41 s) and the real
+GPU (29-62 ms, this session's first real-GPU nav measurement), is one synchronous unmount/remount commit triggered by the click
+itself, not separate pre-existing background work; real-GPU teardown (29-62 ms) is far under the 500 ms stop condition. Full
+regression passed (1926/1926 effective, two known load-sensitive tests rerun alone); entry chunk 930,796 bytes, comfortably under
+the 931,351 budget. `e2e/t22a-events.spec.ts` and the full `e2e/t22b-scene.spec.ts` file both still show the standing,
+already-documented (BACKLOG T22.9b) `startPeak()`-not-landing-within-60s sandbox flakiness on tests unrelated to this session's
+changes — not a regression, confirmed by the directly-relevant tests passing individually/solo. See `docs/progress/t22b3.md`.

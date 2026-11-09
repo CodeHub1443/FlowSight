@@ -31,8 +31,11 @@ the shed interior**:
   on a click and tests it against the bounds of what is drawn now (a capsule per person, forklift and truck; a sphere per glyph; built from the
   rig's current poses, including the crew-separation offset; an actor still fading in or out is skipped). The bound grows with distance (at least
   0.006 rad) so a figure at the hero distance can still be hit. **The nearest hit wins**, and **an actor beats the bay floor plate under it**: a click
-  that hits claims the event, so R3F's bay handler never sees it. A click on nothing of ours, and any drag, reaches R3F and the bays as before
-  (bays, belts and staging stay selectable). A pointer movement of more than **4 px between down and up is a drag**, not a click. Selection ids are
+  that hits claims the event, so R3F's bay handler never sees it. A click on nothing of ours reaches R3F and the bays (bays, belts and staging
+  stay selectable that way). **A drag never selects anything, anywhere** (t22b.3 Finding A): a pointer movement of more than **4 px between down
+  and up is a drag**, not a click, for actors and camera glyphs (the canvas-level handler's own down/up distance) and, independently, for the
+  bay/belt/staging R3F click handler (`event.delta`, R3F's own pointer-down-to-click distance) — so a drag that starts on an actor and is declined
+  by the actor's own handler does not fall through and select the bay underneath it either. Selection ids are
   the ones the inspector bodies read: the **visit id** for a truck, the **track id** for a person or forklift. **Hover** looks only while the pointer
   moves, **at most 10 times a second**, and never while a button is held (a camera drag); over an actor it shows the pointer cursor and a light
   floor ring (`--hover`), over a camera glyph the cursor only. Cost: one fill of about 100 bounds and one ray test, 1.5 microseconds per ray measured.

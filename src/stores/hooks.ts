@@ -14,6 +14,7 @@ export const useLiveStore = <T>(selector: (s: LiveState) => T): T => useStore(li
 export const useAlertStore = <T>(selector: (s: AlertState) => T): T =>
   useStore(alertStore, selector);
 export const useUiStore = <T>(selector: (s: UiState) => T): T => useStore(uiStore, selector);
+export const useKpiRowBottom = (): number | null => useUiStore((s) => s.kpiRowBottom);
 export const useSessionStore = <T>(selector: (s: SessionState) => T): T =>
   useStore(sessionStore, selector);
 

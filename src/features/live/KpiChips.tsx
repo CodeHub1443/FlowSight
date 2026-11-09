@@ -1,4 +1,4 @@
-import { lazy, memo, useMemo, useState, type ReactNode } from 'react';
+import { lazy, memo, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { ChevronsLeft } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -19,7 +19,7 @@ import {
 } from '@/components/common';
 import type { SiteState } from '@/domain';
 import { cn } from '@/lib/utils';
-import { useBays, useSiteKpi } from '@/stores';
+import { uiStore, useBays, useSiteKpi } from '@/stores';
 import { Delta } from './kpiDetail/Delta';
 import {
   KpiPopover,
@@ -371,8 +371,23 @@ export function KpiChips() {
     () => (worstBay === null ? null : { bay: worstBay, count: worstCount }),
     [worstBay, worstCount],
   );
+  const rowRef = useRef<HTMLDivElement>(null);
+  // Toasts sit below this row's real bottom edge (docs/06 §7.10, t22b.4): reported to uiStore so
+  // AppShell can offset the top-centre toast stack without this component knowing about toasts.
+  useEffect(() => {
+    const el = rowRef.current;
+    if (!el) return;
+    const report = () => uiStore.getState().setKpiRowBottom(el.getBoundingClientRect().bottom);
+    report();
+    const observer = new ResizeObserver(report);
+    observer.observe(el);
+    return () => {
+      observer.disconnect();
+      uiStore.getState().setKpiRowBottom(null);
+    };
+  }, [open]);
   return (
-    <div className="flex items-stretch gap-[12px]" data-testid="kpi-chips">
+    <div className="flex items-stretch gap-[12px]" data-testid="kpi-chips" ref={rowRef}>
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}

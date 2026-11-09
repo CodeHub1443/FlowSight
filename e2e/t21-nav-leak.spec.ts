@@ -43,6 +43,8 @@ declare global {
     __t21RouteVisible?: number;
     __t21LongTaskMs?: number;
     __t21LongTaskCount?: number;
+    /** t22b.3 item 5: every longtask this cycle, so each can be classified against the push instant. */
+    __t21LongTasks?: { start: number; duration: number }[];
   }
 }
 
@@ -164,29 +166,45 @@ async function armRouteVisible(page: Page, path: string) {
 }
 
 /**
- * Pushes `path` and resolves with the in-page performance.now() of the push. A MutationObserver set up first stores in
- * window.__t21Gone the performance.now() at which the scene canvas is no longer in the document.
+ * Pushes `path` and resolves with the in-page performance.now() of the push, and `dispatchDelayMs`: the gap
+ * between `hostBefore` (Node's Date.now(), just before this call) and the page's own Date.now() at the very
+ * start of the evaluated script. t22b.3 item 5 asks for "input delay" (event.timeStamp vs. when the handler
+ * actually starts); this harness has no real click to time (navigation is a synthetic pushState + dispatched
+ * popstate, not a hardware input event), so `dispatchDelayMs` is the closest honest proxy available: the
+ * CDP round-trip plus however long the main thread was busy before it could run this script at all. It is
+ * reported as that proxy, not relabelled as a real input delay.
+ *
+ * A MutationObserver set up first stores in window.__t21Gone the performance.now() at which the scene canvas
+ * is no longer in the document.
  */
-async function leave(page: Page, path: string): Promise<number> {
+async function leave(
+  page: Page,
+  path: string,
+  hostBefore: number,
+): Promise<{ t0: number; dispatchDelayMs: number }> {
   await armRouteVisible(page, path);
-  return page.evaluate((p) => {
-    window.__t21Gone = undefined;
-    const gone = () => !document.querySelector('[data-testid="scene-canvas"]');
-    const observer = new MutationObserver(() => {
-      if (!gone()) return;
-      window.__t21Gone = performance.now();
-      observer.disconnect();
-    });
-    observer.observe(document.body, { childList: true, subtree: true });
-    const t0 = performance.now();
-    window.history.pushState({}, '', p);
-    window.dispatchEvent(new PopStateEvent('popstate'));
-    if (gone()) {
-      window.__t21Gone = performance.now();
-      observer.disconnect();
-    }
-    return t0;
-  }, path);
+  return page.evaluate(
+    ([p, before]) => {
+      const wallAtStart = Date.now();
+      window.__t21Gone = undefined;
+      const gone = () => !document.querySelector('[data-testid="scene-canvas"]');
+      const observer = new MutationObserver(() => {
+        if (!gone()) return;
+        window.__t21Gone = performance.now();
+        observer.disconnect();
+      });
+      observer.observe(document.body, { childList: true, subtree: true });
+      const t0 = performance.now();
+      window.history.pushState({}, '', p);
+      window.dispatchEvent(new PopStateEvent('popstate'));
+      if (gone()) {
+        window.__t21Gone = performance.now();
+        observer.disconnect();
+      }
+      return { t0, dispatchDelayMs: wallAtStart - before };
+    },
+    [path, hostBefore] as const,
+  );
 }
 
 /** GPU memory (geometries+textures) back to the settled-start baseline, polled after the canvas has left the DOM. */
@@ -246,10 +264,15 @@ test(`${CYCLES} visits to /live leak no DOM, listeners, canvases or heap`, async
   await page.addInitScript(() => {
     window.__t21LongTaskMs = 0;
     window.__t21LongTaskCount = 0;
+    window.__t21LongTasks = [];
     new PerformanceObserver((list) => {
       for (const entry of list.getEntries()) {
         window.__t21LongTaskMs = (window.__t21LongTaskMs ?? 0) + entry.duration;
         window.__t21LongTaskCount = (window.__t21LongTaskCount ?? 0) + 1;
+        (window.__t21LongTasks ?? (window.__t21LongTasks = [])).push({
+          start: entry.startTime,
+          duration: entry.duration,
+        });
       }
     }).observe({ entryTypes: ['longtask'] });
   });
@@ -277,27 +300,37 @@ test(`${CYCLES} visits to /live leak no DOM, listeners, canvases or heap`, async
     await page.evaluate(() => {
       window.__t21LongTaskMs = 0;
       window.__t21LongTaskCount = 0;
+      window.__t21LongTasks = [];
     });
-    const pushedAt = await leave(page, '/trucks');
+    const hostBefore = Date.now();
+    const { t0: pushedAt, dispatchDelayMs } = await leave(page, '/trucks', hostBefore);
     await expect(page.getByTestId('scene-canvas')).toHaveCount(0, { timeout: LEAVE_TIMEOUT_MS });
     const goneAt = await page.evaluate(() => window.__t21Gone ?? performance.now());
     const ms = goneAt - pushedAt;
     navMs.push(ms);
-    // 22B.2 timeline (informational): (a) push is t=0 by construction; (b) route visible; (c) canvas gone
-    // (same value as goneAt above); (d) GPU memory back to the start baseline, polled after (c); (e) the
-    // spec's own 'left' condition is (c) itself (the scene-canvas assertion above).
+    // t22b.3 item 5 timeline (informational): (a) push is t=0 by construction, and dispatchDelayMs is the
+    // closest honest proxy for "input delay" this synthetic-event harness has (see leave()'s own comment);
+    // (b) route visible; (c) canvas gone (same value as goneAt above); (d) GPU memory back to the start
+    // baseline, polled after (c); (e) the spec's own 'left' condition is (c) itself (the assertion above).
+    // Every longtask since the per-cycle reset above is classified against pushedAt: one that started
+    // before the push and is still running past it ("already in flight") vs. one that starts at or after
+    // the push ("teardown"), answering the brief's question directly instead of only summing all of them.
     const routeVisibleAt = await page.evaluate(() => window.__t21RouteVisible ?? null);
-    const lt = await page.evaluate(() => ({
-      ms: window.__t21LongTaskMs ?? 0,
-      count: window.__t21LongTaskCount ?? 0,
-    }));
+    const tasks = await page.evaluate(() => window.__t21LongTasks ?? []);
+    const before = tasks.filter((t) => t.start < pushedAt);
+    const atOrAfter = tasks.filter((t) => t.start >= pushedAt);
+    const preClickOverlapMs = before.reduce(
+      (s, t) => s + Math.max(0, t.start + t.duration - pushedAt),
+      0,
+    );
+    const postClickMs = atOrAfter.reduce((s, t) => s + t.duration, 0);
     const gpuMsAfterGone = await waitGpuReleased(
       page,
       { geometries: start.geometries, textures: start.textures },
       10_000,
     );
     log(
-      `t21 timeline cycle ${i}: push=0 routeVisible=${routeVisibleAt === null ? 'n/a' : (routeVisibleAt - pushedAt).toFixed(0)} canvasGone=${ms.toFixed(0)} gpuReleased=${gpuMsAfterGone === null ? 'n/a(>10s after gone)' : `+${gpuMsAfterGone}afterGone`} longTasks=${lt.count} (${lt.ms.toFixed(0)} ms) [all ms relative to the push, except gpuReleased which is relative to the canvas leaving]`,
+      `t21 timeline cycle ${i}: push=0 dispatchDelay=${dispatchDelayMs.toFixed(0)}ms routeVisible=${routeVisibleAt === null ? 'n/a' : (routeVisibleAt - pushedAt).toFixed(0)} canvasGone=${ms.toFixed(0)} gpuReleased=${gpuMsAfterGone === null ? 'n/a(>10s after gone)' : `+${gpuMsAfterGone}afterGone`} longTasks=${tasks.length} (${(preClickOverlapMs + postClickMs).toFixed(0)} ms total: ${before.length} started before push, overlapping it by ${preClickOverlapMs.toFixed(0)} ms; ${atOrAfter.length} started at/after push, summing ${postClickMs.toFixed(0)} ms) [all ms relative to the push, except gpuReleased which is relative to the canvas leaving]`,
     );
     log(`t21 nav cycle ${i}: ${ms.toFixed(0)} ms`);
     if (ms > SLOW_NAV_MS) {

@@ -63,7 +63,15 @@ export function notify(events: readonly WhEventWithStatus[], navigate: NavigateF
           }}
         />
       ),
-      { id: tt.id, duration: toastDuration(tt.sev), onDismiss: gone, onAutoClose: gone },
+      {
+        id: tt.id,
+        duration: toastDuration(tt.sev),
+        onDismiss: gone,
+        onAutoClose: gone,
+        // t22b.3: a live-event toast sits top-centre (docs/06 §7.10), set once here rather than read from
+        // the current route, so it does not move or get rebuilt if the user navigates away while it is open.
+        position: 'top-center',
+      },
     );
   }
 }

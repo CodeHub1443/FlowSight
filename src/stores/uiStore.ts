@@ -33,6 +33,8 @@ export interface UiData {
   /** Persisted (UI preference only). */
   theme: Theme;
   trayTab: TrayTab;
+  /** Viewport-relative bottom edge (px) of the /live KPI row, or null when it is not mounted (t22b.4). */
+  kpiRowBottom: number | null;
 }
 
 export interface UiActions {
@@ -44,6 +46,7 @@ export interface UiActions {
   setLanguage(lang: UiLang): void;
   setTheme(theme: Theme): void;
   setTrayTab(tab: TrayTab): void;
+  setKpiRowBottom(bottom: number | null): void;
 }
 
 export type UiState = UiData & UiActions;
@@ -69,6 +72,7 @@ export function createUiStore(): UiStore {
     language: storedLanguage(),
     theme: storedTheme(),
     trayTab: 'bays',
+    kpiRowBottom: null,
 
     select: (selection) => set({ selection }),
     flyTo: (kind, id = null) => set({ cameraTarget: { kind, id, seq: ++seq } }),
@@ -86,6 +90,7 @@ export function createUiStore(): UiStore {
       set({ theme });
     },
     setTrayTab: (trayTab) => set({ trayTab }),
+    setKpiRowBottom: (kpiRowBottom) => set({ kpiRowBottom }),
   }));
 }
 

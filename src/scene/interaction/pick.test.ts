@@ -9,6 +9,7 @@ import {
   HOVER_INTERVAL_MS,
   HoverGate,
   isDrag,
+  isR3fClickDrag,
   PICK_MIN_ANGLE,
   PickList,
   rayCapsule,
@@ -193,6 +194,13 @@ describe('click and drag', () => {
 
   it('a click on an actor selects it and claims the click (an actor beats the floor plate)', () => {
     expect(decideClick(10, 10, 11, 10, 2)).toEqual({ type: 'select', index: 2 });
+  });
+
+  it("t22b.3: a bay/belt/staging click's own drag gate matches isDrag's threshold", () => {
+    // R3F's event.delta is already rounded (see isR3fClickDrag's own comment); 4 is still a click, 5 is a drag.
+    expect(isR3fClickDrag(4)).toBe(false);
+    expect(isR3fClickDrag(5)).toBe(true);
+    expect(isR3fClickDrag(0)).toBe(false);
   });
 
   it('a click on nothing of ours passes through to the bays, belts and staging', () => {

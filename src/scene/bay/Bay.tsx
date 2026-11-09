@@ -6,6 +6,7 @@ import { Appear } from '../Appear';
 import { GlbOrProcedural } from '../assets/GlbOrProcedural';
 import { PropInstances } from '../assets/PropInstances';
 import { bayToThree } from '../frame';
+import { isR3fClickDrag } from '../interaction/pick';
 import type { BoxItem } from '../items';
 import { BoxInstances, CylInstances, MarkInstances } from '../primitives';
 import { Plate } from '../Plate';
@@ -147,6 +148,11 @@ export function Bay({ face, bay, selected, anim, status, onSelect }: BayProps) {
     <group
       onClick={(e) => {
         e.stopPropagation();
+        // t22b.3 Finding A: e.delta (R3F's own pointer-down-to-click distance, px) is the same drag
+        // distance pick.ts's canvas-level actor handler uses (DRAG_PX); a drag that starts on an actor
+        // and ends up here (the actor's own handler returns without claiming the click) must not select
+        // the bay underneath, so the two handlers share one threshold.
+        if (isR3fClickDrag(e.delta)) return;
         onSelect?.({ kind: 'bay', bayId: bay.id });
       }}
       onPointerEnter={() => {

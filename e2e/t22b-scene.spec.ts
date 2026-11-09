@@ -10,6 +10,9 @@ import { settle, startPeak } from './mockSim';
 // on screen: window.__pickProbe.points() (interaction/pickProbe.ts) and the stores through window.__uiStore (LiveScene).
 // Run alone:  pnpm exec playwright test e2e/t22b-scene.spec.ts
 // Screenshots (opt-in):  T22B_SHOTS=1 pnpm exec playwright test e2e/t22b-scene.spec.ts -g screenshots
+// Dark-theme screenshots additionally need a real GPU (t22b.3 item 3):
+//   T22B_SHOTS=1 T22B_GPU=1 pnpm exec playwright test e2e/t22b-scene.spec.ts -g screenshots --headed
+//   (or any launch that actually uses a hardware renderer; SwiftShader hangs on these, see docs/progress/t22b2.md)
 
 type Kind = 'truck' | 'person' | 'forklift' | 'camera';
 interface Point {
@@ -261,6 +264,15 @@ for (const size of [
         page,
       }) => {
         test.skip(process.env.T22B_SHOTS !== '1', 'screenshot pass, opt-in');
+        if (theme === 'dark') {
+          // t22b.3 item 3 (docs/progress/t22b2.md Finding B): every dark-theme combination timed out under
+          // SwiftShader, at the same step, every time — a real-GPU-only limitation, not a code defect. Run
+          // the dark set only where a real GPU is confirmed (T22B_GPU=1), never under the software renderer.
+          test.skip(
+            process.env.T22B_GPU !== '1',
+            'dark-theme screenshots hang under the SwiftShader software renderer (docs/progress/t22b2.md Finding B); run only on a real GPU, via T22B_GPU=1',
+          );
+        }
         await openPeak(page);
         await page.setViewportSize(size);
         await page.evaluate(
